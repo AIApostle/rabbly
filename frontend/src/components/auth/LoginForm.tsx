@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
+import { login } from '../../services/authService';
 
 interface LoginFormProps {
   onSuccess: () => void;
@@ -19,7 +20,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) {
       setError('Please enter your email and password.');
@@ -29,11 +30,14 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     setError(null);
     setIsLoading(true);
 
-    // Simulate authentication delay
-    setTimeout(() => {
+    try {
+      await login({ email, password });
       setIsLoading(false);
       onSuccess();
-    }, 900);
+    } catch (err: any) {
+      setIsLoading(false);
+      setError(err?.message || 'Invalid email or password. Please try again.');
+    }
   };
 
   const handleGoogleSignIn = () => {

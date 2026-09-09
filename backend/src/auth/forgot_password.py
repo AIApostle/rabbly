@@ -22,6 +22,13 @@ async def forgot_password(payload: ForgotPasswordRequest):
     Triggers a password recovery email.
     Always returns success to prevent user enumeration attacks.
     """
+    supabase_configured = bool(os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_ANON_KEY"))
+    if not supabase_configured:
+        return MessageResponse(
+            success=True,
+            message="If an account with that email exists, a password reset link has been sent to your inbox.",
+        )
+
     client = get_supabase_client()
 
     options = {}

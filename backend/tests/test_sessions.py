@@ -104,3 +104,38 @@ def test_delete_session():
     # Confirm it returns 404
     get_res = client.get(f"/api/sessions/{room_code}")
     assert get_res.status_code == 404
+
+
+def test_authenticated_user_session_wiring():
+    """Verify session creation and retrieval properly binds to the authenticated user from auth."""
+    # 1. Sign in to obtain auth token
+    signin_res = client.post(
+        "/api/auth/signin",
+        json={"email": "student@rabbly.ai", "password": "SecurePassword123!"},
+    )
+    assert signin_res.status_code == 200
+    auth_data = signin_res.json()
+    token = auth_data["access_token"]
+    user_id = auth_data["user"]["id"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 2. Create session with auth token
+    create_res = client.post(
+        "/api/sessions",
+        json={
+            "topic": "Neural ODEs & Continuous Normalizing Flows",
+            "subject": "Deep Learning",
+            "level": "Advanced",
+            "is_classroom": False,
+        },
+        headers=headers,
+    )
+    assert create_res.status_code == 201
+    created_session = create_res.json()
+    assert created_session["host_id"] == user_id
+
+    # 3. Retrieve user sessions with token
+    list_res = client.get("/api/sessions", headers=headers)
+    assert list_res.status_code == 200
+    user_sessions = list_res.json()
+    assert any(s["topic"] == "Neural ODEs & Continuous Normalizing Flows" for s in user_sessions)

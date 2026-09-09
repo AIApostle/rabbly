@@ -5,6 +5,7 @@
  */
 
 import type { RecentSessionData } from '../types';
+import { getAuthHeaders } from './authService';
 
 const STORAGE_KEY = 'rabbly_recent_sessions_v1';
 
@@ -167,9 +168,7 @@ export function saveLocalSessions(sessions: RecentSessionData[]): void {
 export async function loadRecentSessions(): Promise<RecentSessionData[]> {
   try {
     const res = await fetch('/api/sessions', {
-      headers: {
-        'Accept': 'application/json',
-      },
+      headers: getAuthHeaders(),
     });
 
     if (res.ok) {
@@ -217,7 +216,7 @@ export async function persistNewSession(session: Partial<RecentSessionData>): Pr
   const updatedList = [localItem, ...currentSessions.filter((s) => s.roomCode !== roomCode && s.topic !== localItem.topic)];
   saveLocalSessions(updatedList);
 
-  // Background sync to backend API
+  // Background sync to backend API with auth headers
   try {
     const payload: BackendSessionPayload = {
       room_code: roomCode,
@@ -236,7 +235,7 @@ export async function persistNewSession(session: Partial<RecentSessionData>): Pr
 
     const res = await fetch('/api/sessions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(payload),
     });
 
@@ -264,9 +263,28 @@ export async function removeSession(sessionId: string, roomCode?: string): Promi
     try {
       await fetch(`/api/sessions/${codeToDelete}`, {
         method: 'DELETE',
+        headers: getAuthHeaders(),
       });
     } catch {
       // Offline fallback
     }
+  }
+}
+
+/**
+ * Updates session progress on backend
+ */
+export async function updateSessionProgress(
+  roomCode: string,
+  updates: Partial<BackendSessionPayload>
+): Promise<void> {
+  try {
+    await fetch(`/api/sessions/${roomCode}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(updates),
+    });
+  } catch {
+    // Offline fallback
   }
 }

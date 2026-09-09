@@ -13,8 +13,9 @@ from fastapi.middleware.cors import CORSMiddleware
 env_path = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
-from src.auth import auth_router, get_current_user, UserProfile
-from src.sessions import sessions_router
+from src.auth import get_current_user, UserProfile
+from src.pages.auth import auth_page_router
+from src.pages.recent_sessions import recent_sessions_router
 
 app = FastAPI(
     title="Rabbly AI Tutor API",
@@ -36,9 +37,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount the unified routers under /api
-app.include_router(auth_router, prefix="/api")
-app.include_router(sessions_router, prefix="/api")
+# Mount page routers under /api
+app.include_router(auth_page_router, prefix="/api")
+app.include_router(recent_sessions_router, prefix="/api")
 
 
 @app.get("/health", tags=["Health"])

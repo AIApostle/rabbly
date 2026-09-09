@@ -1,8 +1,8 @@
 """
 Sessions Package
-Provides endpoints and services for active, recent, and collaborative learning sessions.
+Re-exports the Recent Sessions Page router from src.pages.recent_sessions for backward compatibility.
 """
 
-from .router import sessions_router
+from src.pages.recent_sessions import recent_sessions_router as sessions_router
 
 __all__ = ["sessions_router"]

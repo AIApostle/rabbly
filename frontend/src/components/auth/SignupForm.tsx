@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, User, Loader2, Check, Sparkles } from 'lucide-react';
+import { signup } from '../../services/authService';
 
 interface SignupFormProps {
   onSuccess: () => void;
@@ -34,7 +35,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({
   const strength = calculateStrength(password);
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim() || !password.trim()) {
       setError('Please fill out all required fields.');
@@ -59,10 +60,14 @@ export const SignupForm: React.FC<SignupFormProps> = ({
     setError(null);
     setIsLoading(true);
 
-    setTimeout(() => {
+    try {
+      await signup({ email, password, fullName: name });
       setIsLoading(false);
       onSuccess();
-    }, 1000);
+    } catch (err: any) {
+      setIsLoading(false);
+      setError(err?.message || 'Registration failed. Please try again.');
+    }
   };
 
   const handleGoogleSignUp = () => {

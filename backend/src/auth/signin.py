@@ -3,9 +3,12 @@ User Authentication (Sign In) Endpoint
 Handles email/password sign-in and returns active Supabase JWT tokens.
 """
 
+import os
+import uuid
 from fastapi import APIRouter, HTTPException, status
 
 from src.schemas.auth import SignInRequest, SignInResponse
+from src.schemas.profile import UserProfile
 from .client import format_user_profile, get_supabase_client
 
 router = APIRouter()
@@ -28,6 +31,22 @@ async def signin(payload: SignInRequest):
     Validates user credentials against Supabase.
     Returns the user profile and JWT access_token to be supplied in the Authorization header.
     """
+    supabase_configured = bool(os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_ANON_KEY"))
+    if not supabase_configured:
+        fake_user = UserProfile(
+            id="usr-demo-student-01",
+            email=payload.email,
+            full_name=payload.email.split("@")[0].title() or "Demo Student",
+            role="authenticated",
+        )
+        return SignInResponse(
+            user=fake_user,
+            access_token=f"mock-jwt-token-{uuid.uuid4().hex[:16]}",
+            refresh_token=f"mock-refresh-{uuid.uuid4().hex[:16]}",
+            token_type="bearer",
+            expires_in=86400,
+        )
+
     client = get_supabase_client()
 
     try:

@@ -3,6 +3,8 @@ User Registration (Sign Up) Endpoint
 Handles new student / user account creation via Supabase Auth.
 """
 
+import os
+import uuid
 from typing import Any, Dict
 from fastapi import APIRouter, HTTPException, status
 
@@ -26,6 +28,22 @@ async def signup(payload: SignUpRequest):
     If Supabase email confirmation is enabled, a confirmation email is dispatched.
     If confirmation is disabled, an active session with JWT access token is immediately returned.
     """
+    supabase_configured = bool(os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_ANON_KEY"))
+    if not supabase_configured:
+        fake_user = UserProfile(
+            id=f"usr-{uuid.uuid4().hex[:8]}",
+            email=payload.email,
+            full_name=payload.full_name or "New Student",
+            role="authenticated",
+        )
+        return SignUpResponse(
+            user=fake_user,
+            access_token=f"mock-jwt-token-{uuid.uuid4().hex[:16]}",
+            token_type="bearer",
+            expires_in=86400,
+            confirmation_sent=False,
+        )
+
     client = get_supabase_client()
 
     # Build custom user metadata

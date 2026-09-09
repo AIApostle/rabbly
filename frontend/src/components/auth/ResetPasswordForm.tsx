@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Lock, Eye, EyeOff, CheckCircle2, ArrowRight, Loader2, ShieldCheck, ArrowLeft, RefreshCw } from 'lucide-react';
+import { resetPassword } from '../../services/authService';
 
 interface ResetPasswordFormProps {
   email: string;
@@ -76,7 +77,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
     digitRefs.current[0]?.focus();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const fullOtp = otp.join('');
     if (fullOtp.length < 6) {
@@ -97,10 +98,14 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
     setError(null);
     setIsLoading(true);
 
-    setTimeout(() => {
+    try {
+      await resetPassword(newPassword);
       setIsLoading(false);
       setIsDone(true);
-    }, 1000);
+    } catch (err: any) {
+      setIsLoading(false);
+      setError(err?.message || 'Failed to update password. Please try again.');
+    }
   };
 
   if (isDone) {
