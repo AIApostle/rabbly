@@ -1,0 +1,635 @@
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  Users,
+  ArrowRight,
+  Radio,
+  Plus,
+  ArrowLeft,
+  Lock,
+  Sparkles,
+  Volume2,
+  Paperclip,
+  SquarePlay,
+  Check,
+  ChevronDown,
+  Globe,
+  X,
+  FileText,
+} from 'lucide-react';
+import type { ExternalResource } from '../types';
+
+interface ClassroomHubPageProps {
+  onJoinRoom: (roomCode: string) => void;
+  onCreateRoom: (topic: string, resources?: ExternalResource[], level?: string) => void;
+  onBackToChat: () => void;
+}
+
+export const ClassroomHubPage: React.FC<ClassroomHubPageProps> = ({
+  onJoinRoom,
+  onCreateRoom,
+  onBackToChat,
+}) => {
+  const [joinCode, setJoinCode] = useState('');
+  const [newRoomTopic, setNewRoomTopic] = useState('');
+  const [roomLevel, setRoomLevel] = useState<'Beginner' | 'Intermediate' | 'Advanced'>('Intermediate');
+  const [roomResources, setRoomResources] = useState<ExternalResource[]>([]);
+
+  // Menu states
+  const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
+  const [isLevelMenuOpen, setIsLevelMenuOpen] = useState(false);
+
+  // Modal states
+  const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
+  const [isYoutubeModalOpen, setIsYoutubeModalOpen] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
+  const [urlTitleInput, setUrlTitleInput] = useState('');
+  const [youtubeUrlInput, setYoutubeUrlInput] = useState('');
+  const [youtubeTitleInput, setYoutubeTitleInput] = useState('');
+
+  // Refs
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const plusMenuRef = useRef<HTMLDivElement>(null);
+  const levelMenuRef = useRef<HTMLDivElement>(null);
+
+  // Auto-resize topic textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
+    }
+  }, [newRoomTopic]);
+
+  // Click outside to close menus
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (plusMenuRef.current && !plusMenuRef.current.contains(e.target as Node)) {
+        setIsPlusMenuOpen(false);
+      }
+      if (levelMenuRef.current && !levelMenuRef.current.contains(e.target as Node)) {
+        setIsLevelMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleJoinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!joinCode.trim()) return;
+    onJoinRoom(joinCode.trim().toUpperCase());
+  };
+
+  const handleAddUrl = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!urlInput.trim()) return;
+    const url = urlInput.trim();
+    const formattedUrl = url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`;
+    const domain = formattedUrl.replace(/^https?:\/\//, '').split('/')[0];
+    const title = urlTitleInput.trim() || domain;
+
+    setRoomResources((prev) => [
+      ...prev,
+      {
+        id: `url-${Date.now()}`,
+        type: 'link',
+        title,
+        detail: domain,
+        url: formattedUrl,
+      },
+    ]);
+    setUrlInput('');
+    setUrlTitleInput('');
+    setIsUrlModalOpen(false);
+  };
+
+  const handleAddYoutube = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!youtubeUrlInput.trim()) return;
+    const url = youtubeUrlInput.trim();
+    const title = youtubeTitleInput.trim() || 'YouTube Video Lecture';
+
+    setRoomResources((prev) => [
+      ...prev,
+      {
+        id: `yt-${Date.now()}`,
+        type: 'youtube',
+        title,
+        detail: 'YouTube Tutorial',
+        url,
+      },
+    ]);
+    setYoutubeUrlInput('');
+    setYoutubeTitleInput('');
+    setIsYoutubeModalOpen(false);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    Array.from(files).forEach((file) => {
+      const sizeStr =
+        file.size > 1024 * 1024
+          ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+          : `${Math.round(file.size / 1024)} KB`;
+
+      setRoomResources((prev) => [
+        ...prev,
+        {
+          id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+          type: 'file',
+          title: file.name,
+          detail: sizeStr,
+        },
+      ]);
+    });
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeResource = (id: string) => {
+    setRoomResources((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  const handleCreateSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRoomTopic.trim()) return;
+    onCreateRoom(newRoomTopic.trim(), roomResources, roomLevel);
+  };
+
+  return (
+    <div className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-8 flex flex-col space-y-8">
+      {/* Hidden File Input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept=".pdf,.txt,.doc,.docx,.md,.markdown"
+        onChange={handleFileUpload}
+        className="hidden"
+      />
+
+      {/* Top Header with Back Button */}
+      <div className="pb-4 border-b border-[#44474f]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-semibold text-[#d0bcff] mb-1">
+            <Users className="w-4 h-4" />
+            <span>Collaborative Study Rooms</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white font-['Outfit']">
+            Classrooms
+          </h1>
+          <p className="text-xs sm:text-sm text-[#c4c6d0] mt-0.5 max-w-2xl leading-relaxed">
+            Learn together with friends in private, real-time study rooms. Classrooms are invite-only—join an existing session with an invite code or create a new room with custom sources and invite peers.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onBackToChat}
+          className="self-start sm:self-center px-3 py-1.5 rounded-xl bg-[#282a2f] hover:bg-[#33353a] text-xs font-medium text-[#c4c6d0] hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back to Session</span>
+        </button>
+      </div>
+
+      {/* Dual Main Actions: Join Room vs Create Room */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Card 1: Enter an Invite Code */}
+        <div className="p-6 rounded-3xl bg-[#1d2024] border border-[#44474f]/40 shadow-xl flex flex-col justify-between space-y-4">
+          <div>
+            <div className="w-10 h-10 rounded-2xl bg-[#4f378b]/40 border border-[#d0bcff]/40 text-[#d0bcff] flex items-center justify-center mb-3">
+              <Radio className="w-5 h-5" />
+            </div>
+            <h2 className="text-lg font-bold text-white font-['Outfit']">
+              Join a Classroom
+            </h2>
+            <p className="text-xs text-[#c4c6d0] mt-1 leading-relaxed">
+              Have an invite code from your classmate or study partner? Enter the room code to join their private live lecture.
+            </p>
+          </div>
+
+          <form onSubmit={handleJoinSubmit} className="space-y-3 pt-2">
+            <div>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-[#8e9099] block mb-1 font-mono">
+                Invite Code
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. RAB-9412"
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-[#d0bcff] rounded-2xl px-4 py-2.5 text-sm font-mono tracking-widest text-white placeholder-[#8e9099] focus:outline-none uppercase transition-colors"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={!joinCode.trim()}
+              className={`w-full py-3 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${
+                joinCode.trim()
+                  ? 'bg-[#4f378b] hover:bg-[#5e42a6] text-white shadow-[#4f378b]/30'
+                  : 'bg-[#282a2f] text-[#8e9099] cursor-not-allowed opacity-60'
+              }`}
+            >
+              <span>Enter Classroom</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </form>
+        </div>
+
+        {/* Card 2: Create a Classroom with Dropdown Source Upload & Multi-Line Topic */}
+        <div className="p-6 rounded-3xl bg-[#1d2024] border border-[#44474f]/40 shadow-xl flex flex-col justify-between space-y-4">
+          <div>
+            <div className="w-10 h-10 rounded-2xl bg-[#0842a0]/40 border border-[#a8c7fa]/40 text-[#a8c7fa] flex items-center justify-center mb-3">
+              <Plus className="w-5 h-5" />
+            </div>
+            <h2 className="text-lg font-bold text-white font-['Outfit']">
+              Create a Classroom
+            </h2>
+            <p className="text-xs text-[#c4c6d0] mt-1 leading-relaxed">
+              Start a shared study session with custom references and learning topics. Rabbly creates an invite-only workspace for you and your peers.
+            </p>
+          </div>
+
+          <form onSubmit={handleCreateSubmit} className="space-y-4 pt-1 flex flex-col flex-1 justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-[#8e9099] block font-mono">
+                  Session Topic or Curriculum Focus *
+                </label>
+              </div>
+
+              {/* Integrated Input Container (matching main chat omnibar style) */}
+              <div className="w-full rounded-2xl bg-[#111318] border border-[#44474f]/50 hover:border-[#44474f]/80 focus-within:border-[#a8c7fa]/60 focus-within:ring-2 focus-within:ring-[#0842a0]/20 transition-all p-3 flex flex-col">
+                {/* Attached Resources Tray */}
+                {roomResources.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 pb-2.5 mb-2 border-b border-[#44474f]/30">
+                    {roomResources.map((res) => (
+                      <div
+                        key={res.id}
+                        className="group inline-flex items-center gap-1.5 pl-2 pr-1.5 py-1 rounded-xl bg-[#282a2f] border border-[#44474f]/50 text-xs text-white max-w-xs transition-all hover:border-[#a8c7fa]/50"
+                      >
+                        {res.type === 'file' ? (
+                          <FileText className="w-3.5 h-3.5 text-[#a8c7fa] shrink-0" />
+                        ) : res.type === 'youtube' ? (
+                          <SquarePlay className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                        ) : (
+                          <Globe className="w-3.5 h-3.5 text-[#78f8e7] shrink-0" />
+                        )}
+
+                        <div className="flex flex-col min-w-0 pr-1">
+                          <span className="font-semibold text-[11px] truncate max-w-[130px]">{res.title}</span>
+                          {res.detail && (
+                            <span className="text-[9px] text-[#8e9099] truncate font-mono">{res.detail}</span>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => removeResource(res.id)}
+                          className="p-0.5 rounded hover:bg-[#37393e] text-[#8e9099] hover:text-white transition-colors cursor-pointer"
+                          title="Remove resource"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Multi-line auto-wrapping textarea */}
+                <textarea
+                  ref={textareaRef}
+                  required
+                  rows={3}
+                  placeholder="e.g. Distributed token bucket rate limiting with Redis, consistent hashing, and Lua scripts..."
+                  value={newRoomTopic}
+                  onChange={(e) => setNewRoomTopic(e.target.value)}
+                  className="w-full bg-transparent resize-none text-white placeholder-[#8e9099] text-xs sm:text-sm focus:outline-none leading-relaxed font-sans px-1 break-words"
+                />
+
+                {/* Bottom Bar: Plus Menu Dropdown & Level Selector */}
+                <div className="flex items-center justify-between pt-2.5 mt-1 border-t border-[#44474f]/20">
+                  <div className="flex items-center gap-2">
+                    {/* Plus Button Menu Popover */}
+                    <div ref={plusMenuRef} className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setIsPlusMenuOpen(!isPlusMenuOpen)}
+                        className={`p-1.5 rounded-full transition-all cursor-pointer ${
+                          isPlusMenuOpen
+                            ? 'bg-[#a8c7fa] text-[#062e6f]'
+                            : 'bg-[#282a2f] hover:bg-[#33353a] text-[#c4c6d0] hover:text-white'
+                        }`}
+                        title="Add study materials or links"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+
+                      {/* Dropdown Popover Menu */}
+                      {isPlusMenuOpen && (
+                        <div className="absolute left-0 bottom-9 w-72 rounded-2xl bg-[#1d2024] border border-[#44474f]/60 shadow-2xl p-1.5 z-30 flex flex-col gap-1 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-150">
+                          {/* 1. Document / File */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsPlusMenuOpen(false);
+                              fileInputRef.current?.click();
+                            }}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-[#282a2f] text-xs font-medium text-white transition-colors text-left cursor-pointer"
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-[#0842a0]/40 text-[#a8c7fa] flex items-center justify-center shrink-0">
+                              <Paperclip className="w-3.5 h-3.5" />
+                            </div>
+                            <div>
+                              <span className="block font-semibold">Attach Document / Notes</span>
+                              <span className="text-[10px] text-[#8e9099]">PDF, TXT, DOCX, Markdown</span>
+                            </div>
+                          </button>
+
+                          {/* 2. YouTube Video Tutorial Link */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsPlusMenuOpen(false);
+                              setIsYoutubeModalOpen(true);
+                            }}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-[#282a2f] text-xs font-medium text-white transition-colors text-left cursor-pointer"
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0 border border-rose-500/30">
+                              <SquarePlay className="w-3.5 h-3.5" />
+                            </div>
+                            <div>
+                              <span className="block font-semibold flex items-center gap-1.5">
+                                <span>Add YouTube Video Tutorial</span>
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 font-mono">Video</span>
+                              </span>
+                              <span className="text-[10px] text-[#8e9099]">Lectures, tutorials & walkthroughs</span>
+                            </div>
+                          </button>
+
+                          {/* 3. Web Link / Paper URL */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsPlusMenuOpen(false);
+                              setIsUrlModalOpen(true);
+                            }}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-[#282a2f] text-xs font-medium text-white transition-colors text-left cursor-pointer"
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-[#005353]/40 text-[#78f8e7] flex items-center justify-center shrink-0">
+                              <Globe className="w-3.5 h-3.5" />
+                            </div>
+                            <div>
+                              <span className="block font-semibold">Add Web Link / Paper URL</span>
+                              <span className="text-[10px] text-[#8e9099]">arXiv, docs, research link</span>
+                            </div>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <span className="text-[11px] text-[#8e9099]">
+                      {roomResources.length === 0 ? 'Attach sources' : `${roomResources.length} source${roomResources.length > 1 ? 's' : ''}`}
+                    </span>
+                  </div>
+
+                  {/* Level / Depth Selector */}
+                  <div ref={levelMenuRef} className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsLevelMenuOpen(!isLevelMenuOpen)}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#282a2f] hover:bg-[#33353a] border border-[#44474f]/40 text-[11px] font-medium text-[#c4c6d0] hover:text-white transition-all cursor-pointer"
+                    >
+                      <span>{roomLevel}</span>
+                      <ChevronDown className="w-3 h-3 text-[#a8c7fa]" />
+                    </button>
+
+                    {isLevelMenuOpen && (
+                      <div className="absolute right-0 bottom-9 w-36 rounded-2xl bg-[#1d2024] border border-[#44474f]/60 shadow-xl p-1.5 z-30 flex flex-col gap-1">
+                        {(['Beginner', 'Intermediate', 'Advanced'] as const).map((lvl) => (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => {
+                              setRoomLevel(lvl);
+                              setIsLevelMenuOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                              roomLevel === lvl
+                                ? 'bg-[#a8c7fa]/20 text-[#a8c7fa]'
+                                : 'text-[#c4c6d0] hover:bg-[#282a2f] hover:text-white'
+                            }`}
+                          >
+                            <span>{lvl}</span>
+                            {roomLevel === lvl && <Check className="w-3.5 h-3.5 text-[#a8c7fa]" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={!newRoomTopic.trim()}
+              className={`w-full py-3 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${
+                newRoomTopic.trim()
+                  ? 'bg-gradient-to-r from-[#0842a0] to-[#4f378b] hover:from-[#0a4fc0] hover:to-[#5e42a6] text-white shadow-[#0842a0]/30'
+                  : 'bg-[#282a2f] text-[#8e9099] cursor-not-allowed opacity-60'
+              }`}
+            >
+              <span>Create Classroom & Generate Code</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </form>
+        </div>
+      </div>
+
+      {/* Classroom Guidelines & Architecture Info */}
+      <div className="p-6 rounded-3xl bg-[#17191e] border border-[#44474f]/25 space-y-4">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-[#8e9099] font-mono">
+          How Invite-Only Classrooms Work
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-4 rounded-2xl bg-[#1d2024] border border-[#44474f]/20 flex flex-col space-y-2">
+            <div className="w-8 h-8 rounded-xl bg-[#4f378b]/30 text-[#d0bcff] flex items-center justify-center">
+              <Lock className="w-4 h-4" />
+            </div>
+            <h4 className="text-sm font-semibold text-white font-['Outfit']">Private & Isolated</h4>
+            <p className="text-xs text-[#8e9099] leading-relaxed">
+              Study rooms are not publicly discoverable. Only individuals with the direct room code can join your workspace.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-[#1d2024] border border-[#44474f]/20 flex flex-col space-y-2">
+            <div className="w-8 h-8 rounded-xl bg-[#0842a0]/30 text-[#a8c7fa] flex items-center justify-center">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <h4 className="text-sm font-semibold text-white font-['Outfit']">Synced Whiteboard</h4>
+            <p className="text-xs text-[#8e9099] leading-relaxed">
+              All students see the AI tutor write explanations and formulas in real-time on the shared interactive canvas.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-[#1d2024] border border-[#44474f]/20 flex flex-col space-y-2">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center">
+              <Volume2 className="w-4 h-4" />
+            </div>
+            <h4 className="text-sm font-semibold text-white font-['Outfit']">Spoken Q&A</h4>
+            <p className="text-xs text-[#8e9099] leading-relaxed">
+              Unmute to ask questions or discuss concepts. The AI tutor stops, listens, answers with voice, and updates the board.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* External Resource URL Popover Modal */}
+      {isUrlModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-150">
+          <div className="w-full max-w-md rounded-3xl bg-[#1d2024] border border-[#44474f]/60 shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[#44474f]/30">
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-[#78f8e7]" />
+                <h3 className="text-sm font-bold text-white font-['Outfit']">Attach Web Resource</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsUrlModalOpen(false)}
+                className="p-1.5 rounded-lg hover:bg-[#282a2f] text-[#8e9099] hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddUrl} className="space-y-3.5">
+              <div>
+                <label className="text-xs font-semibold text-[#c4c6d0] block mb-1">
+                  Resource URL <span className="text-[#a8c7fa]">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="https://arxiv.org/abs/... or wikipedia.org"
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-[#a8c7fa] rounded-xl px-3 py-2 text-xs text-white placeholder-[#8e9099] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-[#c4c6d0] block mb-1">
+                  Title or Label (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Research Paper or Reference Notes"
+                  value={urlTitleInput}
+                  onChange={(e) => setUrlTitleInput(e.target.value)}
+                  className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-[#a8c7fa] rounded-xl px-3 py-2 text-xs text-white placeholder-[#8e9099] focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsUrlModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-[#c4c6d0] hover:text-white hover:bg-[#282a2f] transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#a8c7fa] text-[#062e6f] hover:bg-[#c2e7ff] transition-colors cursor-pointer shadow-md"
+                >
+                  Attach Resource
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* YouTube Video Tutorial Modal */}
+      {isYoutubeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-150">
+          <div className="w-full max-w-md rounded-3xl bg-[#1d2024] border border-[#44474f]/60 shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[#44474f]/30">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30">
+                  <SquarePlay className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white font-['Outfit']">Attach YouTube Video Tutorial</h3>
+                  <span className="text-[10px] text-[#8e9099]">AI whiteboard lecture based on video</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsYoutubeModalOpen(false)}
+                className="p-1.5 rounded-lg hover:bg-[#282a2f] text-[#8e9099] hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddYoutube} className="space-y-3.5">
+              <div>
+                <label className="text-xs font-semibold text-[#c4c6d0] block mb-1">
+                  YouTube Video Link <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="https://www.youtube.com/watch?v=... or youtu.be/..."
+                  value={youtubeUrlInput}
+                  onChange={(e) => setYoutubeUrlInput(e.target.value)}
+                  className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-rose-400 rounded-xl px-3 py-2 text-xs text-white placeholder-[#8e9099] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-[#c4c6d0] block mb-1">
+                  Video Topic or Lecture Title (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 3Blue1Brown Neural Networks Chapter 1"
+                  value={youtubeTitleInput}
+                  onChange={(e) => setYoutubeTitleInput(e.target.value)}
+                  className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-rose-400 rounded-xl px-3 py-2 text-xs text-white placeholder-[#8e9099] focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsYoutubeModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-[#c4c6d0] hover:text-white hover:bg-[#282a2f] transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white transition-all cursor-pointer shadow-md shadow-rose-900/30 flex items-center gap-1.5"
+                >
+                  <SquarePlay className="w-3.5 h-3.5" />
+                  <span>Attach Video Tutorial</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
