@@ -3,7 +3,10 @@ Forgot Password (Password Recovery) Endpoint
 Dispatches password reset instructions with recovery link via Supabase Auth.
 """
 
+import os
+
 from fastapi import APIRouter, HTTPException, status
+from supabase_auth.types import Options
 
 from src.schemas.auth import ForgotPasswordRequest, MessageResponse
 from .client import get_supabase_client
@@ -31,7 +34,7 @@ async def forgot_password(payload: ForgotPasswordRequest):
 
     client = get_supabase_client()
 
-    options = {}
+    options: Options = {}
     if payload.redirect_to:
         options["redirect_to"] = payload.redirect_to
 
