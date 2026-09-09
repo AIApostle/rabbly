@@ -2,9 +2,15 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { LandingPage } from './components/LandingPage';
-import { AuthPage } from './components/auth/AuthPage';
-import { ProtectedRoute } from './components/auth/ProtectedRoute';
-import { PublicOnlyRoute } from './components/auth/PublicOnlyRoute';
+import {
+  LoginPage,
+  SignInPage,
+  SignupPage,
+  ForgotPasswordPage,
+  ResetPasswordPage,
+  ProtectedRoute,
+  PublicOnlyRoute,
+} from './components/auth';
 import { LessonSetupPage } from './components/LessonSetupPage';
 import { CurriculumPrepModal } from './components/CurriculumPrepModal';
 import { Whiteboard } from './components/Whiteboard';
@@ -391,11 +397,15 @@ export function App() {
           path="/login"
           element={
             <PublicOnlyRoute>
-              <AuthPage
-                initialView="login"
-                onBack={() => navigate('/')}
-                onAuthSuccess={() => navigate('/session')}
-              />
+              <LoginPage />
+            </PublicOnlyRoute>
+          }
+        />
+        <Route
+          path="/signin"
+          element={
+            <PublicOnlyRoute>
+              <SignInPage />
             </PublicOnlyRoute>
           }
         />
@@ -403,11 +413,27 @@ export function App() {
           path="/signup"
           element={
             <PublicOnlyRoute>
-              <AuthPage
-                initialView="signup"
-                onBack={() => navigate('/')}
-                onAuthSuccess={() => navigate('/session')}
-              />
+              <SignupPage />
+            </PublicOnlyRoute>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <PublicOnlyRoute>
+              <ForgotPasswordPage />
+            </PublicOnlyRoute>
+          }
+        />
+        <Route
+          path="/forget-password"
+          element={<Navigate to="/forgot-password" replace />}
+        />
+        <Route
+          path="/reset-password"
+          element={
+            <PublicOnlyRoute>
+              <ResetPasswordPage />
             </PublicOnlyRoute>
           }
         />
