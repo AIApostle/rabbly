@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Play,
   RotateCcw,
@@ -12,6 +12,9 @@ import {
   Trash2,
   LayoutGrid,
   List,
+  Sparkles,
+  Hash,
+  Award,
 } from 'lucide-react';
 import type { RecentSessionData } from '../types';
 
@@ -31,12 +34,39 @@ export const RecentSessionsPage: React.FC<RecentSessionsPageProps> = ({
   onBackToChat,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState<string>('All');
   const [viewMode, setViewMode] = useState<'rows' | 'grid'>('rows');
 
-  const filteredSessions = sessions.filter((s) =>
-    s.topic.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.subject.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Compute distinct subjects for category chips
+  const subjectList = useMemo(() => {
+    const subjects = new Set<string>();
+    sessions.forEach((s) => {
+      if (s.subject) subjects.add(s.subject);
+    });
+    return ['All', ...Array.from(subjects)];
+  }, [sessions]);
+
+  // Overall learning stats
+  const stats = useMemo(() => {
+    const totalSessions = sessions.length;
+    const completedCheckpoints = sessions.reduce((acc, s) => acc + (s.completedModules || 0), 0);
+    const avgProgress = totalSessions > 0
+      ? Math.round(sessions.reduce((acc, s) => acc + (s.progressPercent || 0), 0) / totalSessions)
+      : 0;
+    return { totalSessions, completedCheckpoints, avgProgress };
+  }, [sessions]);
+
+  const filteredSessions = useMemo(() => {
+    return sessions.filter((s) => {
+      const matchesSearch =
+        s.topic.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (s.roomCode && s.roomCode.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      const matchesSubject = selectedSubject === 'All' || s.subject === selectedSubject;
+      return matchesSearch && matchesSubject;
+    });
+  }, [sessions, searchQuery, selectedSubject]);
 
   // Group sessions by date tag (Today, Yesterday, Earlier)
   const todaySessions = filteredSessions.filter((s) => s.date === 'Today');
@@ -72,6 +102,12 @@ export const RecentSessionsPage: React.FC<RecentSessionsPageProps> = ({
                     <span className="text-[11px] font-mono text-[#8e9099] px-2 py-0.5 rounded-full bg-[#111318]">
                       {session.level}
                     </span>
+                    {session.roomCode && (
+                      <span className="inline-flex items-center gap-0.5 text-[11px] font-mono text-[#a8c7fa] px-2 py-0.5 rounded-full bg-[#191c20] border border-[#a8c7fa]/20">
+                        <Hash className="w-2.5 h-2.5" />
+                        {session.roomCode}
+                      </span>
+                    )}
                     <span className="text-xs text-[#8e9099] font-mono">
                       • {session.timestamp}
                     </span>
@@ -154,6 +190,11 @@ export const RecentSessionsPage: React.FC<RecentSessionsPageProps> = ({
                       <span className="text-[11px] font-mono text-[#8e9099] px-2 py-0.5 rounded-full bg-[#111318]">
                         {session.level}
                       </span>
+                      {session.roomCode && (
+                        <span className="text-[10px] font-mono text-[#a8c7fa] px-1.5 py-0.5 rounded bg-[#111318] border border-[#a8c7fa]/20">
+                          {session.roomCode}
+                        </span>
+                      )}
                     </div>
 
                     <button
@@ -297,7 +338,7 @@ export const RecentSessionsPage: React.FC<RecentSessionsPageProps> = ({
             <Search className="w-3.5 h-3.5 text-[#8e9099] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
-              placeholder="Search sessions..."
+              placeholder="Search by topic or #room..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-[#191c20] border border-[#44474f]/50 focus:border-[#a8c7fa] rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-[#8e9099] focus:outline-none transition-colors"
@@ -305,6 +346,59 @@ export const RecentSessionsPage: React.FC<RecentSessionsPageProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Stats Summary Bar */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="p-3.5 rounded-2xl bg-[#191c20] border border-[#44474f]/30 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#0842a0]/30 border border-[#a8c7fa]/20 flex items-center justify-center text-[#a8c7fa]">
+            <BookOpen className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-[11px] text-[#8e9099] font-medium">Total Sessions</div>
+            <div className="text-lg font-bold text-white font-['Outfit']">{stats.totalSessions}</div>
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-2xl bg-[#191c20] border border-[#44474f]/30 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <Award className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-[11px] text-[#8e9099] font-medium">Checkpoints Mastered</div>
+            <div className="text-lg font-bold text-white font-['Outfit']">{stats.completedCheckpoints}</div>
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-2xl bg-[#191c20] border border-[#44474f]/30 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-[11px] text-[#8e9099] font-medium">Avg. Completion</div>
+            <div className="text-lg font-bold text-white font-['Outfit']">{stats.avgProgress}%</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Subject Filter Chips */}
+      {subjectList.length > 2 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {subjectList.map((subj) => (
+            <button
+              key={subj}
+              type="button"
+              onClick={() => setSelectedSubject(subj)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
+                selectedSubject === subj
+                  ? 'bg-[#a8c7fa] text-[#062e6f] font-semibold shadow-sm'
+                  : 'bg-[#1d2024] text-[#c4c6d0] hover:bg-[#282a2f] border border-[#44474f]/40'
+              }`}
+            >
+              {subj}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Main Content Area */}
       {filteredSessions.length === 0 ? (
@@ -316,7 +410,11 @@ export const RecentSessionsPage: React.FC<RecentSessionsPageProps> = ({
             No sessions found
           </h3>
           <p className="text-xs text-[#c4c6d0] mt-1 max-w-sm">
-            {searchQuery ? `No sessions match "${searchQuery}".` : "You haven't started any learning sessions yet."}
+            {searchQuery
+              ? `No sessions match "${searchQuery}".`
+              : selectedSubject !== 'All'
+                ? `No sessions in "${selectedSubject}".`
+                : "You haven't started any learning sessions yet."}
           </p>
           <button
             type="button"

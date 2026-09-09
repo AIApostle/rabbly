@@ -24,6 +24,7 @@ import type { ExternalResource, RecentSessionData } from '../types';
 import { RecentSessionsPage } from './RecentSessionsPage';
 import { ClassroomHubPage } from './ClassroomHubPage';
 import { GoalsPage } from './GoalsPage';
+import { getLocalSessions, loadRecentSessions, persistNewSession, removeSession } from '../services/sessionService';
 
 interface LessonSetupPageProps {
   onBack: () => void;
@@ -78,63 +79,21 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
   // Sidebar States
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  // Recent Sessions Data (Stateful with Continue Learning Support)
-  const [recentSessions, setRecentSessions] = useState<RecentSessionData[]>([
-    {
-      id: 'sess-1',
-      topic: 'Transformers & Self-Attention: The Engine of LLMs',
-      subject: 'AI & LLMs',
-      date: 'Today',
-      timestamp: 'Today, 2:45 PM',
-      lastCheckpoint: '2. The Query, Key, and Value (Q, K, V) Vector Mechanics',
-      completedModules: 2,
-      totalModules: 4,
-      progressPercent: 50,
-      level: 'Intermediate',
-      hasExternalResources: true,
-      resourceName: 'Attention_Is_All_You_Need.pdf',
-    },
-    {
-      id: 'sess-2',
-      topic: 'Distributed Rate Limiter Design with Redis',
-      subject: 'System Architecture',
-      date: 'Today',
-      timestamp: 'Today, 11:20 AM',
-      lastCheckpoint: '3. Atomic Redis Lua Script Execution',
-      completedModules: 3,
-      totalModules: 4,
-      progressPercent: 75,
-      level: 'Advanced',
-      hasExternalResources: true,
-      resourceName: 'system_design_primer.md',
-    },
-    {
-      id: 'sess-3',
-      topic: 'Quantum Superposition & Qubit Geometry',
-      subject: 'Quantum Physics',
-      date: 'Yesterday',
-      timestamp: 'Yesterday, 4:10 PM',
-      lastCheckpoint: '1. The Bloch Sphere & Linear Combinations',
-      completedModules: 1,
-      totalModules: 4,
-      progressPercent: 25,
-      level: 'Beginner',
-      hasExternalResources: false,
-    },
-    {
-      id: 'sess-4',
-      topic: 'B-Tree Database Indexing & Page Splitting',
-      subject: 'Database Systems',
-      date: 'Sep 5, 2026',
-      timestamp: 'Sep 5, 2026',
-      lastCheckpoint: '4. Summary & Range Query Performance',
-      completedModules: 4,
-      totalModules: 4,
-      progressPercent: 100,
-      level: 'Intermediate',
-      hasExternalResources: false,
-    },
-  ]);
+  // Recent Sessions Data (Synchronized with backend API and local store)
+  const [recentSessions, setRecentSessions] = useState<RecentSessionData[]>(getLocalSessions);
+
+  // Sync recent sessions from backend API on mount
+  useEffect(() => {
+    let mounted = true;
+    loadRecentSessions().then((data) => {
+      if (mounted && data) {
+        setRecentSessions(data);
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -294,14 +253,15 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
 
   // Continue an existing session from Cards or Dropdown
   const handleContinueSession = (session: RecentSessionData) => {
-    onStartLesson(session.topic, false, session.level, null, []);
+    onStartLesson(session.topic, session.isClassroom ?? false, session.level, null, []);
   };
 
   const handleRestartSession = (session: RecentSessionData) => {
-    onStartLesson(session.topic, false, session.level, null, []);
+    onStartLesson(session.topic, session.isClassroom ?? false, session.level, null, []);
   };
 
   const handleDeleteRecentSession = (sessionId: string) => {
+    removeSession(sessionId);
     setRecentSessions((prev) => prev.filter((s) => s.id !== sessionId));
   };
 
@@ -313,22 +273,16 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
     const finalPrompt = prompt.trim() || (resources.length > 0 ? `Study of ${resources[0].title}` : 'General Lesson');
     const primaryFile = resources.find((r) => r.type === 'file')?.file || null;
 
-    // Add to recent sessions if new
-    const newRecent: RecentSessionData = {
-      id: `sess-${Date.now()}`,
+    // Persist to backend and update local cache
+    persistNewSession({
       topic: finalPrompt,
       subject: 'General Study',
-      date: 'Today',
-      timestamp: 'Just now',
-      lastCheckpoint: '1. Foundation & Intuition',
-      completedModules: 0,
-      totalModules: 4,
-      progressPercent: 0,
       level,
       hasExternalResources: resources.length > 0,
       resourceName: resources[0]?.title,
-    };
-    setRecentSessions((prev) => [newRecent, ...prev.filter((s) => s.topic !== finalPrompt)]);
+    }).then((created) => {
+      setRecentSessions((prev) => [created, ...prev.filter((s) => s.topic !== finalPrompt)]);
+    });
 
     // Always starts 1-on-1 by default
     onStartLesson(finalPrompt, false, level, primaryFile, resources);

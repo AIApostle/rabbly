@@ -157,4 +157,7 @@ export interface RecentSessionData {
   level: 'Beginner' | 'Intermediate' | 'Advanced';
   hasExternalResources?: boolean;
   resourceName?: string;
+  roomCode?: string;
+  isClassroom?: boolean;
+  boardState?: Record<string, any>;
 }
