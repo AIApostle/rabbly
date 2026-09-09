@@ -16,6 +16,7 @@ load_dotenv(dotenv_path=env_path)
 from src.auth import get_current_user, UserProfile
 from src.pages.auth import auth_page_router
 from src.pages.recent_sessions import recent_sessions_router
+from src.pages.sprints import sprints_router
 
 app = FastAPI(
     title="Rabbly AI Tutor API",
@@ -40,6 +41,7 @@ app.add_middleware(
 # Mount page routers under /api
 app.include_router(auth_page_router, prefix="/api")
 app.include_router(recent_sessions_router, prefix="/api")
+app.include_router(sprints_router, prefix="/api")
 
 
 @app.get("/health", tags=["Health"])

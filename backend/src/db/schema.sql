@@ -107,3 +107,46 @@ create policy "Hosts can update their own sessions"
     on public.sessions for update
     to authenticated
     using (auth.uid() = host_id);
+
+
+-- =============================================================================
+-- LEARNING SPRINTS TABLE
+-- Stores multi-day learning goals, milestones, and linked study resources.
+-- =============================================================================
+create table if not exists public.sprints (
+    id text primary key,
+    user_id uuid references public.profiles(id) on delete cascade,
+    title text not null,
+    subject text not null default 'General Mastery',
+    timeframe text not null default '3-Day Sprint',
+    days_remaining int default 3,
+    total_days int default 3,
+    progress_percent int default 0,
+    milestones jsonb default '[]'::jsonb,
+    resources jsonb default '[]'::jsonb,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+    updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Enable Row Level Security on sprints
+alter table public.sprints enable row level security;
+
+create policy "Sprints are viewable by authenticated users"
+    on public.sprints for select
+    to authenticated
+    using (auth.uid() = user_id or user_id is null);
+
+create policy "Users can insert their own sprints"
+    on public.sprints for insert
+    to authenticated
+    with check (auth.uid() = user_id or user_id is null);
+
+create policy "Users can update their own sprints"
+    on public.sprints for update
+    to authenticated
+    using (auth.uid() = user_id or user_id is null);
+
+create policy "Users can delete their own sprints"
+    on public.sprints for delete
+    to authenticated
+    using (auth.uid() = user_id or user_id is null);
