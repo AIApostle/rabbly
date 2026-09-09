@@ -9,7 +9,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, HTTPException, status
 
 from src.schemas.auth import SignUpRequest, SignUpResponse
-from src.schemas.profile import ProfileCreate
+from src.schemas.profile import ProfileCreate, UserProfile
 from .client import format_user_profile, get_supabase_client
 
 router = APIRouter()
@@ -42,6 +42,7 @@ async def signup(payload: SignUpRequest):
             token_type="bearer",
             expires_in=86400,
             confirmation_sent=False,
+            message="Account created successfully. You are now signed in.",
         )
 
     client = get_supabase_client()
@@ -88,6 +89,7 @@ async def signup(payload: SignUpRequest):
                 user=user_profile,
                 access_token=getattr(session, "access_token", None),
                 refresh_token=getattr(session, "refresh_token", None),
+                expires_in=getattr(session, "expires_in", None),
                 confirmation_sent=False,
                 message="Account created successfully. You are now signed in.",
             )

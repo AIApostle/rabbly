@@ -22,8 +22,10 @@ class SignUpResponse(BaseModel):
     access_token: Optional[str] = Field(None, description="JWT access token if email confirmation is disabled.")
     refresh_token: Optional[str] = Field(None, description="Refresh token if session was created.")
     token_type: str = Field("bearer", description="Token type header.")
+    expires_in: Optional[int] = Field(None, description="Token validity in seconds.")
     confirmation_sent: bool = Field(False, description="True if email confirmation must be verified before login.")
-    message: str = Field(..., description="Status description message.")
+    message: str = Field("Account created successfully.", description="Status description message.")
+
 
 
 class SignInRequest(BaseModel):

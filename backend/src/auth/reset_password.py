@@ -2,7 +2,7 @@
 Reset Password Endpoint
 Updates an authenticated user's password using a valid Bearer token or recovery session.
 """
-
+import os
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer

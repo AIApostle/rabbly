@@ -46,6 +46,28 @@ def test_signup_validation():
     assert res3.status_code == 422
 
 
+def test_signup_success_mock():
+    """Verify successful signup returns valid SignUpResponse with message and user."""
+    res = client.post(
+        "/api/auth/signup",
+        json={
+            "email": "learner@rabbly.ai",
+            "password": "securepassword123",
+            "full_name": "Rabbly Learner",
+        },
+    )
+    assert res.status_code == 201
+    data = res.json()
+    assert data["message"] == "Account created successfully. You are now signed in."
+    assert data["user"]["email"] == "learner@rabbly.ai"
+    assert data["user"]["full_name"] == "Rabbly Learner"
+    assert data["access_token"] is not None
+    assert data["token_type"] == "bearer"
+    assert data["expires_in"] == 86400
+    assert data["confirmation_sent"] is False
+
+
+
 def test_signin_validation():
     """Verify invalid signin payloads fail validation."""
     # Invalid email
