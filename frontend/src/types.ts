@@ -133,6 +133,23 @@ export interface ClassroomParticipant {
   joinedAt: string;
 }
 
+export interface ClassroomRoom {
+  id: string;
+  roomCode: string;
+  topic: string;
+  level: 'Beginner' | 'Intermediate' | 'Advanced';
+  subject: string;
+  status: string;
+  hostId?: string;
+  hostName: string;
+  participantCount: number;
+  participants: ClassroomParticipant[];
+  hasExternalResources: boolean;
+  resources: ExternalResource[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ExternalResource {
   id: string;
   type: 'file' | 'link' | 'note' | 'youtube';

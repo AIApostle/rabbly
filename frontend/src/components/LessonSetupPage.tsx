@@ -19,12 +19,15 @@ import {
   MessageSquare,
   SquarePlay,
   Zap,
+  LogOut,
+  LogIn,
 } from 'lucide-react';
 import type { ExternalResource, RecentSessionData } from '../types';
 import { RecentSessionsPage } from './RecentSessionsPage';
 import { ClassroomHubPage } from './ClassroomHubPage';
 import { GoalsPage } from './GoalsPage';
 import { getLocalSessions, loadRecentSessions, persistNewSession, removeSession } from '../services/sessionService';
+import { getCurrentUser, verifyActiveToken, removeAuthToken, type AuthUser } from '../services/authService';
 
 interface LessonSetupPageProps {
   onBack: () => void;
@@ -99,6 +102,31 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const plusMenuRef = useRef<HTMLDivElement>(null);
   const depthMenuRef = useRef<HTMLDivElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  // User Authentication State
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(getCurrentUser);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+
+  // Verify and sync active user token
+  useEffect(() => {
+    let mounted = true;
+    verifyActiveToken().then((user) => {
+      if (mounted && user) {
+        setCurrentUser(user);
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleSignOut = () => {
+    removeAuthToken();
+    setCurrentUser(null);
+    setIsProfileMenuOpen(false);
+    navigate('/login');
+  };
 
   // Auto-resize textarea like ChatGPT
   useEffect(() => {
@@ -116,6 +144,9 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
       }
       if (depthMenuRef.current && !depthMenuRef.current.contains(e.target as Node)) {
         setIsDepthMenuOpen(false);
+      }
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setIsProfileMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -547,16 +578,84 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
           </button>
         </div>
 
-        {/* Sidebar Footer: User Profile & Back to Home */}
-        <div className="p-3.5 border-t border-[#44474f]/25 shrink-0 bg-[#14161a]">
+        {/* Sidebar Footer: Dynamic User Profile & Back to Home */}
+        <div ref={profileMenuRef} className="p-3.5 border-t border-[#44474f]/25 shrink-0 bg-[#14161a] relative">
+          {/* Profile Dropdown Popover */}
+          {isProfileMenuOpen && (
+            <div className="absolute left-3.5 right-3.5 bottom-16 rounded-2xl bg-[#1d2024] border border-[#44474f]/60 shadow-2xl p-3 z-40 flex flex-col gap-2.5 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-150">
+              <div className="flex items-center gap-2.5 pb-2 border-b border-[#44474f]/30">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#0842a0] to-[#4f378b] flex items-center justify-center text-xs font-bold text-white shadow-sm shrink-0 border border-white/10">
+                  {currentUser?.fullName
+                    ? currentUser.fullName
+                        .split(' ')
+                        .map((n) => n[0])
+                        .join('')
+                        .slice(0, 2)
+                        .toUpperCase()
+                    : currentUser?.email
+                      ? currentUser.email.slice(0, 2).toUpperCase()
+                      : 'ST'}
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-xs font-semibold text-white truncate">
+                    {currentUser?.fullName || (currentUser?.email ? currentUser.email.split('@')[0] : 'Guest Student')}
+                  </span>
+                  <span className="text-[10px] text-[#8e9099] truncate font-mono">
+                    {currentUser?.email || 'Not logged in'}
+                  </span>
+                </div>
+              </div>
+
+              {currentUser ? (
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-medium transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Sign Out</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    navigate('/login');
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-[#0842a0]/40 hover:bg-[#0842a0] text-[#a8c7fa] hover:text-white border border-[#a8c7fa]/30 text-xs font-medium transition-colors cursor-pointer"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Sign In / Create Account</span>
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center justify-between p-2 rounded-xl hover:bg-[#212429]/70 transition-colors">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#0842a0] to-[#4f378b] flex items-center justify-center text-xs font-bold text-white shadow-sm shrink-0 border border-white/10">
-                AR
+            <div
+              onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+              className="flex items-center gap-3 min-w-0 cursor-pointer group"
+              title="Click to manage profile"
+            >
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#0842a0] to-[#4f378b] group-hover:ring-2 group-hover:ring-[#a8c7fa] flex items-center justify-center text-xs font-bold text-white shadow-sm shrink-0 border border-white/10 transition-all">
+                {currentUser?.fullName
+                  ? currentUser.fullName
+                      .split(' ')
+                      .map((n) => n[0])
+                      .join('')
+                      .slice(0, 2)
+                      .toUpperCase()
+                  : currentUser?.email
+                    ? currentUser.email.slice(0, 2).toUpperCase()
+                    : 'ST'}
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-xs font-semibold text-white truncate">Alex Rivera</span>
-                <span className="text-[10px] text-[#a8c7fa] font-mono">Student</span>
+                <span className="text-xs font-semibold text-white truncate group-hover:text-[#a8c7fa] transition-colors">
+                  {currentUser?.fullName || (currentUser?.email ? currentUser.email.split('@')[0] : 'Guest Student')}
+                </span>
+                <span className="text-[10px] text-[#a8c7fa] font-mono">
+                  {currentUser ? (currentUser.preferredLevel || 'Student') : 'Sign In'}
+                </span>
               </div>
             </div>
 
