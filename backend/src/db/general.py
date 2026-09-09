@@ -3,7 +3,7 @@ General Database Utilities & Helpers
 Provides reusable execution wrappers, connection health verification, and error handling for Supabase PostgREST queries.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 from fastapi import HTTPException, status
 from supabase import Client
 
@@ -54,7 +54,7 @@ def select_one(
             .execute()
         )
         if response.data and len(response.data) > 0:
-            return response.data[0]
+            return cast(Dict[str, Any], response.data[0])
         return None
     except Exception as exc:
         handle_db_error(exc, f"select_one on '{table}'")
@@ -83,7 +83,7 @@ def select_all(
             query = query.limit(limit)
 
         response = query.execute()
-        return response.data or []
+        return cast(List[Dict[str, Any]], response.data) if response.data else []
     except Exception as exc:
         handle_db_error(exc, f"select_all on '{table}'")
         return []
@@ -100,7 +100,7 @@ def insert_record(
     try:
         response = client.table(table).insert(record).execute()
         if response.data and len(response.data) > 0:
-            return response.data[0]
+            return cast(Dict[str, Any], response.data[0])
         return record
     except Exception as exc:
         handle_db_error(exc, f"insert into '{table}'")
@@ -125,7 +125,7 @@ def update_record(
             .execute()
         )
         if response.data and len(response.data) > 0:
-            return response.data[0]
+            return cast(Dict[str, Any], response.data[0])
         return None
     except Exception as exc:
         handle_db_error(exc, f"update on '{table}'")
