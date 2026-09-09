@@ -3,6 +3,8 @@ import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-
 import confetti from 'canvas-confetti';
 import { LandingPage } from './components/LandingPage';
 import { AuthPage } from './components/auth/AuthPage';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { PublicOnlyRoute } from './components/auth/PublicOnlyRoute';
 import { LessonSetupPage } from './components/LessonSetupPage';
 import { CurriculumPrepModal } from './components/CurriculumPrepModal';
 import { Whiteboard } from './components/Whiteboard';
@@ -380,117 +382,138 @@ export function App() {
               onGetStarted={() => navigate('/signup')}
               onLogin={() => navigate('/login')}
               onSignup={() => navigate('/signup')}
+              onGoToDashboard={() => navigate('/session')}
             />
           }
         />
 
-        {/* Auth Suite */}
+        {/* Auth Suite (Public Only) */}
         <Route
           path="/login"
           element={
-            <AuthPage
-              initialView="login"
-              onBack={() => navigate('/')}
-              onAuthSuccess={() => navigate('/session')}
-            />
+            <PublicOnlyRoute>
+              <AuthPage
+                initialView="login"
+                onBack={() => navigate('/')}
+                onAuthSuccess={() => navigate('/session')}
+              />
+            </PublicOnlyRoute>
           }
         />
         <Route
           path="/signup"
           element={
-            <AuthPage
-              initialView="signup"
-              onBack={() => navigate('/')}
-              onAuthSuccess={() => navigate('/session')}
-            />
+            <PublicOnlyRoute>
+              <AuthPage
+                initialView="signup"
+                onBack={() => navigate('/')}
+                onAuthSuccess={() => navigate('/session')}
+              />
+            </PublicOnlyRoute>
           }
         />
         <Route path="/auth" element={<Navigate to="/login" replace />} />
 
-        {/* Dedicated App Screens (Defaults to AI Tutor interface) */}
+        {/* Dedicated App Screens (Protected: Requires Authenticated Session) */}
         <Route
           path="/session"
           element={
-            <LessonSetupPage
-              onBack={() => navigate('/')}
-              onStartLesson={handleStartLesson}
-            />
+            <ProtectedRoute>
+              <LessonSetupPage
+                onBack={() => navigate('/')}
+                onStartLesson={handleStartLesson}
+              />
+            </ProtectedRoute>
           }
         />
         <Route
           path="/classrooms"
           element={
-            <LessonSetupPage
-              onBack={() => navigate('/')}
-              onStartLesson={handleStartLesson}
-            />
+            <ProtectedRoute>
+              <LessonSetupPage
+                onBack={() => navigate('/')}
+                onStartLesson={handleStartLesson}
+              />
+            </ProtectedRoute>
           }
         />
         <Route
           path="/recent"
           element={
-            <LessonSetupPage
-              onBack={() => navigate('/')}
-              onStartLesson={handleStartLesson}
-            />
+            <ProtectedRoute>
+              <LessonSetupPage
+                onBack={() => navigate('/')}
+                onStartLesson={handleStartLesson}
+              />
+            </ProtectedRoute>
           }
         />
         <Route
           path="/sprints"
           element={
-            <LessonSetupPage
-              onBack={() => navigate('/')}
-              onStartLesson={handleStartLesson}
-            />
+            <ProtectedRoute>
+              <LessonSetupPage
+                onBack={() => navigate('/')}
+                onStartLesson={handleStartLesson}
+              />
+            </ProtectedRoute>
           }
         />
         <Route
           path="/goals"
           element={
-            <LessonSetupPage
-              onBack={() => navigate('/')}
-              onStartLesson={handleStartLesson}
-            />
+            <ProtectedRoute>
+              <LessonSetupPage
+                onBack={() => navigate('/')}
+                onStartLesson={handleStartLesson}
+              />
+            </ProtectedRoute>
           }
         />
         <Route
           path="/projects"
           element={
-            <LessonSetupPage
-              onBack={() => navigate('/')}
-              onStartLesson={handleStartLesson}
-            />
+            <ProtectedRoute>
+              <LessonSetupPage
+                onBack={() => navigate('/')}
+                onStartLesson={handleStartLesson}
+              />
+            </ProtectedRoute>
           }
         />
         <Route path="/app" element={<Navigate to="/session" replace />} />
 
-        {/* Live Workspace */}
+        {/* Live Workspace (Protected: Requires Authenticated Session) */}
         <Route
           path="/learn"
           element={
-            isPreparing ? (
-              <CurriculumPrepModal
-                topic={currentTopicTitle}
-                plan={currentPlan}
-                onReady={handlePrepReady}
-              />
-            ) : (
-              renderClassroomWorkspace()
-            )
+            <ProtectedRoute>
+              {isPreparing ? (
+                <CurriculumPrepModal
+                  topic={currentTopicTitle}
+                  plan={currentPlan}
+                  onReady={handlePrepReady}
+                />
+              ) : (
+                renderClassroomWorkspace()
+              )}
+            </ProtectedRoute>
           }
         />
         <Route
           path="/classroom/:code"
           element={
-            isPreparing ? (
-              <CurriculumPrepModal
-                topic={currentTopicTitle}
-                plan={currentPlan}
-                onReady={handlePrepReady}
-              />
-            ) : (
-              renderClassroomWorkspace()
-            )
+            <ProtectedRoute>
+              {isPreparing ? (
+                <CurriculumPrepModal
+                  topic={currentTopicTitle}
+                  plan={currentPlan}
+                  onReady={handlePrepReady}
+                />
+              ) : (
+                renderClassroomWorkspace()
+              )}
+            </ProtectedRoute>
           }
         />
 

@@ -20,14 +20,13 @@ import {
   SquarePlay,
   Zap,
   LogOut,
-  LogIn,
 } from 'lucide-react';
 import type { ExternalResource, RecentSessionData } from '../types';
 import { RecentSessionsPage } from './RecentSessionsPage';
 import { ClassroomHubPage } from './ClassroomHubPage';
 import { GoalsPage } from './GoalsPage';
 import { getLocalSessions, loadRecentSessions, persistNewSession, removeSession } from '../services/sessionService';
-import { getCurrentUser, verifyActiveToken, removeAuthToken, type AuthUser } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
 
 interface LessonSetupPageProps {
   onBack: () => void;
@@ -104,26 +103,12 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
   const depthMenuRef = useRef<HTMLDivElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
-  // User Authentication State
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(getCurrentUser);
+  // User Authentication State (Provided by central AuthContext)
+  const { user: currentUser, logout } = useAuth();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
-  // Verify and sync active user token
-  useEffect(() => {
-    let mounted = true;
-    verifyActiveToken().then((user) => {
-      if (mounted && user) {
-        setCurrentUser(user);
-      }
-    });
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
   const handleSignOut = () => {
-    removeAuthToken();
-    setCurrentUser(null);
+    logout();
     setIsProfileMenuOpen(false);
     navigate('/login');
   };
@@ -598,36 +583,22 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
                 </div>
                 <div className="flex flex-col min-w-0">
                   <span className="text-xs font-semibold text-white truncate">
-                    {currentUser?.fullName || (currentUser?.email ? currentUser.email.split('@')[0] : 'Guest Student')}
+                    {currentUser?.fullName || (currentUser?.email ? currentUser.email.split('@')[0] : 'Student')}
                   </span>
                   <span className="text-[10px] text-[#8e9099] truncate font-mono">
-                    {currentUser?.email || 'Not logged in'}
+                    {currentUser?.email || ''}
                   </span>
                 </div>
               </div>
 
-              {currentUser ? (
-                <button
-                  type="button"
-                  onClick={handleSignOut}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-medium transition-colors cursor-pointer"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>Sign Out</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsProfileMenuOpen(false);
-                    navigate('/login');
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-[#0842a0]/40 hover:bg-[#0842a0] text-[#a8c7fa] hover:text-white border border-[#a8c7fa]/30 text-xs font-medium transition-colors cursor-pointer"
-                >
-                  <LogIn className="w-3.5 h-3.5" />
-                  <span>Sign In / Create Account</span>
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-medium transition-colors cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign Out</span>
+              </button>
             </div>
           )}
 
@@ -651,10 +622,10 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-xs font-semibold text-white truncate group-hover:text-[#a8c7fa] transition-colors">
-                  {currentUser?.fullName || (currentUser?.email ? currentUser.email.split('@')[0] : 'Guest Student')}
+                  {currentUser?.fullName || (currentUser?.email ? currentUser.email.split('@')[0] : 'Student')}
                 </span>
                 <span className="text-[10px] text-[#a8c7fa] font-mono">
-                  {currentUser ? (currentUser.preferredLevel || 'Student') : 'Sign In'}
+                  {currentUser?.preferredLevel || 'Student'}
                 </span>
               </div>
             </div>

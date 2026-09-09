@@ -11,23 +11,36 @@ import {
   User,
   Users,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface LandingPageProps {
   onGetStarted: () => void;
   onLogin?: () => void;
   onSignup?: () => void;
+  onGoToDashboard?: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
   onGetStarted,
   onLogin,
   onSignup,
+  onGoToDashboard,
 }) => {
-  const handleGetStarted = () => {
-    if (onSignup) {
-      onSignup();
+  const { isAuthenticated } = useAuth();
+
+  const handleAction = () => {
+    if (isAuthenticated) {
+      if (onGoToDashboard) {
+        onGoToDashboard();
+      } else {
+        onGetStarted();
+      }
     } else {
-      onGetStarted();
+      if (onSignup) {
+        onSignup();
+      } else {
+        onGetStarted();
+      }
     }
   };
 
@@ -56,18 +69,30 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         {/* Action Buttons: Sign In and Start Learning (Routes to Sign Up) */}
         <div className="flex items-center gap-3">
-          <button
-            onClick={onLogin}
-            className="px-4 py-2 text-xs font-semibold text-[#c4c6d0] hover:text-white transition-colors cursor-pointer rounded-full hover:bg-[#282a2f]"
-          >
-            Sign In
-          </button>
-          <button
-            onClick={handleGetStarted}
-            className="m3-btn-filled px-5 py-2 text-xs font-semibold tracking-wide cursor-pointer shadow-sm hover:shadow-md transition-all"
-          >
-            Start Learning
-          </button>
+          {isAuthenticated ? (
+            <button
+              onClick={handleAction}
+              className="m3-btn-filled px-5 py-2 text-xs font-semibold tracking-wide cursor-pointer shadow-sm hover:shadow-md transition-all flex items-center gap-1.5"
+            >
+              <span>Dashboard</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={onLogin}
+                className="px-4 py-2 text-xs font-semibold text-[#c4c6d0] hover:text-white transition-colors cursor-pointer rounded-full hover:bg-[#282a2f]"
+              >
+                Sign In
+              </button>
+              <button
+                onClick={handleAction}
+                className="m3-btn-filled px-5 py-2 text-xs font-semibold tracking-wide cursor-pointer shadow-sm hover:shadow-md transition-all"
+              >
+                Start Learning
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -94,10 +119,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         {/* CTA Buttons */}
         <div className="flex flex-wrap items-center justify-center gap-4">
           <button
-            onClick={handleGetStarted}
+            onClick={handleAction}
             className="m3-btn-filled px-7 py-3.5 text-sm font-semibold flex items-center gap-2 shadow-lg shadow-[#a8c7fa]/10 cursor-pointer"
           >
-            <span>Start a Free Lesson</span>
+            <span>{isAuthenticated ? 'Open Workspace' : 'Start a Free Lesson'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
           <a
@@ -339,10 +364,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             Turn any subject or document into an interactive oral lecture with live digital whiteboard diagrams.
           </p>
           <button
-            onClick={handleGetStarted}
+            onClick={handleAction}
             className="m3-btn-filled px-8 py-4 text-sm font-semibold inline-flex items-center gap-2 cursor-pointer shadow-lg shadow-[#a8c7fa]/15"
           >
-            <span>Start a Free Lesson</span>
+            <span>{isAuthenticated ? 'Open Workspace' : 'Start a Free Lesson'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
