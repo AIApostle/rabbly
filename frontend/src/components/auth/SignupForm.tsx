@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, User, Loader2, Check, Sparkles } from 'lucide-react';
-import { signup } from '../../services/authService';
+import { useAuth } from '../../context/AuthContext';
 
 interface SignupFormProps {
   onSuccess: () => void;
@@ -11,6 +11,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({
   onSuccess,
   onSwitchToLogin,
 }) => {
+  const { signup } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,6 +21,8 @@ export const SignupForm: React.FC<SignupFormProps> = ({
   const [goal, setGoal] = useState<'student' | 'pro' | 'curious'>('student');
   const [agreed, setAgreed] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [confirmationSent, setConfirmationSent] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   // Password strength logic
@@ -61,9 +64,14 @@ export const SignupForm: React.FC<SignupFormProps> = ({
     setIsLoading(true);
 
     try {
-      await signup({ email, password, fullName: name });
+      const res = await signup({ email: email.trim(), password, fullName: name.trim() });
       setIsLoading(false);
-      onSuccess();
+      if (res.confirmation_sent || !res.access_token) {
+        setRegisteredEmail(email.trim());
+        setConfirmationSent(true);
+      } else {
+        onSuccess();
+      }
     } catch (err: any) {
       setIsLoading(false);
       setError(err?.message || 'Registration failed. Please try again.');
@@ -71,12 +79,34 @@ export const SignupForm: React.FC<SignupFormProps> = ({
   };
 
   const handleGoogleSignUp = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      onSuccess();
-    }, 800);
+    setError('Google OAuth is not configured on this Supabase project yet. Please sign up with email and password.');
   };
+
+  if (confirmationSent) {
+    return (
+      <div className="space-y-6 text-center py-4 animate-in fade-in duration-300">
+        <div className="w-16 h-16 rounded-3xl bg-[#0842a0]/40 border border-[#a8c7fa]/50 text-[#a8c7fa] flex items-center justify-center mx-auto shadow-xl">
+          <Mail className="w-8 h-8 text-[#a8c7fa]" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-extrabold text-white font-['Outfit']">
+            Check your email
+          </h2>
+          <p className="text-xs text-[#c4c6d0] max-w-xs mx-auto leading-relaxed">
+            We sent a verification link to <span className="font-semibold text-white font-mono">{registeredEmail}</span>.
+            Please verify your email address to activate your Rabbly account, then sign in.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onSwitchToLogin}
+          className="w-full m3-btn-filled py-3.5 text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-[#a8c7fa]/15 cursor-pointer"
+        >
+          <span>Proceed to Sign In</span>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">

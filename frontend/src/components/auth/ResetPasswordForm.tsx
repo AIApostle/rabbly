@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Lock, Eye, EyeOff, CheckCircle2, ArrowRight, Loader2, ShieldCheck, ArrowLeft, RefreshCw } from 'lucide-react';
-import { resetPassword } from '../../services/authService';
+import React, { useState, useEffect } from 'react';
+import { Lock, Eye, EyeOff, CheckCircle2, ArrowRight, Loader2, ShieldCheck, ArrowLeft, MailCheck } from 'lucide-react';
+import { resetPassword, getAuthToken, requestPasswordReset } from '../../services/authService';
 
 interface ResetPasswordFormProps {
   email: string;
@@ -13,7 +13,6 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
   onSuccess,
   onBackToLogin,
 }) => {
-  const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -22,9 +21,10 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
   const [canResend, setCanResend] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isDone, setIsDone] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const digitRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const hasToken = !!getAuthToken();
 
   // Countdown timer for resend
   useEffect(() => {
@@ -36,52 +36,23 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
     }
   }, [countdown]);
 
-  const handleOtpChange = (index: number, value: string) => {
-    // Only accept numeric digit
-    const cleanVal = value.replace(/[^0-9]/g, '');
-    const newOtp = [...otp];
-    newOtp[index] = cleanVal ? cleanVal[cleanVal.length - 1] : '';
-    setOtp(newOtp);
-
-    // Auto-advance
-    if (cleanVal && index < 5) {
-      digitRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      digitRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 6);
-    if (!pasted) return;
-
-    const newOtp = [...otp];
-    for (let i = 0; i < pasted.length; i++) {
-      newOtp[i] = pasted[i];
-    }
-    setOtp(newOtp);
-    const focusIdx = Math.min(pasted.length, 5);
-    digitRefs.current[focusIdx]?.focus();
-  };
-
-  const handleResend = () => {
-    if (!canResend) return;
+  const handleResend = async () => {
+    if (!canResend || !email) return;
     setCanResend(false);
-    setCountdown(45);
-    setOtp(['', '', '', '', '', '']);
-    digitRefs.current[0]?.focus();
+    setCountdown(60);
+    try {
+      await requestPasswordReset(email);
+      setResendMessage('A new reset link has been dispatched to your email.');
+    } catch {
+      setError('Failed to resend reset email. Please try again.');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const fullOtp = otp.join('');
-    if (fullOtp.length < 6) {
-      setError('Please enter the complete 6-digit verification code.');
+
+    if (!hasToken) {
+      setError('No active recovery session found. Please click the reset link in your email to continue.');
       return;
     }
 
@@ -104,7 +75,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
       setIsDone(true);
     } catch (err: any) {
       setIsLoading(false);
-      setError(err?.message || 'Failed to update password. Please try again.');
+      setError(err?.message || 'Failed to update password. Please ensure your recovery link is still valid.');
     }
   };
 
@@ -146,11 +117,25 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
             Reset your password
           </h2>
           <p className="text-xs text-[#c4c6d0] mt-1 leading-relaxed">
-            We sent a 6-digit code to{' '}
-            <span className="font-semibold text-white font-mono">{email || 'your email'}</span>
+            {hasToken ? (
+              <span>Recovery session verified. Set your new secure password below.</span>
+            ) : (
+              <span>
+                We sent a reset link to{' '}
+                <span className="font-semibold text-white font-mono">{email || 'your email'}</span>.
+                Click the link in your email to continue.
+              </span>
+            )}
           </p>
         </div>
       </div>
+
+      {resendMessage && (
+        <div className="p-3 rounded-xl bg-[#0842a0]/20 border border-[#0842a0]/50 text-xs text-[#d3e3fd] text-center flex items-center justify-center gap-2">
+          <MailCheck className="w-4 h-4 text-[#a8c7fa] shrink-0" />
+          <span>{resendMessage}</span>
+        </div>
+      )}
 
       {error && (
         <div className="p-3 rounded-xl bg-[#93000a]/20 border border-[#93000a]/50 text-xs text-[#ffb4ab] text-center">
@@ -158,44 +143,30 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* 6-Digit OTP Box */}
-        <div className="space-y-2 text-left">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-bold uppercase tracking-wider text-[#c4c6d0]">
-              6-Digit Verification Code
-            </label>
+      {!hasToken && (
+        <div className="p-4 rounded-2xl bg-[#111318] border border-[#44474f]/40 space-y-3">
+          <p className="text-xs text-[#c4c6d0] leading-relaxed">
+            To protect your account, Supabase sends a secure one-click recovery link. Please check your inbox and click the link to reach this reset page with your session activated.
+          </p>
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-[11px] text-[#8e9099]">Didn't receive it?</span>
             <button
               type="button"
-              disabled={!canResend}
+              disabled={!canResend || !email}
               onClick={handleResend}
-              className={`text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1 ${
-                canResend
+              className={`text-xs font-semibold cursor-pointer ${
+                canResend && email
                   ? 'text-[#a8c7fa] hover:underline'
                   : 'text-[#8e9099] cursor-not-allowed'
               }`}
             >
-              <RefreshCw className="w-3 h-3" />
-              <span>{canResend ? 'Resend code' : `Resend in ${countdown}s`}</span>
+              {canResend ? 'Resend reset link' : `Resend in ${countdown}s`}
             </button>
           </div>
-
-          <div className="flex justify-between gap-2 on-paste" onPaste={handlePaste}>
-            {otp.map((digit, idx) => (
-              <input
-                key={idx}
-                ref={(el) => { digitRefs.current[idx] = el; }}
-                type="text"
-                inputMode="numeric"
-                maxLength={1}
-                value={digit}
-                onChange={(e) => handleOtpChange(idx, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(idx, e)}
-                className="w-11 h-13 text-center text-lg font-bold font-mono rounded-2xl bg-[#111318] border border-[#44474f]/60 text-white focus:border-[#a8c7fa] focus:outline-none transition-all shadow-inner"
-              />
-            ))}
-          </div>
         </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-5">
 
         {/* New Password */}
         <div className="space-y-1.5 text-left">

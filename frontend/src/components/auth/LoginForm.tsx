@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
-import { login } from '../../services/authService';
+import { useAuth } from '../../context/AuthContext';
 
 interface LoginFormProps {
   onSuccess: () => void;
@@ -13,6 +13,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   onSwitchToSignup,
   onForgotPassword,
 }) => {
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -31,7 +32,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     setIsLoading(true);
 
     try {
-      await login({ email, password });
+      await login({ email: email.trim(), password });
       setIsLoading(false);
       onSuccess();
     } catch (err: any) {
@@ -41,11 +42,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   };
 
   const handleGoogleSignIn = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      onSuccess();
-    }, 800);
+    setError('Google OAuth is not configured on this Supabase project yet. Please sign in with email and password.');
   };
 
   return (

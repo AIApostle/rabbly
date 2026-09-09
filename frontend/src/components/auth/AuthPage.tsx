@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Shield } from 'lucide-react';
 import { LoginForm } from './LoginForm';
 import { SignupForm } from './SignupForm';
 import { ForgotPasswordForm } from './ForgotPasswordForm';
 import { ResetPasswordForm } from './ResetPasswordForm';
+import { setAuthToken } from '../../services/authService';
 
 export type AuthView = 'login' | 'signup' | 'forgot-password' | 'reset-password';
 
@@ -20,6 +21,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 }) => {
   const [view, setView] = useState<AuthView>(initialView);
   const [resetEmail, setResetEmail] = useState<string>('');
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && (hash.includes('type=recovery') || hash.includes('access_token='))) {
+      const params = new URLSearchParams(hash.replace(/^#/, ''));
+      const token = params.get('access_token');
+      if (token) {
+        setAuthToken(token);
+        setView('reset-password');
+      }
+    }
+  }, []);
 
   const handleForgotPasswordSubmit = (email: string) => {
     setResetEmail(email);

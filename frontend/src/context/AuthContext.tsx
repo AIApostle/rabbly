@@ -22,6 +22,7 @@ export interface AuthContextType {
   signup: (payload: SignUpPayload) => Promise<AuthResponse>;
   logout: () => void;
   refreshUser: () => Promise<AuthUser | null>;
+  setSession: (token: string, user?: AuthUser | null) => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -100,9 +101,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (payload: SignInPayload): Promise<AuthResponse> => {
     const res = await apiLogin(payload);
-    setToken(res.access_token);
-    setUser(res.user);
-    persistCurrentUser(res.user);
+    if (res.access_token) {
+      setToken(res.access_token);
+      setUser(res.user);
+      persistCurrentUser(res.user);
+    }
     return res;
   };
 
@@ -114,6 +117,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       persistCurrentUser(res.user);
     }
     return res;
+  };
+
+  const setSession = (newToken: string, newUser?: AuthUser | null) => {
+    setToken(newToken);
+    if (newUser) {
+      setUser(newUser);
+      persistCurrentUser(newUser);
+    }
   };
 
   const logout = () => {
@@ -133,6 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signup,
         logout,
         refreshUser,
+        setSession,
       }}
     >
       {children}
