@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from src.auth.verify_token import get_optional_user
 from src.schemas.profile import UserProfile
 from src.schemas.sprint import SprintCreate, SprintResponse, SprintUpdate
-from src.db.sprints import (
+from src.services.sprints import (
     create_sprint,
     delete_sprint,
     get_sprint_by_id,

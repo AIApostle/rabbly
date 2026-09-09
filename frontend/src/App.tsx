@@ -382,7 +382,6 @@ export function App() {
               onGetStarted={() => navigate('/signup')}
               onLogin={() => navigate('/login')}
               onSignup={() => navigate('/signup')}
-              onGoToDashboard={() => navigate('/session')}
             />
           }
         />

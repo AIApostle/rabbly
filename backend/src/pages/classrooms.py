@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 from src.auth.verify_token import get_optional_user
 from src.schemas.profile import UserProfile
 from src.schemas.session import SessionCreate, SessionResponse
-from src.db.sessions import (
+from src.services.sessions import (
     create_session,
     get_session_by_code,
     list_user_sessions,

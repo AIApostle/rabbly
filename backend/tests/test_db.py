@@ -7,9 +7,9 @@ import pytest
 from unittest.mock import MagicMock
 from src.schemas.profile import ProfileCreate, ProfileUpdate, ProfileResponse
 from src.schemas.session import SessionCreate, SessionUpdate, SessionResponse
-from src.db.profiles import PROFILES_TABLE, create_profile, get_profile_by_id, update_profile
-from src.db.sessions import SESSIONS_TABLE, create_session, get_session_by_code
-from src.db.general import select_one, select_all, delete_record
+from src.services.profiles import PROFILES_TABLE, create_profile, get_profile_by_id, update_profile
+from src.services.sessions import SESSIONS_TABLE, create_session, get_session_by_code
+from src.services.general import select_one, select_all, delete_record
 
 
 def test_profile_schema_validation():
@@ -83,3 +83,22 @@ def test_sessions_db_query_helpers():
     assert session is not None
     assert session.room_code == "RAB-7777"
     assert session.topic == "Trigonometry"
+
+
+def test_db_folder_contains_only_sql_files():
+    """Verify backend/src/db directory strictly contains only Supabase .sql query files."""
+    import os
+    from pathlib import Path
+
+    db_dir = Path(__file__).resolve().parent.parent / "src" / "db"
+    assert db_dir.is_dir()
+
+    files = [f for f in os.listdir(db_dir) if not f.startswith(".")]
+    # Every single file in src/db must be a .sql file
+    for filename in files:
+        assert filename.endswith(".sql"), f"Found non-sql file in db folder: {filename}"
+
+    expected_sql = {"schema.sql", "profiles.sql", "sessions.sql", "sprints.sql"}
+    for exp in expected_sql:
+        assert exp in files, f"Expected {exp} in src/db"
+

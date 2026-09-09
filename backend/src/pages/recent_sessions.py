@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from src.auth.verify_token import get_optional_user
 from src.schemas.profile import UserProfile
 from src.schemas.session import SessionCreate, SessionResponse, SessionUpdate
-from src.db.sessions import (
+from src.services.sessions import (
     create_session,
     delete_session,
     get_session_by_code,

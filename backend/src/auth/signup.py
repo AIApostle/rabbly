@@ -71,15 +71,11 @@ async def signup(payload: SignUpRequest):
 
         # Sync profile to 'profiles' table (in addition to database trigger)
         try:
-            from src.db.profiles import upsert_profile
-            upsert_profile(
-                client,
-                ProfileCreate(
-                    id=user_profile.id,
-                    email=payload.email,
-                    full_name=payload.full_name,
-                ),
-            )
+            client.table("profiles").upsert({
+                "id": user_profile.id,
+                "email": payload.email,
+                "full_name": payload.full_name,
+            }).execute()
         except Exception:
             pass  # Database trigger on auth.users handles this if table RLS prevents unconfirmed client writes
 
