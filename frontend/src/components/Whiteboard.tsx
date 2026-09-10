@@ -1,14 +1,10 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Tldraw, Editor } from 'tldraw';
 import 'tldraw/tldraw.css';
-import type { WhiteboardShapeAction, BoardStatePayload } from '../types';
+import type { WhiteboardShapeAction } from '../types';
 import { whiteboardMcpServer } from '../mcp/whiteboardMcpServer';
 import { liveDualSessionService } from '../services/liveDualSessionService';
-import { WhiteboardMcpDrawer } from './WhiteboardMcpDrawer';
-import {
-  executeAiActionOnBoard,
-  extractBoardState,
-} from '../utils/tldrawAiBridge';
+import { executeAiActionOnBoard } from '../utils/tldrawAiBridge';
 
 interface WhiteboardProps {
   onEditorReady?: (editor: Editor) => void;
@@ -21,14 +17,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   incomingAction,
 }) => {
   const editorRef = useRef<Editor | null>(null);
-  const [elementCount, setElementCount] = useState<number>(0);
-
-  // Sync board state back to the MCP Server
-  const syncBoardState = useCallback(() => {
-    if (!editorRef.current) return;
-    const state: BoardStatePayload = extractBoardState(editorRef.current);
-    setElementCount(state.elementCount);
-  }, []);
 
   // Store listener cleanup ref
   const storeUnsubRef = useRef<(() => void) | null>(null);
@@ -56,8 +44,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
       onEditorReady(editor);
     }
 
-    syncBoardState();
-
     // Stream initial board state to backend agent
     liveDualSessionService.streamBoardState(true);
 
@@ -66,7 +52,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
       storeUnsubRef.current();
     }
     storeUnsubRef.current = editor.store.listen(() => {
-      syncBoardState();
       liveDualSessionService.streamBoardState();
     });
   };
@@ -85,9 +70,8 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   useEffect(() => {
     if (!incomingAction || !editorRef.current) return;
     executeAiActionOnBoard(editorRef.current, incomingAction);
-    syncBoardState();
     liveDualSessionService.streamBoardState();
-  }, [incomingAction, syncBoardState]);
+  }, [incomingAction]);
 
   return (
     <div
@@ -95,22 +79,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
       onWheel={(e) => e.preventDefault()}
       onContextMenu={(e) => e.preventDefault()}
     >
-      {/* Read-Only Status & MCP Server Badge */}
-      <div className="absolute top-4 right-4 z-20 pointer-events-none flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/95 border border-slate-200/90 backdrop-blur-md shadow-lg text-xs">
-        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-        <span className="font-semibold text-slate-800 font-sans">
-          Whiteboard • AI Teacher Writing (Read Only)
-        </span>
-        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/60 font-semibold">
-          MCP v1.0
-        </span>
-        {elementCount > 0 && (
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-            {elementCount} {elementCount === 1 ? 'item' : 'items'}
-          </span>
-        )}
-      </div>
-
       {/* Embedded tldraw Editor strictly forced into white canvas light mode with UI tools removed */}
       <Tldraw
         onMount={handleMount}
@@ -118,9 +86,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
         hideUi={true}
         colorScheme="light"
       />
-
-      {/* Floating In-Browser MCP Server Console & Live Test Runner */}
-      <WhiteboardMcpDrawer />
     </div>
   );
 };
