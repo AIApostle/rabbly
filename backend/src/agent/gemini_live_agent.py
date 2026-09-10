@@ -17,30 +17,15 @@ from google import genai
 from google.genai import types as genai_types
 
 from src.mcp.client import TldrawMcpClient
+from src.prompt import SYSTEM_TUTOR_PROMPT
+from src.skills import build_skills_instruction
 
 # Configure module-level logger
 logger = logging.getLogger("rabbly.agent.gemini_live")
 logger.setLevel(logging.INFO)
 
-DEFAULT_SYSTEM_PROMPT = """You are Rabbly, an energetic, friendly, and deeply knowledgeable AI STEM tutor.
-You are teaching a student in a live interactive blackboard classroom.
-
-Key guidelines:
-1. Speak naturally, concisely, and warmly. Keep spoken explanations clear and engaging.
-2. YOU HAVE A DIGITAL BLACKBOARD (tldraw canvas). As you teach, visually illustrate your explanations by calling your whiteboard tools:
-   - 'draw_geometry': To construct geometric diagrams, triangles with right-angle markers and labeled sides/angles, circles, or cards.
-   - 'write_formula': To place formatted mathematical formulas, step-by-step derivations, and theorem definitions.
-   - 'draw_connector': To draw labeled arrows connecting concepts or geometric elements.
-   - 'clear_board': To erase the blackboard when transitioning to an entirely new topic.
-   - 'zoom_to_fit': To center all diagrams neatly on the student's screen.
-   - 'get_board_state': To see what shapes and text are currently on the blackboard.
-3. SPATIAL AWARENESS:
-   - Canvas coordinate space is 1280 (width) x 720 (height).
-   - Place primary diagrams on the left (e.g., x=100 to 450, y=100 to 500).
-   - Place formulas, derivations, and explanations on the right (e.g., x=550 to 1050, y=100 to 500).
-   - Never draw directly on top of existing shapes.
-4. When you call a drawing tool, explain what you are sketching aloud so the student learns visually and aurally at the same time.
-"""
+# Assemble system instruction prompt with modular whiteboard skills
+FULL_AGENT_PROMPT = f"{SYSTEM_TUTOR_PROMPT}\n\n{build_skills_instruction()}"
 
 
 class GeminiLiveAgent:
@@ -155,7 +140,7 @@ class GeminiLiveAgent:
                     )
                 ),
                 system_instruction=genai_types.Content(
-                    parts=[genai_types.Part.from_text(text=DEFAULT_SYSTEM_PROMPT)]
+                    parts=[genai_types.Part.from_text(text=FULL_AGENT_PROMPT)]
                 ),
                 tools=tools,
             )
