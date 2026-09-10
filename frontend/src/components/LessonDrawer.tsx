@@ -155,16 +155,16 @@ export const LessonDrawer: React.FC<LessonDrawerProps> = ({
 
         {activeTab === 'notes' && (
           <div className="space-y-3">
-            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center gap-2">
-              <Lightbulb className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>These takeaways update dynamically as Rabbly introduces new formulas on the board.</span>
+            <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs flex items-center gap-2">
+              <Lightbulb className="w-4 h-4 text-indigo-400 shrink-0" />
+              <span>Synthesized lecture notes, formulas, and architectural references for this lesson.</span>
             </div>
 
             <div className="space-y-2.5">
               {plan.lectureNotes.map((note, index) => (
                 <div
                   key={index}
-                  className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60 text-xs text-slate-200 leading-relaxed font-mono"
+                  className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60 text-xs text-slate-200 leading-relaxed font-mono whitespace-pre-wrap"
                 >
                   <span className="text-indigo-400 font-bold block mb-1">Key Note #{index + 1}</span>
                   {note}

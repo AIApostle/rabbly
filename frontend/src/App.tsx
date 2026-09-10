@@ -19,11 +19,13 @@ import { AudioControlBar } from './components/AudioControlBar';
 import { LessonDrawer } from './components/LessonDrawer';
 import { ClassroomModal } from './components/ClassroomModal';
 import { LESSON_SCENARIOS, getScenarioResponse } from './services/simulationEngine';
+import { generateCurriculum } from './services/curriculumService';
 import type {
   LessonPlan,
   AiStatus,
   WhiteboardShapeAction,
   ClassroomParticipant,
+  ExternalResource,
 } from './types';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
@@ -82,7 +84,7 @@ export function App() {
   const location = useLocation();
 
   // Topic & Configuration
-  const [topicKey, setTopicKey] = useState<string>('transformers');
+  const [topicKey] = useState<string>('transformers');
   const [currentTopicTitle, setCurrentTopicTitle] = useState<string>('');
   const [isClassroomMode, setIsClassroomMode] = useState<boolean>(false);
   const [roomCode, setRoomCode] = useState<string>(() => `RAB-${Math.floor(1000 + Math.random() * 9000)}`);
@@ -92,10 +94,11 @@ export function App() {
   const [currentPlan, setCurrentPlan] = useState<LessonPlan>(LESSON_SCENARIOS['transformers'].plan);
   const [activeModuleIndex, setActiveModuleIndex] = useState<number>(0);
 
-  // AI Tutor State
-  const [aiStatus, setAiStatus] = useState<AiStatus>('explaining');
+  // AI Tutor State (Idle and not auto-playing diagramming)
+  const [aiStatus, setAiStatus] = useState<AiStatus>('idle');
   const [aiSpeechText, setAiSpeechText] = useState<string>('');
-  const [isPlaying, setIsPlaying] = useState<boolean>(true);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [isGeneratingCurriculum, setIsGeneratingCurriculum] = useState<boolean>(false);
 
   // Student Audio Controls (MUTED BY DEFAULT as required)
   const [isMuted, setIsMuted] = useState<boolean>(true);
@@ -142,29 +145,22 @@ export function App() {
     };
   }, [isLiveScreen, isPreparing, isPlaying]);
 
-  // Start lesson from Setup
-  const handleStartLesson = (topic: string, classroom: boolean, level?: string) => {
-    const cleanTopic = topic.trim() || 'Transformers & Self-Attention';
+  // Start lesson from Setup & generate curriculum modules
+  const handleStartLesson = async (
+    topic: string,
+    classroom: boolean,
+    level?: string,
+    _file?: File | null,
+    resources?: ExternalResource[]
+  ) => {
+    const cleanTopic = topic.trim() || 'General Study';
     setCurrentTopicTitle(cleanTopic);
     setIsClassroomMode(classroom);
-
-    // Pick closest scenario or default to transformers
-    let matchedKey = 'transformers';
-    const lower = cleanTopic.toLowerCase();
-    if (lower.includes('quantum') || lower.includes('qubit')) {
-      matchedKey = 'quantum';
-    } else if (lower.includes('rate') || lower.includes('redis') || lower.includes('system')) {
-      matchedKey = 'rate-limiter';
-    }
-
-    setTopicKey(matchedKey);
-    const plan = { ...LESSON_SCENARIOS[matchedKey].plan };
-    if (level) {
-      plan.level = level as 'Beginner' | 'Intermediate' | 'Advanced';
-    }
-    setCurrentPlan(plan);
     setIsPreparing(true);
+    setIsGeneratingCurriculum(true);
     setElapsedSeconds(0);
+    setIsPlaying(false);
+    setIncomingAction(null);
 
     if (classroom) {
       const newCode = `RAB-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -173,14 +169,30 @@ export function App() {
     } else {
       navigate('/learn');
     }
+
+    try {
+      const plan = await generateCurriculum({
+        topic: cleanTopic,
+        level: (level as any) || 'Intermediate',
+        resources,
+      });
+      setCurrentPlan(plan);
+      setCurrentTopicTitle(plan.topic);
+    } catch (err) {
+      console.error('Failed to generate curriculum:', err);
+    } finally {
+      setIsGeneratingCurriculum(false);
+    }
   };
 
-  // Ready transition into Classroom workspace
+  // Transition into Whiteboard workspace
   const handlePrepReady = () => {
     setIsPreparing(false);
-    setIsPlaying(true);
+    setIsPlaying(false); // No live diagramming simulation
+    setIncomingAction(null); // Keep whiteboard canvas clean
     setCurrentCueIndex(0);
     setElapsedSeconds(0);
+    setIsNotesOpen(true); // Open drawer showing generated modules and notes
 
     // Add friend participants if in classroom mode
     if (isClassroomMode) {
@@ -189,7 +201,6 @@ export function App() {
         { id: 'user-maya', name: 'Maya Chen', avatar: '👩🏻‍💻', isHost: false, isMuted: true, joinedAt: '1m ago' },
         { id: 'user-jordan', name: 'Jordan Patel', avatar: '👨🏽‍🎓', isHost: false, isMuted: true, joinedAt: 'Just now' },
       ]);
-      // Small celebratory burst
       confetti({ particleCount: 40, spread: 60, origin: { y: 0.85 } });
     }
   };
@@ -567,6 +578,7 @@ export function App() {
                 <CurriculumPrepModal
                   topic={currentTopicTitle}
                   plan={currentPlan}
+                  isGenerating={isGeneratingCurriculum}
                   onReady={handlePrepReady}
                 />
               ) : (
@@ -583,6 +595,7 @@ export function App() {
                 <CurriculumPrepModal
                   topic={currentTopicTitle}
                   plan={currentPlan}
+                  isGenerating={isGeneratingCurriculum}
                   onReady={handlePrepReady}
                 />
               ) : (

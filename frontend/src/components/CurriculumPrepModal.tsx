@@ -6,95 +6,74 @@ import {
   Sparkles,
   Clock,
   Layers,
+  FileText,
 } from 'lucide-react';
 import type { LessonPlan } from '../types';
 
 interface CurriculumPrepModalProps {
   topic: string;
-  plan?: LessonPlan;
+  plan?: LessonPlan | null;
+  isGenerating?: boolean;
   onReady: () => void;
 }
 
 export const CurriculumPrepModal: React.FC<CurriculumPrepModalProps> = ({
   topic,
   plan,
+  isGenerating = false,
   onReady,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
-  const [progress, setProgress] = useState(15);
-  const [isComplete, setIsComplete] = useState(false);
+  const [progress, setProgress] = useState(20);
 
   const steps = [
     {
-      title: 'Analyzing Sources & Topic Context',
-      desc: 'Extracting conceptual relationships, dependencies, and reference materials...',
+      title: 'Analyzing Prompt & Study Context',
+      desc: 'Extracting key concepts, learning level, and attached reference materials...',
     },
     {
-      title: 'Structuring Curriculum Modules',
-      desc: 'Generating progressive milestones, key takeaways, and difficulty pacing...',
+      title: 'Agent Structuring Progressive Modules',
+      desc: 'Generating sequential milestones, pedagogical breakdown, and takeaways...',
     },
     {
-      title: 'Synthesizing Whiteboard & Formula Layout',
-      desc: 'Preparing initial canvas layout, mathematical equations, and written step explanations...',
+      title: 'Formulating Deep Lecture Notes',
+      desc: 'Synthesizing formulas, structural architecture, and summary notes...',
     },
     {
-      title: 'Connecting AI Voice & Audio Engine',
-      desc: 'Calibrating speech synthesis and low-latency student voice channel...',
+      title: 'Preparing Whiteboard Workspace',
+      desc: 'Setting up clean canvas layout and module curriculum drawer...',
     },
   ];
 
-  // Default fallback modules if not in plan
-  const modules = plan?.modules && plan.modules.length > 0 ? plan.modules : [
-    {
-      id: 'mod-1',
-      title: 'Core Foundations & Conceptual Intuition',
-      duration: '4 mins',
-      description: 'Understanding the problem statement, high-level mechanics, and historical context.',
-    },
-    {
-      id: 'mod-2',
-      title: 'Mathematical Architecture & Key Mechanics',
-      duration: '8 mins',
-      description: 'Step-by-step vector operations, attention weights, and formulas drawn on whiteboard.',
-    },
-    {
-      id: 'mod-3',
-      title: 'Real-World Scenarios & Interactive Q&A',
-      duration: '6 mins',
-      description: 'Practical implementations, edge cases, and spontaneous student questions.',
-    },
-  ];
-
+  // Animate progress smoothly while generating
   useEffect(() => {
-    // Step-by-step sequential analysis
-    const t1 = setTimeout(() => {
-      setCurrentStep(1);
-      setProgress(40);
-    }, 900);
+    if (isGenerating) {
+      const interval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev < 40) return prev + 12;
+          if (prev < 70) return prev + 6;
+          if (prev < 90) return prev + 2;
+          return prev;
+        });
+      }, 500);
 
-    const t2 = setTimeout(() => {
-      setCurrentStep(2);
-      setProgress(70);
-    }, 2000);
+      const stepTimer1 = setTimeout(() => setCurrentStep(1), 1200);
+      const stepTimer2 = setTimeout(() => setCurrentStep(2), 2800);
 
-    const t3 = setTimeout(() => {
+      return () => {
+        clearInterval(interval);
+        clearTimeout(stepTimer1);
+        clearTimeout(stepTimer2);
+      };
+    } else {
+      // When generation finishes
       setCurrentStep(3);
-      setProgress(90);
-    }, 3100);
-
-    const t4 = setTimeout(() => {
-      setCurrentStep(4);
       setProgress(100);
-      setIsComplete(true);
-    }, 4000);
+    }
+  }, [isGenerating]);
 
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
-    };
-  }, []);
+  const hasModules = plan?.modules && plan.modules.length > 0;
+  const isComplete = !isGenerating && hasModules;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-xl animate-in fade-in duration-300 overflow-y-auto">
@@ -110,8 +89,16 @@ export const CurriculumPrepModal: React.FC<CurriculumPrepModalProps> = ({
               🐰
             </div>
             <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
-              <span className={`absolute inline-flex h-full w-full rounded-full ${isComplete ? 'bg-emerald-400' : 'bg-cyan-400 animate-ping'} opacity-75`}></span>
-              <span className={`relative inline-flex rounded-full h-4 w-4 ${isComplete ? 'bg-emerald-500' : 'bg-cyan-500'}`}></span>
+              <span
+                className={`absolute inline-flex h-full w-full rounded-full ${
+                  isComplete ? 'bg-emerald-400' : 'bg-cyan-400 animate-ping'
+                } opacity-75`}
+              ></span>
+              <span
+                className={`relative inline-flex rounded-full h-4 w-4 ${
+                  isComplete ? 'bg-emerald-500' : 'bg-cyan-500'
+                }`}
+              ></span>
             </span>
           </div>
 
@@ -119,22 +106,22 @@ export const CurriculumPrepModal: React.FC<CurriculumPrepModalProps> = ({
             <div className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border mb-1.5 font-mono transition-colors">
               {isComplete ? (
                 <span className="text-emerald-400 bg-emerald-500/10 border-emerald-500/30">
-                  ✓ Analysis Complete • Ready to Teach
+                  ✓ Modules & Notes Generated
                 </span>
               ) : (
                 <span className="text-indigo-400 bg-indigo-500/10 border-indigo-500/30 flex items-center gap-1.5">
                   <Loader2 className="w-3 h-3 animate-spin" />
-                  <span>Synthesizing Curriculum & Whiteboard</span>
+                  <span>Agent Synthesizing Curriculum</span>
                 </span>
               )}
             </div>
             <h2 className="text-lg sm:text-2xl font-extrabold text-white font-['Outfit'] line-clamp-1">
-              {topic || 'Preparing Study Session'}
+              {plan?.topic || topic || 'Generating Curriculum'}
             </h2>
             <p className="text-xs text-slate-400 mt-0.5 max-w-md mx-auto">
               {isComplete
-                ? 'All modules generated and whiteboard synchronized. Click Enter Class to begin.'
-                : 'Analyzing your prompt and sources to assemble modular checkpoints and interactive canvas drawings...'}
+                ? 'Curriculum modules and deep lecture notes are ready. Enter the whiteboard to study.'
+                : 'The AI agent is analyzing your prompt and generating structured progressive modules and notes...'}
             </p>
           </div>
 
@@ -146,15 +133,15 @@ export const CurriculumPrepModal: React.FC<CurriculumPrepModalProps> = ({
                   ? 'bg-gradient-to-r from-emerald-500 to-cyan-400'
                   : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400'
               }`}
-              style={{ width: `${progress}%` }}
+              style={{ width: `${Math.min(100, Math.round(progress))}%` }}
             />
           </div>
 
           {/* Step Progress Checklist */}
           <div className="space-y-2 text-left pt-1">
             {steps.map((step, idx) => {
-              const isCompleted = idx < currentStep;
-              const isCurrent = idx === currentStep;
+              const isCompleted = idx < currentStep || isComplete;
+              const isCurrent = idx === currentStep && !isComplete;
 
               return (
                 <div
@@ -178,7 +165,15 @@ export const CurriculumPrepModal: React.FC<CurriculumPrepModalProps> = ({
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between">
-                      <h3 className={`text-xs font-bold ${isCurrent ? 'text-indigo-200' : isCompleted ? 'text-slate-200' : 'text-slate-500'}`}>
+                      <h3
+                        className={`text-xs font-bold ${
+                          isCurrent
+                            ? 'text-indigo-200'
+                            : isCompleted
+                            ? 'text-slate-200'
+                            : 'text-slate-500'
+                        }`}
+                      >
                         {step.title}
                       </h3>
                       {isCompleted && (
@@ -194,54 +189,81 @@ export const CurriculumPrepModal: React.FC<CurriculumPrepModalProps> = ({
             })}
           </div>
 
-          {/* Generated Modules Showcase (Revealed as analysis progresses) */}
-          {currentStep >= 2 && (
-            <div className="pt-1 text-left space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          {/* Generated Modules Showcase */}
+          {hasModules && (
+            <div className="pt-2 text-left space-y-2.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="flex items-center justify-between px-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono flex items-center gap-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 font-mono flex items-center gap-1.5">
                   <Layers className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Generated Modules ({modules.length})</span>
+                  <span>Generated Modules ({plan.modules.length})</span>
                 </span>
-                <span className="text-[10px] text-slate-400 font-mono">
-                  Est. ~{modules.length * 6} mins
+                <span className="text-[10px] text-indigo-300 font-mono font-medium">
+                  {plan.estimatedMinutes} mins total • {plan.level}
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {modules.slice(0, 3).map((mod, i) => (
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {plan.modules.map((mod, i) => (
                   <div
                     key={mod.id || i}
-                    className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-700/60 flex flex-col justify-between"
+                    className="p-3 rounded-2xl bg-slate-900/90 border border-slate-700/70 hover:border-indigo-500/50 transition-colors"
                   >
-                    <div>
-                      <span className="text-[10px] font-mono font-bold text-indigo-300">
-                        Module 0{i + 1}
-                      </span>
-                      <h4 className="text-xs font-semibold text-slate-200 line-clamp-1 mt-0.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-xs font-bold text-white line-clamp-1">
                         {mod.title}
                       </h4>
+                      <span className="text-[10px] text-slate-400 font-mono shrink-0 flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-slate-500" />
+                        {mod.duration}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1 mt-2 text-[10px] text-slate-400">
-                      <Clock className="w-3 h-3 text-slate-500" />
-                      <span>{mod.duration || '6m'}</span>
-                    </div>
+                    {mod.description && (
+                      <p className="text-[11px] text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                        {mod.description}
+                      </p>
+                    )}
+                    {mod.keyTakeaways && mod.keyTakeaways.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-slate-800/80 flex flex-wrap gap-1.5">
+                        {mod.keyTakeaways.map((takeaway, k) => (
+                          <span
+                            key={k}
+                            className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700/60"
+                          >
+                            • {takeaway}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
+
+              {/* Notes Indicator */}
+              {plan.lectureNotes && plan.lectureNotes.length > 0 && (
+                <div className="p-2.5 rounded-xl bg-indigo-950/30 border border-indigo-500/30 flex items-center justify-between text-xs text-indigo-300">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-3.5 h-3.5 text-indigo-400" />
+                    <span className="font-medium text-[11px]">
+                      {plan.lectureNotes.length} Lecture Notes & Formulas Generated
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono text-indigo-400">Available in Board Drawer</span>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Sticky Action Footer: Guaranteed to be visible on any viewport */}
+        {/* Sticky Action Footer */}
         <div className="p-4 sm:p-5 pt-3 border-t border-slate-800/80 bg-[#14161d]/95 backdrop-blur-md rounded-b-3xl shrink-0">
           {isComplete ? (
             <button
               onClick={onReady}
               id="enter-class-btn"
-              className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-emerald-500 hover:from-indigo-500 hover:to-emerald-400 text-white font-bold text-sm sm:text-base shadow-xl shadow-emerald-500/20 hover:shadow-indigo-600/40 transition-all cursor-pointer hover:scale-[1.01] active:scale-[0.98] ring-2 ring-emerald-400/50 animate-pulse"
+              className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-emerald-500 hover:from-indigo-500 hover:to-emerald-400 text-white font-bold text-sm sm:text-base shadow-xl shadow-emerald-500/20 hover:shadow-indigo-600/40 transition-all cursor-pointer hover:scale-[1.01] active:scale-[0.98] ring-2 ring-emerald-400/50"
             >
               <Sparkles className="w-4 h-4 text-amber-300" />
-              <span>Enter Class</span>
+              <span>Enter Whiteboard</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           ) : (
@@ -251,7 +273,7 @@ export const CurriculumPrepModal: React.FC<CurriculumPrepModalProps> = ({
               className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl bg-slate-800/90 text-slate-400 font-semibold text-xs sm:text-sm border border-slate-700/70 cursor-not-allowed select-none opacity-90"
             >
               <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
-              <span>Enter Class (Analyzing & Generating: {Math.min(100, Math.round(progress))}%)</span>
+              <span>Generating Modules & Notes ({Math.min(100, Math.round(progress))}%)</span>
             </button>
           )}
         </div>

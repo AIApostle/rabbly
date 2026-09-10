@@ -18,6 +18,7 @@ from src.pages.auth import auth_page_router
 from src.pages.recent_sessions import recent_sessions_router
 from src.pages.sprints import sprints_router
 from src.pages.classrooms import classrooms_router
+from src.pages.curriculum import curriculum_router
 
 app = FastAPI(
     title="Rabbly AI Tutor API",
@@ -44,6 +45,7 @@ app.include_router(auth_page_router, prefix="/api")
 app.include_router(recent_sessions_router, prefix="/api")
 app.include_router(sprints_router, prefix="/api")
 app.include_router(classrooms_router, prefix="/api")
+app.include_router(curriculum_router, prefix="/api")
 
 
 @app.get("/health", tags=["Health"])
