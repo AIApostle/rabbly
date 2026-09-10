@@ -67,12 +67,29 @@ def test_mcp_client_tool_registration():
     tools = mcp.get_tool_definitions()
     tool_names = [t.name for t in tools]
 
-    assert "draw_geometry" in tool_names
-    assert "write_formula" in tool_names
-    assert "draw_connector" in tool_names
-    assert "clear_board" in tool_names
-    assert "get_board_state" in tool_names
+    expected_tools = [
+        "get_board_state",
+        "write_text",
+        "create_sticky_note",
+        "write_formula",
+        "create_shape",
+        "draw_geometry",
+        "draw_connector",
+        "update_shape",
+        "delete_shapes",
+        "duplicate_shapes",
+        "align_shapes",
+        "distribute_shapes",
+        "reorder_shapes",
+        "set_camera",
+        "clear_board",
+    ]
+
+    for expected in expected_tools:
+        assert expected in tool_names, f"Missing tool: {expected}"
+
+    assert len(tool_names) == len(expected_tools)
 
     genai_tools = mcp.get_genai_tools()
     assert len(genai_tools) == 1
-    assert len(genai_tools[0].function_declarations) == len(tool_names)
+    assert len(genai_tools[0].function_declarations) == len(expected_tools)

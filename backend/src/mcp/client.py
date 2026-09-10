@@ -129,10 +129,143 @@ class TldrawMcpClient:
                 inputSchema={"type": "object", "properties": {}},
             ),
             McpToolDefinition(
+                name="write_text",
+                description=(
+                    "Writes clear, styled typography text directly onto the blackboard. Ideal for titles, "
+                    "explanations, step headers, and conceptual definitions."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "text": {"type": "string", "description": "The text content to display."},
+                        "x": {"type": "number", "description": "Horizontal coordinate (0-1280 canonical)."},
+                        "y": {"type": "number", "description": "Vertical coordinate (0-720 canonical)."},
+                        "size": {
+                            "type": "string",
+                            "enum": ["s", "m", "l", "xl"],
+                            "description": "Font scale (s: small, m: body, l: heading, xl: hero title).",
+                        },
+                        "font": {
+                            "type": "string",
+                            "enum": ["draw", "sans", "serif", "mono"],
+                            "description": "Typeface family (draw: handwritten chalk, sans: clean, serif: academic, mono: code).",
+                        },
+                        "color": {
+                            "type": "string",
+                            "enum": ["black", "grey", "light-violet", "violet", "blue", "light-blue", "yellow", "orange", "green", "light-green", "light-red", "red"],
+                            "description": "Text color token.",
+                        },
+                        "align": {
+                            "type": "string",
+                            "enum": ["start", "middle", "end"],
+                            "description": "Text horizontal alignment.",
+                        },
+                    },
+                    "required": ["text"],
+                },
+            ),
+            McpToolDefinition(
+                name="create_sticky_note",
+                description=(
+                    "Creates a colorful sticky note card on the blackboard with automatic text wrapping. "
+                    "Great for important callouts, definitions, or summary cards."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "text": {"type": "string", "description": "Note text content."},
+                        "x": {"type": "number", "description": "Horizontal placement coordinate."},
+                        "y": {"type": "number", "description": "Vertical placement coordinate."},
+                        "color": {
+                            "type": "string",
+                            "enum": ["yellow", "light-blue", "green", "orange", "violet", "red", "grey"],
+                            "description": "Sticky note paper color.",
+                        },
+                        "size": {
+                            "type": "string",
+                            "enum": ["s", "m", "l", "xl"],
+                            "description": "Card size.",
+                        },
+                    },
+                    "required": ["text"],
+                },
+            ),
+            McpToolDefinition(
+                name="write_formula",
+                description=(
+                    "Writes mathematical formulas, step-by-step derivations, or theorem cards with formatted equations on the board."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "title": {"type": "string", "description": "Title header for the formula card."},
+                        "formula": {"type": "string", "description": "Mathematical formula or equations to render."},
+                        "x": {"type": "number", "description": "Horizontal position (0-1280)."},
+                        "y": {"type": "number", "description": "Vertical position (0-720)."},
+                        "width": {"type": "number", "description": "Card width."},
+                        "height": {"type": "number", "description": "Card height."},
+                        "color": {
+                            "type": "string",
+                            "enum": ["yellow", "green", "light-blue", "orange", "violet", "red"],
+                            "description": "Accent chalk highlight color.",
+                        },
+                    },
+                    "required": ["formula"],
+                },
+            ),
+            McpToolDefinition(
+                name="create_shape",
+                description=(
+                    "Creates any geometric shape from tldraw's full palette (rectangle, ellipse, triangle, diamond, star, "
+                    "cloud, heart, etc.) with customizable stroke, fill, and dash styles."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "geo": {
+                            "type": "string",
+                            "enum": [
+                                "rectangle", "ellipse", "triangle", "diamond", "star",
+                                "rhombus", "rhombus-2", "oval", "trapezoid", "arrow-right",
+                                "arrow-left", "arrow-up", "arrow-down", "check-box", "x-box",
+                                "cloud", "heart"
+                            ],
+                            "description": "Geometric shape archetype.",
+                        },
+                        "x": {"type": "number", "description": "X coordinate."},
+                        "y": {"type": "number", "description": "Y coordinate."},
+                        "w": {"type": "number", "description": "Width of shape in pixels."},
+                        "h": {"type": "number", "description": "Height of shape in pixels."},
+                        "text": {"type": "string", "description": "Optional label text inside the shape."},
+                        "color": {
+                            "type": "string",
+                            "enum": ["black", "grey", "light-violet", "violet", "blue", "light-blue", "yellow", "orange", "green", "light-green", "light-red", "red"],
+                            "description": "Stroke and text color.",
+                        },
+                        "fill": {
+                            "type": "string",
+                            "enum": ["none", "semi", "solid", "pattern"],
+                            "description": "Fill style.",
+                        },
+                        "dash": {
+                            "type": "string",
+                            "enum": ["draw", "solid", "dashed", "dotted"],
+                            "description": "Line pattern.",
+                        },
+                        "size": {
+                            "type": "string",
+                            "enum": ["s", "m", "l", "xl"],
+                            "description": "Stroke size.",
+                        },
+                    },
+                    "required": ["geo"],
+                },
+            ),
+            McpToolDefinition(
                 name="draw_geometry",
                 description=(
-                    "Draws mathematical and geometric diagrams on the blackboard (e.g. right_triangle with "
-                    "perpendicular square and angle theta, circle, or rectangle card)."
+                    "Constructs specialized geometric figures with math markers (right-angled triangles with 90° corner square, "
+                    "angle arc θ, labeled sides a/b/c, unit circles, or rectangles)."
                 ),
                 inputSchema={
                     "type": "object",
@@ -166,29 +299,6 @@ class TldrawMcpClient:
                 },
             ),
             McpToolDefinition(
-                name="write_formula",
-                description=(
-                    "Writes mathematical equations, derivation steps, or theorem cards onto the board."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "title": {"type": "string", "description": "Title header for the formula card."},
-                        "formula": {"type": "string", "description": "Mathematical formula or equations to render."},
-                        "x": {"type": "number", "description": "Horizontal position (0-1280)."},
-                        "y": {"type": "number", "description": "Vertical position (0-720)."},
-                        "width": {"type": "number", "description": "Card width."},
-                        "height": {"type": "number", "description": "Card height."},
-                        "color": {
-                            "type": "string",
-                            "enum": ["yellow", "green", "light-blue", "orange", "violet", "red"],
-                            "description": "Accent chalk highlight color.",
-                        },
-                    },
-                    "required": ["formula"],
-                },
-            ),
-            McpToolDefinition(
                 name="draw_connector",
                 description="Draws an arrow or vector connecting two elements on the whiteboard with an optional label.",
                 inputSchema={
@@ -198,18 +308,146 @@ class TldrawMcpClient:
                         "to_id": {"type": "string", "description": "Target shape ID."},
                         "label": {"type": "string", "description": "Descriptive text along the connector."},
                         "color": {"type": "string", "description": "Arrow color."},
+                        "is_curved": {"type": "boolean", "description": "Whether the arrow curves smoothly."},
                     },
                     "required": ["from_id", "to_id"],
                 },
             ),
             McpToolDefinition(
-                name="clear_board",
-                description="Erases all elements on the digital blackboard to start fresh.",
-                inputSchema={"type": "object", "properties": {}},
+                name="update_shape",
+                description="Updates properties of an existing shape on the board (e.g. change text, color, position, dimensions).",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "string", "description": "The unique ID of the shape to update."},
+                        "x": {"type": "number", "description": "New horizontal position."},
+                        "y": {"type": "number", "description": "New vertical position."},
+                        "text": {"type": "string", "description": "Updated text content."},
+                        "color": {"type": "string", "description": "Updated color token."},
+                        "w": {"type": "number", "description": "Updated width."},
+                        "h": {"type": "number", "description": "Updated height."},
+                    },
+                    "required": ["id"],
+                },
             ),
             McpToolDefinition(
-                name="zoom_to_fit",
-                description="Adjusts camera view so all currently drawn elements fit smoothly in the student's screen.",
+                name="delete_shapes",
+                description="Deletes one or more specific shapes from the blackboard by their IDs.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "shape_ids": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "List of shape IDs to permanently remove.",
+                        },
+                    },
+                    "required": ["shape_ids"],
+                },
+            ),
+            McpToolDefinition(
+                name="duplicate_shapes",
+                description="Duplicates one or more shapes with an offset across the canvas.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "shape_ids": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "List of shape IDs to duplicate.",
+                        },
+                        "offset_x": {"type": "number", "description": "Horizontal duplicate offset."},
+                        "offset_y": {"type": "number", "description": "Vertical duplicate offset."},
+                    },
+                    "required": ["shape_ids"],
+                },
+            ),
+            McpToolDefinition(
+                name="align_shapes",
+                description="Aligns multiple shapes along an axis (e.g. align left margins, center horizontally, or align top edges).",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "shape_ids": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "List of shape IDs to align (minimum 2).",
+                        },
+                        "alignment": {
+                            "type": "string",
+                            "enum": ["left", "right", "top", "bottom", "center-horizontal", "center-vertical"],
+                            "description": "Alignment axis.",
+                        },
+                    },
+                    "required": ["shape_ids", "alignment"],
+                },
+            ),
+            McpToolDefinition(
+                name="distribute_shapes",
+                description="Evenly distributes three or more shapes horizontally or vertically across space.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "shape_ids": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "List of shape IDs to distribute (minimum 3).",
+                        },
+                        "direction": {
+                            "type": "string",
+                            "enum": ["horizontal", "vertical"],
+                            "description": "Direction of equal distribution.",
+                        },
+                    },
+                    "required": ["shape_ids", "direction"],
+                },
+            ),
+            McpToolDefinition(
+                name="reorder_shapes",
+                description="Controls the front-to-back Z-order of shapes on the board.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "shape_ids": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "List of shape IDs to reorder.",
+                        },
+                        "operation": {
+                            "type": "string",
+                            "enum": ["bringToFront", "sendToBack", "bringForward", "sendBackward"],
+                            "description": "Layering action to execute.",
+                        },
+                    },
+                    "required": ["shape_ids", "operation"],
+                },
+            ),
+            McpToolDefinition(
+                name="set_camera",
+                description="Controls the canvas camera view: zoom to fit all shapes, frame specific elements, or navigate to coordinates.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "mode": {
+                            "type": "string",
+                            "enum": ["zoom_to_fit", "zoom_to_shapes", "pan_to"],
+                            "description": "Camera action mode.",
+                        },
+                        "shape_ids": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Shape IDs to frame when mode is zoom_to_shapes.",
+                        },
+                        "x": {"type": "number", "description": "X target coordinate when mode is pan_to."},
+                        "y": {"type": "number", "description": "Y target coordinate when mode is pan_to."},
+                        "zoom": {"type": "number", "description": "Target zoom level (1.0 = 100%)."},
+                    },
+                    "required": ["mode"],
+                },
+            ),
+            McpToolDefinition(
+                name="clear_board",
+                description="Erases all elements on the digital blackboard to start fresh.",
                 inputSchema={"type": "object", "properties": {}},
             ),
         ]

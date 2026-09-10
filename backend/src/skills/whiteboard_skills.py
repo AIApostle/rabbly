@@ -3,10 +3,10 @@ Agent Skills and Capabilities for Rabbly Whiteboard Tutoring.
 
 This module defines modular skills and pedagogical execution rules for the AI Agent.
 Each skill encapsulates tool usage guidelines, visual layout rules, and reasoning heuristics
-for blackboard interaction.
+for blackboard interaction across the full tldraw action suite.
 """
 
-from typing import Dict, List
+from typing import List
 from pydantic import BaseModel, Field
 
 
@@ -29,14 +29,13 @@ class AgentSkill(BaseModel):
 
 WHITEBOARD_SKILLS: List[AgentSkill] = [
     AgentSkill(
-        name="Geometric Modeling & Trigonometry",
-        description="Constructs accurate mathematical geometry and trigonometry diagrams on the canvas.",
-        tools_used=["draw_geometry"],
+        name="Typography & Explanatory Writing",
+        description="Writes headers, step numbers, bullet takeaways, and conceptual definitions cleanly on the canvas.",
+        tools_used=["write_text", "create_sticky_note"],
         guidelines=[
-            "When teaching trigonometry or Pythagorean theorem, draw a 'right_triangle' with right-angle corner square.",
-            "Always label sides: hypotenuse (c), opposite (b), adjacent (a), and angle (θ) so the student has visual anchor points.",
-            "Place geometric diagrams on the left half of the board (x: 100-450, y: 120-400).",
-            "Use 'circle' when illustrating unit circles, angles, or circular motion.",
+            "Use 'write_text' for clean section headers (size='l' or 'xl', font='sans' or 'draw').",
+            "Use 'create_sticky_note' for important highlights, definitions, or student questions.",
+            "Choose chalk colors appropriately: 'yellow' for formulas, 'light-blue' for definitions, 'green' for insights.",
         ],
     ),
     AgentSkill(
@@ -44,29 +43,62 @@ WHITEBOARD_SKILLS: List[AgentSkill] = [
         description="Presents mathematical proofs, derivations, and equations clearly on blackboard cards.",
         tools_used=["write_formula"],
         guidelines=[
-            "Format equations clearly with concise step-by-step lines (e.g. 'sin(θ) = Opposite / Hypotenuse').",
+            "Format equations with concise step-by-step lines (e.g. 'sin(θ) = Opposite / Hypotenuse = b / c').",
             "Position formulas on the right side of the blackboard (x: 540-1050, y: 120-400).",
             "Use warm accent colors ('yellow' for primary theorems, 'light-blue' for definitions, 'green' for final answers).",
-            "Break complex derivations into separate cards rather than jamming everything into one block.",
+            "Break multi-part derivations into separate cards rather than jamming everything into one block.",
         ],
     ),
     AgentSkill(
-        name="Concept Connection & Flow",
+        name="Geometric Modeling & Trigonometry",
+        description="Constructs accurate mathematical geometry, coordinate systems, and trigonometry diagrams.",
+        tools_used=["draw_geometry", "create_shape"],
+        guidelines=[
+            "When teaching trigonometry or Pythagorean theorem, draw a 'right_triangle' with right-angle corner square.",
+            "Always label sides: hypotenuse (c), opposite (b), adjacent (a), and angle (θ) so the student has visual anchor points.",
+            "Use 'create_shape' with 'ellipse' or 'circle' for circular motion, unit circles, or Venn diagrams.",
+            "Use 'diamond', 'star', or 'cloud' for emphasizing key concepts or thought bubbles.",
+            "Place geometric diagrams on the left half of the board (x: 100-450, y: 120-400).",
+        ],
+    ),
+    AgentSkill(
+        name="Concept Connection & Relational Flow",
         description="Draws labeled vector arrows and relationships between visual elements.",
         tools_used=["draw_connector"],
         guidelines=[
             "Link related shapes using their IDs (e.g. from triangle to derivation card).",
             "Add short, informative labels along connectors (e.g. 'implies', 'differentiate', 'substitute').",
+            "Use is_curved=True for elegant arcs when connecting across distant quadrants.",
         ],
     ),
     AgentSkill(
-        name="Spatial Layout & Overlap Avoidance",
-        description="Maintains an organized, clutter-free blackboard layout using spatial state inspection.",
-        tools_used=["get_board_state", "zoom_to_fit"],
+        name="Canvas Layout, Alignment & Distribution",
+        description="Keeps the blackboard aesthetic, symmetrical, and readable through programmatic alignment and spacing.",
+        tools_used=["align_shapes", "distribute_shapes", "reorder_shapes"],
         guidelines=[
-            "Before drawing new elements, inspect the board state or use the cached spatial summary.",
-            "If the board is already crowded, find an open quadrant or suggest clearing the board before continuing.",
-            "Call 'zoom_to_fit' after creating complex multi-element diagrams so the student sees the complete picture.",
+            "After generating multiple formula cards or diagram blocks, call 'align_shapes' to align their left edges or tops.",
+            "Use 'distribute_shapes' with 'vertical' to create evenly spaced lists of derivation steps.",
+            "Use 'reorder_shapes' with 'bringToFront' to ensure labels and arrows sit cleanly on top of backgrounds.",
+        ],
+    ),
+    AgentSkill(
+        name="Shape Mutation & Iterative Refinement",
+        description="Modifies, updates, or removes specific shapes as concepts develop.",
+        tools_used=["update_shape", "delete_shapes", "duplicate_shapes"],
+        guidelines=[
+            "When stepping through a derivation, use 'update_shape' to highlight the active step or change color to 'green' upon completion.",
+            "Use 'duplicate_shapes' when comparing before-and-after states of a geometric transformation.",
+            "Delete obsolete intermediate scratch notes with 'delete_shapes'.",
+        ],
+    ),
+    AgentSkill(
+        name="Camera Directing & Visual Framing",
+        description="Directs student attention by framing specific parts of the blackboard.",
+        tools_used=["set_camera", "get_board_state"],
+        guidelines=[
+            "Before drawing new elements, inspect 'get_board_state' to check occupied coordinates.",
+            "After completing a complex diagram, call 'set_camera' with mode='zoom_to_fit' to ensure the entire board is framed.",
+            "When deep-diving into a detailed sub-formula, call 'set_camera' with mode='zoom_to_shapes' on that shape ID.",
         ],
     ),
     AgentSkill(
