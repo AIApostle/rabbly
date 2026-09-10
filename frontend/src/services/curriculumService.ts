@@ -129,6 +129,8 @@ export async function generateCurriculum(params: GenerateCurriculumParams): Prom
     // Map response into strict frontend LessonPlan
     const plan: LessonPlan = {
       id: data.id || `lesson-${Date.now()}`,
+      session_id: data.session_id,
+      room_code: data.room_code,
       topic: data.topic || topic,
       overview: data.overview || `Curriculum for ${topic}`,
       subject: data.subject || subject || 'General Study',
@@ -136,7 +138,9 @@ export async function generateCurriculum(params: GenerateCurriculumParams): Prom
       estimatedMinutes: data.estimatedMinutes || 16,
       modules: data.modules || [],
       lectureNotes: data.lectureNotes || [],
+      sourceMaterials: data.sourceMaterials || [],
       suggestedQuestions: data.suggestedQuestions || [],
+      created_at: data.created_at,
     };
 
     return plan;
@@ -145,3 +149,30 @@ export async function generateCurriculum(params: GenerateCurriculumParams): Prom
     return createFallbackPlan(topic, level);
   }
 }
+
+/**
+ * Fetches all saved curriculum plans and sessions for the user library.
+ */
+export async function fetchLibraryCurricula(): Promise<LessonPlan[]> {
+  try {
+    const response = await fetch('/api/curriculum/library', {
+      method: 'GET',
+      headers: {
+        ...getAuthHeaders(),
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      console.warn(`[CurriculumService] Library endpoint returned ${response.status}`);
+      return [];
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.warn('[CurriculumService] Error fetching library:', error);
+    return [];
+  }
+}
+

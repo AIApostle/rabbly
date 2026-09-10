@@ -567,6 +567,17 @@ export function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/library"
+          element={
+            <ProtectedRoute>
+              <LessonSetupPage
+                onBack={() => navigate('/')}
+                onStartLesson={handleStartLesson}
+              />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/app" element={<Navigate to="/session" replace />} />
 
         {/* Live Workspace (Protected: Requires Authenticated Session) */}

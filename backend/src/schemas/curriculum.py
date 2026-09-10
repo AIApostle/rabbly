@@ -1,11 +1,13 @@
 """
 Curriculum Generation Pydantic Schemas
 Defines request and response schemas for dynamic AI curriculum generation,
-including progressive learning modules and comprehensive lecture notes.
+including progressive learning modules, comprehensive lecture notes, source materials,
+and Supabase session persistence metadata.
 """
 
-from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+import re
+from typing import Any, Dict, List, Optional, Union
+from pydantic import BaseModel, Field, field_validator
 
 
 class CurriculumResource(BaseModel):
@@ -36,9 +38,21 @@ class CurriculumModule(BaseModel):
     keyTakeaways: List[str] = Field(default_factory=list)
 
 
+class SourceMaterial(BaseModel):
+    """Curated academic paper, book, documentation citation, or attached reference."""
+    id: Optional[str] = None
+    title: str
+    type: str = Field("reference", description="'paper', 'book', 'documentation', 'article', 'link', or 'file'")
+    detail: Optional[str] = None
+    url: Optional[str] = None
+    snippet: Optional[str] = None
+
+
 class CurriculumPlanResponse(BaseModel):
-    """Complete generated curriculum and notes."""
+    """Complete generated curriculum, notes, source materials, and Supabase session metadata."""
     id: str
+    session_id: Optional[str] = None
+    room_code: Optional[str] = None
     topic: str
     overview: str
     subject: str = "General Study"
@@ -46,4 +60,17 @@ class CurriculumPlanResponse(BaseModel):
     estimatedMinutes: int = 15
     modules: List[CurriculumModule]
     lectureNotes: List[str] = Field(default_factory=list)
+    sourceMaterials: List[SourceMaterial] = Field(default_factory=list)
     suggestedQuestions: List[str] = Field(default_factory=list)
+    created_at: Optional[str] = None
+
+    @field_validator("estimatedMinutes", mode="before")
+    @classmethod
+    def parse_estimated_minutes(cls, v: Any) -> int:
+        if isinstance(v, int):
+            return v
+        if isinstance(v, str):
+            match = re.search(r"\d+", v)
+            if match:
+                return int(match.group())
+        return 16

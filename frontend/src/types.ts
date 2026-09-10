@@ -9,8 +9,19 @@ export interface CurriculumModule {
   keyTakeaways: string[];
 }
 
+export interface SourceMaterial {
+  id?: string;
+  title: string;
+  type: string;
+  detail?: string;
+  url?: string;
+  snippet?: string;
+}
+
 export interface LessonPlan {
   id: string;
+  session_id?: string;
+  room_code?: string;
   topic: string;
   overview: string;
   subject?: string;
@@ -18,7 +29,9 @@ export interface LessonPlan {
   estimatedMinutes: number;
   modules: CurriculumModule[];
   lectureNotes: string[];
+  sourceMaterials?: SourceMaterial[];
   suggestedQuestions: string[];
+  created_at?: string;
 }
 
 export type WhiteboardColor =

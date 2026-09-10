@@ -179,15 +179,51 @@ export const LessonDrawer: React.FC<LessonDrawerProps> = ({
             <div className="p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/60 space-y-2">
               <div className="flex items-center gap-2 text-xs font-semibold text-white">
                 <FileText className="w-4 h-4 text-cyan-400" />
-                <span>Primary Learning Source</span>
+                <span>Primary Learning Source & Citations</span>
               </div>
               <p className="text-xs text-slate-300 leading-relaxed">
                 Topic: <span className="text-indigo-300 font-semibold">{plan.topic}</span>
               </p>
-              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-[11px] text-slate-400 leading-relaxed font-mono">
-                Source Document: Ingestion Pipeline Verified (PDF & Text notes parsed). Knowledge graph initialized for real-time whiteboard projection.
-              </div>
             </div>
+
+            {plan.sourceMaterials && plan.sourceMaterials.length > 0 ? (
+              <div className="space-y-2.5">
+                {plan.sourceMaterials.map((source, sIdx) => (
+                  <div
+                    key={source.id || sIdx}
+                    className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60 space-y-1 text-xs"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">
+                        {source.type}
+                      </span>
+                      {source.url && (
+                        <a
+                          href={source.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-indigo-400 hover:text-indigo-300 font-mono hover:underline"
+                        >
+                          Source Link ↗
+                        </a>
+                      )}
+                    </div>
+                    <h4 className="text-xs font-bold text-white mt-1">
+                      {source.title}
+                    </h4>
+                    {source.snippet && (
+                      <p className="text-[11px] text-slate-300 mt-1 leading-snug font-mono">
+                        {source.snippet}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-[11px] text-slate-400 leading-relaxed font-mono">
+                Knowledge graph initialized. Canonical textbooks, academic citations, and source notes synchronized with this session.
+              </div>
+            )}
           </div>
         )}
       </div>

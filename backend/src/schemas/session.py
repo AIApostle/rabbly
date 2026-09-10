@@ -25,6 +25,7 @@ class SessionCreate(SessionBase):
     """Payload to create a new session or classroom."""
     room_code: Optional[str] = Field(None, description="Custom or auto-generated room code (e.g. 'RAB-1234').")
     host_id: Optional[str] = Field(None, description="UUID of the host student or teacher.")
+    board_state: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Whiteboard state and curriculum.")
 
 
 class SessionUpdate(BaseModel):

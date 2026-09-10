@@ -20,11 +20,13 @@ import {
   SquarePlay,
   Zap,
   LogOut,
+  BookOpen,
 } from 'lucide-react';
 import type { ExternalResource, RecentSessionData } from '../types';
 import { RecentSessionsPage } from './RecentSessionsPage';
 import { ClassroomHubPage } from './ClassroomHubPage';
 import { GoalsPage } from './GoalsPage';
+import { LibraryPage } from './LibraryPage';
 import { getLocalSessions, loadRecentSessions, persistNewSession, removeSession } from '../services/sessionService';
 import { useAuth } from '../context/AuthContext';
 
@@ -42,19 +44,23 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
 
-  // URL-driven navigation view: /classrooms, /recent, /sprints, or /session (default)
-  const activeView: 'chat' | 'classrooms' | 'recent' | 'sprints' =
-    location.pathname.startsWith('/classrooms')
-      ? 'classrooms'
-      : location.pathname.startsWith('/recent')
-        ? 'recent'
-        : location.pathname.startsWith('/sprints') || location.pathname.startsWith('/goals') || location.pathname.startsWith('/projects')
-          ? 'sprints'
-          : 'chat';
+  // URL-driven navigation view: /classrooms, /recent, /sprints, /library, or /session (default)
+  const activeView: 'chat' | 'classrooms' | 'recent' | 'sprints' | 'library' =
+    location.pathname.startsWith('/library')
+      ? 'library'
+      : location.pathname.startsWith('/classrooms')
+        ? 'classrooms'
+        : location.pathname.startsWith('/recent')
+          ? 'recent'
+          : location.pathname.startsWith('/sprints') || location.pathname.startsWith('/goals') || location.pathname.startsWith('/projects')
+            ? 'sprints'
+            : 'chat';
 
-  const navigateToView = (view: 'chat' | 'classrooms' | 'recent' | 'sprints') => {
+  const navigateToView = (view: 'chat' | 'classrooms' | 'recent' | 'sprints' | 'library') => {
     if (view === 'chat') {
       navigate('/session');
+    } else if (view === 'library') {
+      navigate('/library');
     } else if (view === 'classrooms') {
       navigate('/classrooms');
     } else if (view === 'recent') {
@@ -561,6 +567,25 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
               {recentSessions.length}
             </span>
           </button>
+
+          {/* Dedicated Curriculum Library Page link */}
+          <button
+            type="button"
+            onClick={() => navigateToView('library')}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+              activeView === 'library'
+                ? 'bg-gradient-to-r from-indigo-950/50 to-cyan-950/50 text-indigo-300 border border-indigo-500/40 font-semibold shadow-sm'
+                : 'text-[#c4c6d0] hover:bg-[#212429] hover:text-white border border-transparent'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <BookOpen className="w-4 h-4 text-indigo-400" />
+              <span>Curriculum Library</span>
+            </div>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono font-medium border border-indigo-500/30">
+              Saved
+            </span>
+          </button>
         </div>
 
         {/* Sidebar Footer: Dynamic User Profile & Back to Home */}
@@ -703,13 +728,23 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
           />
         )}
 
-        {/* View 2: Dedicated Recent Sessions Page with Cards & Continue Learning */}
+        {/* View 3: Dedicated Recent Sessions Page with Cards & Continue Learning */}
         {activeView === 'recent' && (
           <RecentSessionsPage
             sessions={recentSessions}
             onContinueSession={handleContinueSession}
             onRestartSession={handleRestartSession}
             onDeleteSession={handleDeleteRecentSession}
+            onBackToChat={() => navigateToView('chat')}
+          />
+        )}
+
+        {/* View 4: Dedicated Curriculum Library Page */}
+        {activeView === 'library' && (
+          <LibraryPage
+            onStudyLesson={(plan) => {
+              onStartLesson(plan.topic, false, plan.level);
+            }}
             onBackToChat={() => navigateToView('chat')}
           />
         )}

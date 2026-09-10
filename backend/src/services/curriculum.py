@@ -1,7 +1,8 @@
 """
-Curriculum Generation Service
+Curriculum Generation & Library Service
 Uses OpenRouter LLM or intelligent structured heuristics to generate multi-part
-pedagogical learning modules, key takeaways, and comprehensive lecture notes.
+pedagogical learning modules, key takeaways, comprehensive lecture notes, and source materials.
+Automatically saves every generated curriculum session into Supabase (and in-memory fallback).
 """
 
 import os
@@ -10,17 +11,28 @@ import uuid
 import re
 import urllib.request
 import urllib.error
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from src.schemas.curriculum import (
     CurriculumGenerateRequest,
     CurriculumModule,
     CurriculumPlanResponse,
+    SourceMaterial,
 )
+from src.schemas.profile import UserProfile
+from src.schemas.session import SessionCreate
+from src.auth.client import get_supabase_client
+from src.services.sessions import create_session, list_user_sessions
+from src.pages.recent_sessions import _memory_sessions
 
 
 OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
 DEFAULT_MODEL = "google/gemini-2.5-flash"
+
+
+def _is_supabase_ready() -> bool:
+    return bool(os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_ANON_KEY"))
 
 
 def _generate_with_openrouter(
@@ -44,8 +56,14 @@ def _generate_with_openrouter(
         "   - status: 'in-progress' for the first module, 'upcoming' for the rest\n"
         "   - description: 2-3 sentences explaining what this module covers and why\n"
         "   - keyTakeaways: list of 2-3 crisp bullet points\n"
-        "5. lectureNotes: list of 5-8 detailed lecture note items. Include formulas, bullet summaries, and clear ASCII or text diagrams where appropriate.\n"
-        "6. suggestedQuestions: 3 insightful questions a student would ask to test or deepen understanding.\n\n"
+        "5. lectureNotes: list of 5-8 detailed lecture note items. Include formulas, definitions, and clear ASCII or text diagrams where appropriate.\n"
+        "6. sourceMaterials: list of 3-4 authoritative reference sources (canonical research papers, landmark textbooks, standard technical documentation, or specifications). Each item MUST have:\n"
+        "   - title: citation title (e.g. 'Attention Is All You Need (Vaswani et al., 2017)')\n"
+        "   - type: 'paper' | 'book' | 'documentation' | 'article'\n"
+        "   - detail: publication venue, year, or authors\n"
+        "   - url: arXiv / DOI / doc URL if known or web address\n"
+        "   - snippet: 1-2 sentence annotation explaining why this is a primary reference.\n"
+        "7. suggestedQuestions: 3 insightful questions a student would ask to test or deepen understanding.\n\n"
         "OUTPUT FORMAT: Return ONLY valid JSON matching this exact structure without markdown backticks or commentary."
     )
 
@@ -78,10 +96,9 @@ def _generate_with_openrouter(
     )
 
     try:
-        with urllib.request.urlopen(req, timeout=18) as response:
+        with urllib.request.urlopen(req, timeout=20) as response:
             result = json.loads(response.read().decode("utf-8"))
             content = result["choices"][0]["message"]["content"]
-            # Clean possible markdown wrap
             cleaned = re.sub(r"^```json\s*", "", content.strip(), flags=re.MULTILINE)
             cleaned = re.sub(r"\s*```$", "", cleaned, flags=re.MULTILINE)
             return json.loads(cleaned)
@@ -99,46 +116,115 @@ def _generate_fallback_plan(
     clean_topic = topic.strip()
     topic_lower = clean_topic.lower()
 
-    # Determine domain
+    # Inferred academic domain
     inferred_subject = subject or "Computer Science"
+    canonical_sources: List[Dict[str, Any]] = []
+
     if any(k in topic_lower for k in ["math", "calculus", "linear", "algebra", "geometry", "trig"]):
         inferred_subject = "Mathematics"
-    elif any(k in topic_lower for k in ["physics", "quantum", "gravity", "energy", "wave"]):
+        canonical_sources = [
+            {
+                "title": "Gilbert Strang, 'Introduction to Linear Algebra' (5th Edition)",
+                "type": "book",
+                "detail": "Wellesley-Cambridge Press",
+                "snippet": "Definitive pedagogical reference establishing geometric intuition for vector spaces and linear mappings.",
+            },
+            {
+                "title": "3Blue1Brown, 'Essence of Linear Algebra'",
+                "type": "documentation",
+                "detail": "Educational Visual Mathematics Series",
+                "snippet": "Visual and geometric foundations for basis vectors, transformations, and determinants.",
+            },
+        ]
+    elif any(k in topic_lower for k in ["physics", "quantum", "gravity", "energy", "wave", "bell"]):
         inferred_subject = "Physics"
-    elif any(k in topic_lower for k in ["bio", "cell", "dna", "photosynthesis", "neuron"]):
-        inferred_subject = "Biology"
-    elif any(k in topic_lower for k in ["history", "war", "revolution", "empire", "century"]):
-        inferred_subject = "History"
+        canonical_sources = [
+            {
+                "title": "J.S. Bell, 'On the Einstein Podolsky Rosen Paradox' (1964)",
+                "type": "paper",
+                "detail": "Physics Physique Fizika 1, 195",
+                "url": "https://cds.cern.ch/record/111654/files/vol1p195-200_001.pdf",
+                "snippet": "The seminal paper deriving Bell inequalities, proving quantum mechanics cannot be explained by local hidden variable theories.",
+            },
+            {
+                "title": "Nielsen & Chuang, 'Quantum Computation and Quantum Information'",
+                "type": "book",
+                "detail": "Cambridge University Press",
+                "snippet": "The standard comprehensive textbook on quantum states, gates, entanglement, and information theory.",
+            },
+        ]
+    elif any(k in topic_lower for k in ["attention", "transformer", "llm", "gpt", "bert", "neural"]):
+        inferred_subject = "AI & Machine Learning"
+        canonical_sources = [
+            {
+                "title": "Vaswani et al., 'Attention Is All You Need' (2017)",
+                "type": "paper",
+                "detail": "NeurIPS 2017 / arXiv:1706.03762",
+                "url": "https://arxiv.org/abs/1706.03762",
+                "snippet": "Original publication introducing the Transformer architecture, replacing recurrent models with multi-head self-attention.",
+            },
+            {
+                "title": "Jay Alammar, 'The Illustrated Transformer'",
+                "type": "documentation",
+                "detail": "Visual ML Education",
+                "url": "https://jalammar.github.io/illustrated-transformer/",
+                "snippet": "Visual step-by-step breakdown of query, key, value matrix multiplication and encoder-decoder stacks.",
+            },
+        ]
     elif any(k in topic_lower for k in ["system", "database", "redis", "scale", "api", "network"]):
         inferred_subject = "Systems Engineering"
+        canonical_sources = [
+            {
+                "title": "Martin Kleppmann, 'Designing Data-Intensive Applications'",
+                "type": "book",
+                "detail": "O'Reilly Media",
+                "snippet": "Authoritative guide on replication, partition strategies, consensus protocols, and distributed transactions.",
+            },
+            {
+                "title": "Donne Martin, 'The System Design Primer'",
+                "type": "documentation",
+                "detail": "Open Source Engineering Resource",
+                "url": "https://github.com/donnemartin/system-design-primer",
+                "snippet": "Architectural blueprints and trade-off matrices for high-concurrency distributed systems.",
+            },
+        ]
+    else:
+        canonical_sources = [
+            {
+                "title": f"Standard Academic Reference for {clean_topic}",
+                "type": "documentation",
+                "detail": "Curated Educational Foundation",
+                "snippet": "Core theoretical frameworks, axioms, and established empirical observations in this field.",
+            }
+        ]
 
     # Generate 4 progressive modules tailored to the topic
     modules = [
         {
             "id": "m1",
-            "title": f"1. Foundations & Intuition of {clean_topic[:35]}",
+            "title": f"1. Foundations & Problem Intuition: {clean_topic[:32]}",
             "duration": "4 min",
             "status": "in-progress",
-            "description": f"Deconstructing the core problem that motivated {clean_topic}, historical context, and foundational intuition.",
+            "description": f"Deconstructing the core problem that motivated {clean_topic}, historical context, and baseline assumptions.",
             "keyTakeaways": [
-                f"Why traditional approaches fell short prior to {clean_topic}.",
+                f"Why traditional solutions proved inadequate prior to {clean_topic}.",
                 "The primary conceptual breakthrough and paradigm shift.",
             ],
         },
         {
             "id": "m2",
-            "title": "2. Core Architecture & Mathematical Mechanics",
+            "title": "2. Structural Architecture & Core Mechanics",
             "duration": "5 min",
             "status": "upcoming",
             "description": "Step-by-step structural breakdown, mathematical formulation, and internal data flow.",
             "keyTakeaways": [
-                "Detailed schematic breakdown of participating components.",
-                "How inputs are mapped and transformed into verifiable outputs.",
+                "Component interaction and invariant properties.",
+                "Formal definitions and mathematical transformations.",
             ],
         },
         {
             "id": "m3",
-            "title": "3. Worked Example & Real-World Implementation",
+            "title": "3. Concrete Implementation & Worked Walkthrough",
             "duration": "4 min",
             "status": "upcoming",
             "description": f"Tracing a concrete walkthrough applying {clean_topic} to an end-to-end scenario.",
@@ -152,7 +238,7 @@ def _generate_fallback_plan(
             "title": "4. Synthesis, Advanced Trade-offs & Q&A",
             "duration": "3 min",
             "status": "upcoming",
-            "description": "High-level summary, future implications, performance guarantees, and interactive student questions.",
+            "description": "High-level summary, future implications, performance guarantees, and interactive student inquiry.",
             "keyTakeaways": [
                 "Summary of key invariants and best practices.",
                 "How to reason about failure modes under non-ideal conditions.",
@@ -160,20 +246,18 @@ def _generate_fallback_plan(
         },
     ]
 
-    # Generate rich lecture notes
     notes = [
-        f"**Core Invariant**: {clean_topic} is designed to guarantee correctness while minimizing latency and cognitive complexity.",
-        f"**Level of Rigor**: Calibrated for {level} proficiency, prioritizing structural clarity and mental models.",
-        "**System Architecture Diagram**:\n```\n[Input Context] ───> [Transformation Engine] ───> [Evaluation / Verification]\n        │                          │\n        └─── [State Constraints] ──┘\n```",
-        "**Mathematical Definition / Schema**: Formalizes relationship f(x) -> y where each intermediate representation preserves structural consistency.",
-        "**Critical Edge Case**: Pay special attention to boundary conditions where assumptions break down or scale constraints apply.",
+        f"**Core Invariant**: {clean_topic} guarantees structural correctness while optimizing for operational efficiency.",
+        f"**Difficulty Calibration**: Tailored for {level} mastery with emphasis on mental models and verifiable mechanisms.",
+        "**System Architecture Diagram**:\n```\n[Input Context] ───> [Transformation Engine] ───> [Verified Result]\n        │                          │\n        └─── [State Constraints] ──┘\n```",
+        "**Formal Definition**: System maps raw input states into structured representations preserving semantic consistency.",
+        "**Critical Edge Case**: Always verify boundary conditions and scale constraints under high-throughput conditions.",
     ]
 
-    # Generate suggested questions
     questions = [
-        f"What is the single most critical trade-off when implementing {clean_topic[:30]} in production?",
+        f"What is the single most critical trade-off when implementing {clean_topic[:30]}?",
         f"How does the {level} mental model differ from a naive first-principles perspective?",
-        f"What happens if an unexpected boundary failure occurs during the transformation step?",
+        f"What happens if an unexpected boundary failure occurs during execution?",
     ]
 
     return {
@@ -182,27 +266,44 @@ def _generate_fallback_plan(
         "estimatedMinutes": 16,
         "modules": modules,
         "lectureNotes": notes,
+        "sourceMaterials": canonical_sources,
         "suggestedQuestions": questions,
     }
 
 
-def generate_curriculum(request: CurriculumGenerateRequest) -> CurriculumPlanResponse:
+def generate_curriculum(
+    request: CurriculumGenerateRequest,
+    user: Optional[UserProfile] = None,
+) -> CurriculumPlanResponse:
     """
-    Main entrypoint: Generates curriculum plan using OpenRouter LLM with
-    automatic heuristic fallback.
+    Main generation entrypoint:
+    1. Generates modules, key takeaways, lecture notes, and source materials using LLM (or heuristic fallback).
+    2. Merges user-attached resources into source materials.
+    3. Persists the complete session to Supabase database (and in-memory fallback).
     """
     api_key = os.getenv("OPENROUTER_API_KEY", "").strip().strip('"').strip("'")
     plan_data = None
 
-    # Summarize any attached resources
-    resources_summary = ""
+    # Format attached user resources
+    user_sources: List[SourceMaterial] = []
+    resources_summary_list = []
     if request.resources:
-        items = []
         for r in request.resources:
-            items.append(f"[{r.type.upper()}] {r.title} - {r.detail or ''} {r.content or ''}")
-        resources_summary = "; ".join(items)
+            resources_summary_list.append(f"[{r.type.upper()}] {r.title} ({r.detail or ''})")
+            user_sources.append(
+                SourceMaterial(
+                    id=r.id or f"user-res-{uuid.uuid4().hex[:6]}",
+                    title=r.title,
+                    type=r.type,
+                    detail=r.detail or f"Attached {r.type}",
+                    url=r.url,
+                    snippet=r.content or f"Uploaded student reference: {r.title}",
+                )
+            )
 
-    # Attempt LLM generation if API key exists
+    resources_summary = "; ".join(resources_summary_list)
+
+    # Attempt LLM generation if API key is present
     if api_key and api_key.startswith("sk-"):
         try:
             plan_data = _generate_with_openrouter(
@@ -216,7 +317,7 @@ def generate_curriculum(request: CurriculumGenerateRequest) -> CurriculumPlanRes
             print(f"[CurriculumService] Generation error: {err}")
             plan_data = None
 
-    # Fallback if LLM was unavailable or produced invalid output
+    # Fallback heuristic generator
     if not plan_data or not isinstance(plan_data, dict) or "modules" not in plan_data:
         plan_data = _generate_fallback_plan(
             topic=request.topic,
@@ -224,7 +325,7 @@ def generate_curriculum(request: CurriculumGenerateRequest) -> CurriculumPlanRes
             subject=request.subject,
         )
 
-    # Format modules
+    # Reconstitute modules
     raw_modules = plan_data.get("modules", [])
     modules: List[CurriculumModule] = []
     for idx, m in enumerate(raw_modules):
@@ -239,10 +340,28 @@ def generate_curriculum(request: CurriculumGenerateRequest) -> CurriculumPlanRes
             )
         )
 
-    lesson_id = f"lesson-{uuid.uuid4().hex[:8]}"
+    # Reconstitute source materials: merge AI canonical sources + attached user files/links
+    sources: List[SourceMaterial] = list(user_sources)
+    for raw_s in plan_data.get("sourceMaterials", []):
+        sources.append(
+            SourceMaterial(
+                id=raw_s.get("id") or f"src-{uuid.uuid4().hex[:6]}",
+                title=raw_s.get("title", "Reference Resource"),
+                type=raw_s.get("type", "paper"),
+                detail=raw_s.get("detail"),
+                url=raw_s.get("url"),
+                snippet=raw_s.get("snippet"),
+            )
+        )
 
-    return CurriculumPlanResponse(
+    lesson_id = f"lesson-{uuid.uuid4().hex[:8]}"
+    room_code = f"RAB-{uuid.uuid4().hex[:4].upper()}"
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    curriculum_response = CurriculumPlanResponse(
         id=lesson_id,
+        session_id=lesson_id,
+        room_code=room_code,
         topic=request.topic,
         overview=plan_data.get("overview", f"Curriculum for {request.topic}"),
         subject=plan_data.get("subject", request.subject or "General Study"),
@@ -250,5 +369,147 @@ def generate_curriculum(request: CurriculumGenerateRequest) -> CurriculumPlanRes
         estimatedMinutes=plan_data.get("estimatedMinutes", 16),
         modules=modules,
         lectureNotes=plan_data.get("lectureNotes", []),
+        sourceMaterials=sources,
         suggestedQuestions=plan_data.get("suggestedQuestions", []),
+        created_at=now_iso,
     )
+
+    # -------------------------------------------------------------------------
+    # Supabase & In-Memory Persistence
+    # -------------------------------------------------------------------------
+    host_id = user.id if user and user.id else None
+    serialized_plan = curriculum_response.model_dump()
+
+    session_payload = SessionCreate(
+        topic=request.topic,
+        subject=curriculum_response.subject,
+        level=request.level,
+        is_classroom=False,
+        room_code=room_code,
+        host_id=host_id,
+        completed_modules=0,
+        total_modules=len(modules),
+        progress_percent=0,
+        has_external_resources=len(sources) > 0,
+        resource_name=sources[0].title if sources else None,
+        board_state={"curriculum_plan": serialized_plan},
+    )
+
+    # 1. Save to Supabase if credentials are available
+    if _is_supabase_ready():
+        try:
+            client = get_supabase_client()
+            db_session = create_session(client, session_payload)
+            if db_session:
+                curriculum_response.session_id = db_session.id
+                curriculum_response.room_code = db_session.room_code
+        except Exception as db_err:
+            print(f"[CurriculumService] Supabase session persistence failed: {db_err}")
+
+    # 2. Save to in-memory fallback store
+    _memory_sessions[room_code] = {
+        "id": curriculum_response.session_id or lesson_id,
+        "room_code": room_code,
+        "host_id": host_id,
+        "topic": request.topic,
+        "subject": curriculum_response.subject,
+        "level": request.level,
+        "is_classroom": False,
+        "status": "active",
+        "last_checkpoint": modules[0].title if modules else "1. Foundation",
+        "completed_modules": 0,
+        "total_modules": len(modules),
+        "progress_percent": 0,
+        "has_external_resources": len(sources) > 0,
+        "resource_name": sources[0].title if sources else None,
+        "board_state": {"curriculum_plan": serialized_plan},
+        "created_at": now_iso,
+        "updated_at": now_iso,
+    }
+
+    return curriculum_response
+
+
+def list_user_library(user: Optional[UserProfile] = None, limit: int = 50) -> List[CurriculumPlanResponse]:
+    """
+    Retrieves all past curricula, modules, notes, and source materials
+    saved for the user across different sessions from Supabase and memory.
+    """
+    library: List[CurriculumPlanResponse] = []
+    seen_ids = set()
+
+    # 1. Query Supabase
+    if _is_supabase_ready():
+        try:
+            client = get_supabase_client()
+            if user and user.id:
+                sessions = list_user_sessions(client, user.id, limit=limit)
+            else:
+                # Public/anonymous fallback sessions
+                from src.services.general import select_all
+                sessions_raw = select_all(client, "sessions", order_by="created_at", desc=True, limit=limit)
+                sessions = [SessionCreate(**s) for s in sessions_raw]
+
+            for sess in sessions:
+                board_state = getattr(sess, "board_state", None) or {}
+                plan_dict = board_state.get("curriculum_plan")
+                if plan_dict and isinstance(plan_dict, dict):
+                    plan_obj = CurriculumPlanResponse(**plan_dict)
+                    if plan_obj.id not in seen_ids:
+                        seen_ids.add(plan_obj.id)
+                        library.append(plan_obj)
+        except Exception as err:
+            print(f"[CurriculumService] Failed to query Supabase library: {err}")
+
+    # 2. Query in-memory session store
+    mem_sessions = list(_memory_sessions.values())
+    if user and user.id:
+        mem_sessions = [s for s in mem_sessions if s.get("host_id") == user.id or s.get("host_id") is None]
+
+    for s in mem_sessions:
+        board_state = s.get("board_state", {})
+        plan_dict = board_state.get("curriculum_plan")
+        if plan_dict and isinstance(plan_dict, dict):
+            try:
+                plan_obj = CurriculumPlanResponse(**plan_dict)
+                if plan_obj.id not in seen_ids:
+                    seen_ids.add(plan_obj.id)
+                    library.append(plan_obj)
+            except Exception:
+                pass
+        else:
+            # Reconstruct basic library item from session record if no curriculum_plan was saved
+            sess_id = s.get("id", f"sess-{uuid.uuid4().hex[:6]}")
+            if sess_id not in seen_ids:
+                seen_ids.add(sess_id)
+                library.append(
+                    CurriculumPlanResponse(
+                        id=sess_id,
+                        session_id=sess_id,
+                        room_code=s.get("room_code"),
+                        topic=s.get("topic", "General Lesson"),
+                        overview=f"Session covering {s.get('topic', 'topics')} ({s.get('level', 'Intermediate')} Level)",
+                        subject=s.get("subject", "General Study"),
+                        level=s.get("level", "Intermediate"),
+                        estimatedMinutes=15,
+                        modules=[
+                            CurriculumModule(
+                                id="m1",
+                                title=s.get("last_checkpoint", "1. Foundation & Intuition"),
+                                duration="5 min",
+                                status="completed" if s.get("status") == "completed" else "in-progress",
+                                description=f"Progress checkpoint for {s.get('topic')}.",
+                                keyTakeaways=["Core concepts deconstructed in active session."],
+                            )
+                        ],
+                        lectureNotes=[
+                            f"**Topic**: {s.get('topic')}",
+                            f"**Room Code**: {s.get('room_code')}",
+                            f"**Recorded Checkpoint**: {s.get('last_checkpoint')}",
+                        ],
+                        sourceMaterials=[],
+                        created_at=s.get("created_at"),
+                    )
+                )
+
+    return library[:limit]
