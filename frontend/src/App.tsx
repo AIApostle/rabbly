@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { LandingPage } from './components/LandingPage';
@@ -25,7 +25,47 @@ import type {
   WhiteboardShapeAction,
   ClassroomParticipant,
 } from './types';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
+import { useAuth } from './context/AuthContext';
+
+// ---------------------------------------------------------------------------
+// RootRedirect — the "/" route smart gate:
+//   • Still loading  →  splash screen (prevents flicker / wrong redirect)
+//   • Authenticated  →  go to /session (user is already logged in)
+//   • Guest          →  show the public LandingPage
+// ---------------------------------------------------------------------------
+interface RootRedirectProps {
+  onGetStarted: () => void;
+  onLogin: () => void;
+  onSignup: () => void;
+}
+
+const RootRedirect: React.FC<RootRedirectProps> = (props) => {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen w-full bg-[#111318] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-[#1d2024] border border-[#44474f]/40 flex items-center justify-center text-3xl animate-pulse">
+            🐰
+          </div>
+          <div className="flex items-center gap-2 text-sm text-[#a8c7fa] font-medium">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Loading...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/session" replace />;
+  }
+
+  return <LandingPage {...props} />;
+};
+
 
 export function App() {
   const navigate = useNavigate();
@@ -380,11 +420,11 @@ export function App() {
   return (
     <div className="w-full min-h-screen bg-[#111318] text-[#e2e2e9] flex flex-col relative font-sans">
       <Routes>
-        {/* Landing Page */}
+        {/* Landing Page — public only; authenticated users go to /session */}
         <Route
           path="/"
           element={
-            <LandingPage
+            <RootRedirect
               onGetStarted={() => navigate('/signup')}
               onLogin={() => navigate('/login')}
               onSignup={() => navigate('/signup')}
