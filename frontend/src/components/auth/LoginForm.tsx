@@ -42,17 +42,20 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   };
 
   const handleGoogleSignIn = () => {
-    setError('Google OAuth is not configured on this Supabase project yet. Please sign in with email and password.');
+    setError(
+      'Google sign-in is not yet available. Please sign in with your email and password.',
+    );
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      <div className="text-center space-y-1.5">
-        <h2 className="text-2xl font-extrabold text-white font-['Outfit'] tracking-tight">
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="space-y-1">
+        <h2 className="text-[1.6rem] font-black text-white font-['Outfit'] tracking-tight leading-tight">
           Welcome back
         </h2>
-        <p className="text-xs text-[#c4c6d0]">
-          Sign in to access your personal lessons and study groups
+        <p className="text-sm text-[#8e9099]">
+          Sign in to your Rabbly account
         </p>
       </div>
 
@@ -61,9 +64,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         type="button"
         onClick={handleGoogleSignIn}
         disabled={isLoading}
-        className="w-full py-3 px-4 rounded-2xl bg-[#282a2f] hover:bg-[#33353a] border border-[#44474f]/50 text-white text-xs font-semibold flex items-center justify-center gap-3 transition-all cursor-pointer shadow-sm hover:border-[#8e9099]"
+        className="w-full py-2.5 px-4 rounded-xl bg-[#1a1d22] hover:bg-[#22262d] border border-[#44474f]/40 hover:border-[#8e9099]/40 text-white text-sm font-medium flex items-center justify-center gap-3 transition-all cursor-pointer group"
       >
-        <svg className="w-4 h-4" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
           <path
             fill="#4285F4"
             d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -81,95 +84,118 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
           />
         </svg>
-        <span>Continue with Google</span>
+        <span className="text-[#c4c6d0] group-hover:text-white transition-colors">
+          Continue with Google
+        </span>
       </button>
 
       {/* Divider */}
-      <div className="relative flex items-center justify-center">
-        <div className="w-full border-t border-[#44474f]/30"></div>
-        <span className="absolute bg-[#1d2024] px-3 text-[11px] uppercase tracking-wider text-[#8e9099] font-mono">
-          or with email
-        </span>
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px bg-[#44474f]/30" />
+        <span className="text-[11px] font-medium text-[#44474f] uppercase tracking-widest">or</span>
+        <div className="flex-1 h-px bg-[#44474f]/30" />
       </div>
 
+      {/* Error banner */}
       {error && (
-        <div className="p-3 rounded-xl bg-[#93000a]/20 border border-[#93000a]/50 text-xs text-[#ffb4ab] text-center">
+        <div className="p-3 rounded-xl bg-[#93000a]/15 border border-[#93000a]/40 text-[13px] text-[#ffb4ab] leading-snug">
           {error}
         </div>
       )}
 
-      {/* Credentials Form */}
+      {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Email Field */}
+        {/* Email */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold uppercase tracking-wider text-[#c4c6d0]">
-            Email Address
+          <label className="block text-xs font-semibold text-[#c4c6d0] uppercase tracking-wider">
+            Email
           </label>
-          <div className="relative flex items-center rounded-2xl bg-[#111318] border border-[#44474f]/50 focus-within:border-[#a8c7fa] transition-all px-3.5 py-3">
-            <Mail className="w-4 h-4 text-[#8e9099] mr-2.5 shrink-0" />
+          <div className="relative group">
+            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#44474f] group-focus-within:text-[#a8c7fa] transition-colors pointer-events-none" />
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@university.edu"
               required
-              className="w-full bg-transparent text-sm text-white placeholder-[#8e9099] focus:outline-none"
+              className="w-full h-11 pl-10 pr-4 rounded-xl bg-[#111318] border border-[#44474f]/50 focus:border-[#a8c7fa]/70 focus:bg-[#0f1218] text-sm text-white placeholder-[#44474f] focus:outline-none transition-all shadow-inner"
             />
           </div>
         </div>
 
-        {/* Password Field */}
+        {/* Password */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-bold uppercase tracking-wider text-[#c4c6d0]">
+            <label className="text-xs font-semibold text-[#c4c6d0] uppercase tracking-wider">
               Password
             </label>
             <button
               type="button"
               onClick={onForgotPassword}
-              className="text-xs text-[#a8c7fa] hover:text-[#d3e3fd] hover:underline cursor-pointer transition-colors"
+              className="text-[12px] text-[#a8c7fa] hover:text-[#c2e7ff] cursor-pointer transition-colors font-medium"
             >
               Forgot password?
             </button>
           </div>
-          <div className="relative flex items-center rounded-2xl bg-[#111318] border border-[#44474f]/50 focus-within:border-[#a8c7fa] transition-all px-3.5 py-3">
-            <Lock className="w-4 h-4 text-[#8e9099] mr-2.5 shrink-0" />
+          <div className="relative group">
+            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#44474f] group-focus-within:text-[#a8c7fa] transition-colors pointer-events-none" />
             <input
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••••••"
+              placeholder="••••••••"
               required
-              className="w-full bg-transparent text-sm text-white placeholder-[#8e9099] focus:outline-none"
+              className="w-full h-11 pl-10 pr-11 rounded-xl bg-[#111318] border border-[#44474f]/50 focus:border-[#a8c7fa]/70 focus:bg-[#0f1218] text-sm text-white placeholder-[#44474f] focus:outline-none transition-all shadow-inner"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="text-[#8e9099] hover:text-white transition-colors cursor-pointer p-1"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#44474f] hover:text-[#8e9099] transition-colors cursor-pointer p-1"
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
         </div>
 
-        {/* Remember Me */}
-        <div className="flex items-center justify-between pt-1">
-          <label className="flex items-center gap-2 cursor-pointer text-xs text-[#c4c6d0]">
+        {/* Remember me */}
+        <label className="flex items-center gap-2.5 cursor-pointer group">
+          <div className="relative">
             <input
               type="checkbox"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              className="rounded accent-[#a8c7fa] w-3.5 h-3.5 cursor-pointer"
+              className="sr-only"
             />
-            <span>Keep me signed in</span>
-          </label>
-        </div>
+            <div
+              className={`w-4 h-4 rounded border transition-all ${
+                rememberMe
+                  ? 'bg-[#a8c7fa] border-[#a8c7fa]'
+                  : 'bg-transparent border-[#44474f]/60 group-hover:border-[#8e9099]'
+              }`}
+            >
+              {rememberMe && (
+                <svg className="w-3 h-3 text-[#062e6f] absolute top-0.5 left-0.5" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </div>
+          </div>
+          <span className="text-[13px] text-[#8e9099] group-hover:text-[#c4c6d0] transition-colors">
+            Keep me signed in
+          </span>
+        </label>
 
-        {/* Submit Button */}
+        {/* Submit */}
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full m3-btn-filled py-3.5 text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-[#a8c7fa]/15 cursor-pointer disabled:opacity-50 transition-all mt-2"
+          className="w-full h-11 rounded-xl text-sm font-bold text-[#062e6f] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-[0.98] mt-1"
+          style={{
+            background: isLoading
+              ? '#a8c7fa'
+              : 'linear-gradient(135deg, #a8c7fa 0%, #c2e7ff 100%)',
+            boxShadow: '0 4px 16px rgba(168,199,250,0.25)',
+          }}
         >
           {isLoading ? (
             <>
@@ -185,19 +211,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         </button>
       </form>
 
-      {/* Switch to Signup */}
-      <div className="text-center pt-2 border-t border-[#44474f]/30">
-        <p className="text-xs text-[#c4c6d0]">
-          Don't have an account yet?{' '}
-          <button
-            type="button"
-            onClick={onSwitchToSignup}
-            className="font-bold text-[#a8c7fa] hover:text-[#d3e3fd] underline cursor-pointer ml-1"
-          >
-            Create account
-          </button>
-        </p>
-      </div>
+      {/* Switch to signup */}
+      <p className="text-center text-[13px] text-[#8e9099]">
+        New to Rabbly?{' '}
+        <button
+          type="button"
+          onClick={onSwitchToSignup}
+          className="font-semibold text-[#a8c7fa] hover:text-[#c2e7ff] cursor-pointer transition-colors"
+        >
+          Create account
+        </button>
+      </p>
     </div>
   );
 };

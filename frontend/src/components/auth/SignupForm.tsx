@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff, User, Loader2, Check, Sparkles } from 'lucide-react';
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  User,
+  Loader2,
+  Check,
+  Sparkles,
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface SignupFormProps {
@@ -7,10 +16,49 @@ interface SignupFormProps {
   onSwitchToLogin: () => void;
 }
 
-export const SignupForm: React.FC<SignupFormProps> = ({
-  onSuccess,
-  onSwitchToLogin,
-}) => {
+const GOALS = [
+  { key: 'student', emoji: '🎓', label: 'College / Exams' },
+  { key: 'pro', emoji: '💼', label: 'Tech & Work' },
+  { key: 'curious', emoji: '🔭', label: 'Self Study' },
+] as const;
+
+type GoalKey = typeof GOALS[number]['key'];
+
+function StrengthBar({ password }: { password: string }) {
+  if (!password) return null;
+
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
+  if (/[0-9]/.test(password) || /[^A-Za-z0-9]/.test(password)) score++;
+
+  const labels = ['', 'Weak', 'Good', 'Strong'];
+  const colors = ['', '#f2b8b5', '#ffd8e4', '#a8c7fa'];
+
+  return (
+    <div className="space-y-1 pt-1">
+      <div className="flex gap-1 h-1">
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="flex-1 rounded-full transition-all duration-300"
+            style={{ backgroundColor: score >= i ? colors[score] : 'rgba(68,71,79,0.3)' }}
+          />
+        ))}
+      </div>
+      <div className="flex justify-between text-[11px]">
+        <span className="text-[#44474f]">Strength</span>
+        {score > 0 && (
+          <span style={{ color: colors[score] }} className="font-semibold">
+            {labels[score]}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess, onSwitchToLogin }) => {
   const { signup } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -18,43 +66,30 @@ export const SignupForm: React.FC<SignupFormProps> = ({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [goal, setGoal] = useState<'student' | 'pro' | 'curious'>('student');
+  const [goal, setGoal] = useState<GoalKey>('student');
   const [agreed, setAgreed] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // Password strength logic
-  const calculateStrength = (pass: string) => {
-    if (!pass) return 0;
-    let score = 0;
-    if (pass.length >= 8) score += 1;
-    if (/[A-Z]/.test(pass) && /[a-z]/.test(pass)) score += 1;
-    if (/[0-9]/.test(pass) || /[^A-Za-z0-9]/.test(pass)) score += 1;
-    return score;
-  };
-
-  const strength = calculateStrength(password);
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!name.trim() || !email.trim() || !password.trim()) {
       setError('Please fill out all required fields.');
       return;
     }
-
     if (password.length < 8) {
-      setError('Password must be at least 8 characters long.');
+      setError('Password must be at least 8 characters.');
       return;
     }
-
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
       return;
     }
-
     if (!agreed) {
       setError('Please agree to the Terms of Service to continue.');
       return;
@@ -79,54 +114,57 @@ export const SignupForm: React.FC<SignupFormProps> = ({
   };
 
   const handleGoogleSignUp = () => {
-    setError('Google OAuth is not configured on this Supabase project yet. Please sign up with email and password.');
+    setError('Google sign-up is not yet available. Please use email and password.');
   };
 
+  // ── Confirmation sent screen ──
   if (confirmationSent) {
     return (
-      <div className="space-y-6 text-center py-4 animate-in fade-in duration-300">
-        <div className="w-16 h-16 rounded-3xl bg-[#0842a0]/40 border border-[#a8c7fa]/50 text-[#a8c7fa] flex items-center justify-center mx-auto shadow-xl">
+      <div className="space-y-5 text-center py-2">
+        <div className="w-16 h-16 rounded-2xl bg-[#0842a0]/30 border border-[#a8c7fa]/30 flex items-center justify-center mx-auto shadow-lg shadow-[#0842a0]/20">
           <Mail className="w-8 h-8 text-[#a8c7fa]" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-extrabold text-white font-['Outfit']">
-            Check your email
-          </h2>
-          <p className="text-xs text-[#c4c6d0] max-w-xs mx-auto leading-relaxed">
-            We sent a verification link to <span className="font-semibold text-white font-mono">{registeredEmail}</span>.
-            Please verify your email address to activate your Rabbly account, then sign in.
+          <h2 className="text-2xl font-black text-white font-['Outfit']">Check your inbox</h2>
+          <p className="text-sm text-[#8e9099] leading-relaxed max-w-xs mx-auto">
+            We sent a verification link to{' '}
+            <span className="font-semibold text-white font-mono">{registeredEmail}</span>. Click
+            it to activate your account, then sign in.
           </p>
         </div>
         <button
           type="button"
           onClick={onSwitchToLogin}
-          className="w-full m3-btn-filled py-3.5 text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-[#a8c7fa]/15 cursor-pointer"
+          className="w-full h-11 rounded-xl text-sm font-bold text-[#062e6f] flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.98]"
+          style={{
+            background: 'linear-gradient(135deg, #a8c7fa 0%, #c2e7ff 100%)',
+            boxShadow: '0 4px 16px rgba(168,199,250,0.25)',
+          }}
         >
-          <span>Proceed to Sign In</span>
+          Go to Sign In
         </button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      <div className="text-center space-y-1.5">
-        <h2 className="text-2xl font-extrabold text-white font-['Outfit'] tracking-tight">
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="space-y-1">
+        <h2 className="text-[1.6rem] font-black text-white font-['Outfit'] tracking-tight leading-tight">
           Create your account
         </h2>
-        <p className="text-xs text-[#c4c6d0]">
-          Start learning visually and verbally with your personal AI teacher
-        </p>
+        <p className="text-sm text-[#8e9099]">Start learning with your personal AI teacher</p>
       </div>
 
-      {/* Google SSO Button */}
+      {/* Google SSO */}
       <button
         type="button"
         onClick={handleGoogleSignUp}
         disabled={isLoading}
-        className="w-full py-3 px-4 rounded-2xl bg-[#282a2f] hover:bg-[#33353a] border border-[#44474f]/50 text-white text-xs font-semibold flex items-center justify-center gap-3 transition-all cursor-pointer shadow-sm hover:border-[#8e9099]"
+        className="w-full py-2.5 px-4 rounded-xl bg-[#1a1d22] hover:bg-[#22262d] border border-[#44474f]/40 hover:border-[#8e9099]/40 text-white text-sm font-medium flex items-center justify-center gap-3 transition-all cursor-pointer group"
       >
-        <svg className="w-4 h-4" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
           <path
             fill="#4285F4"
             d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -144,83 +182,82 @@ export const SignupForm: React.FC<SignupFormProps> = ({
             d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
           />
         </svg>
-        <span>Sign up with Google</span>
+        <span className="text-[#c4c6d0] group-hover:text-white transition-colors">
+          Sign up with Google
+        </span>
       </button>
 
       {/* Divider */}
-      <div className="relative flex items-center justify-center">
-        <div className="w-full border-t border-[#44474f]/30"></div>
-        <span className="absolute bg-[#1d2024] px-3 text-[11px] uppercase tracking-wider text-[#8e9099] font-mono">
-          or with email
-        </span>
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px bg-[#44474f]/30" />
+        <span className="text-[11px] font-medium text-[#44474f] uppercase tracking-widest">or</span>
+        <div className="flex-1 h-px bg-[#44474f]/30" />
       </div>
 
+      {/* Error */}
       {error && (
-        <div className="p-3 rounded-xl bg-[#93000a]/20 border border-[#93000a]/50 text-xs text-[#ffb4ab] text-center">
+        <div className="p-3 rounded-xl bg-[#93000a]/15 border border-[#93000a]/40 text-[13px] text-[#ffb4ab] leading-snug">
           {error}
         </div>
       )}
 
-      {/* Signup Form */}
+      {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Full Name */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold uppercase tracking-wider text-[#c4c6d0]">
+          <label className="block text-xs font-semibold text-[#c4c6d0] uppercase tracking-wider">
             Full Name
           </label>
-          <div className="relative flex items-center rounded-2xl bg-[#111318] border border-[#44474f]/50 focus-within:border-[#a8c7fa] transition-all px-3.5 py-3">
-            <User className="w-4 h-4 text-[#8e9099] mr-2.5 shrink-0" />
+          <div className="relative group">
+            <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#44474f] group-focus-within:text-[#a8c7fa] transition-colors pointer-events-none" />
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Alex Johnson"
               required
-              className="w-full bg-transparent text-sm text-white placeholder-[#8e9099] focus:outline-none"
+              className="w-full h-11 pl-10 pr-4 rounded-xl bg-[#111318] border border-[#44474f]/50 focus:border-[#a8c7fa]/70 focus:bg-[#0f1218] text-sm text-white placeholder-[#44474f] focus:outline-none transition-all shadow-inner"
             />
           </div>
         </div>
 
         {/* Email */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold uppercase tracking-wider text-[#c4c6d0]">
-            Email Address
+          <label className="block text-xs font-semibold text-[#c4c6d0] uppercase tracking-wider">
+            Email
           </label>
-          <div className="relative flex items-center rounded-2xl bg-[#111318] border border-[#44474f]/50 focus-within:border-[#a8c7fa] transition-all px-3.5 py-3">
-            <Mail className="w-4 h-4 text-[#8e9099] mr-2.5 shrink-0" />
+          <div className="relative group">
+            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#44474f] group-focus-within:text-[#a8c7fa] transition-colors pointer-events-none" />
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="alex@university.edu"
               required
-              className="w-full bg-transparent text-sm text-white placeholder-[#8e9099] focus:outline-none"
+              className="w-full h-11 pl-10 pr-4 rounded-xl bg-[#111318] border border-[#44474f]/50 focus:border-[#a8c7fa]/70 focus:bg-[#0f1218] text-sm text-white placeholder-[#44474f] focus:outline-none transition-all shadow-inner"
             />
           </div>
         </div>
 
-        {/* Primary Goal Selector */}
+        {/* Learning Focus */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold uppercase tracking-wider text-[#c4c6d0]">
-            Primary Learning Focus
+          <label className="block text-xs font-semibold text-[#c4c6d0] uppercase tracking-wider">
+            Learning Focus
           </label>
           <div className="grid grid-cols-3 gap-2">
-            {[
-              { key: 'student', label: 'College / Exam' },
-              { key: 'pro', label: 'Tech / Work' },
-              { key: 'curious', label: 'Self Study' },
-            ].map((item) => (
+            {GOALS.map((item) => (
               <button
                 key={item.key}
                 type="button"
-                onClick={() => setGoal(item.key as any)}
-                className={`py-2 px-2 rounded-xl text-center text-xs font-medium border transition-all cursor-pointer ${
+                onClick={() => setGoal(item.key)}
+                className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
                   goal === item.key
-                    ? 'bg-[#a8c7fa]/15 border-[#a8c7fa] text-[#c2e7ff] font-semibold'
-                    : 'bg-[#111318] border-[#44474f]/40 text-[#c4c6d0] hover:bg-[#282a2f]'
+                    ? 'bg-[#0842a0]/25 border-[#a8c7fa]/50 text-white shadow-sm shadow-[#a8c7fa]/10'
+                    : 'bg-[#111318] border-[#44474f]/40 text-[#8e9099] hover:bg-[#1a1d22] hover:text-[#c4c6d0]'
                 }`}
               >
-                {item.label}
+                <span className="text-base">{item.emoji}</span>
+                <span className="leading-tight text-center">{item.label}</span>
               </button>
             ))}
           </div>
@@ -228,116 +265,112 @@ export const SignupForm: React.FC<SignupFormProps> = ({
 
         {/* Password */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold uppercase tracking-wider text-[#c4c6d0]">
+          <label className="block text-xs font-semibold text-[#c4c6d0] uppercase tracking-wider">
             Password
           </label>
-          <div className="relative flex items-center rounded-2xl bg-[#111318] border border-[#44474f]/50 focus-within:border-[#a8c7fa] transition-all px-3.5 py-3">
-            <Lock className="w-4 h-4 text-[#8e9099] mr-2.5 shrink-0" />
+          <div className="relative group">
+            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#44474f] group-focus-within:text-[#a8c7fa] transition-colors pointer-events-none" />
             <input
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="At least 8 characters"
               required
-              className="w-full bg-transparent text-sm text-white placeholder-[#8e9099] focus:outline-none"
+              className="w-full h-11 pl-10 pr-11 rounded-xl bg-[#111318] border border-[#44474f]/50 focus:border-[#a8c7fa]/70 focus:bg-[#0f1218] text-sm text-white placeholder-[#44474f] focus:outline-none transition-all shadow-inner"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="text-[#8e9099] hover:text-white transition-colors cursor-pointer p-1"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#44474f] hover:text-[#8e9099] transition-colors cursor-pointer p-1"
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
-
-          {/* Strength Bar */}
-          {password.length > 0 && (
-            <div className="pt-1 space-y-1">
-              <div className="flex gap-1.5 h-1">
-                <div
-                  className={`flex-1 rounded-full transition-all duration-300 ${
-                    strength >= 1 ? 'bg-[#f2b8b5]' : 'bg-[#44474f]/30'
-                  }`}
-                />
-                <div
-                  className={`flex-1 rounded-full transition-all duration-300 ${
-                    strength >= 2 ? 'bg-[#ffd8e4]' : 'bg-[#44474f]/30'
-                  }`}
-                />
-                <div
-                  className={`flex-1 rounded-full transition-all duration-300 ${
-                    strength >= 3 ? 'bg-[#a8c7fa]' : 'bg-[#44474f]/30'
-                  }`}
-                />
-              </div>
-              <div className="flex justify-between text-[10px] text-[#8e9099]">
-                <span>Password strength</span>
-                <span className="font-semibold text-[#c4c6d0]">
-                  {strength === 1 && 'Weak'}
-                  {strength === 2 && 'Good'}
-                  {strength === 3 && 'Strong'}
-                </span>
-              </div>
-            </div>
-          )}
+          <StrengthBar password={password} />
         </div>
 
         {/* Confirm Password */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold uppercase tracking-wider text-[#c4c6d0]">
+          <label className="block text-xs font-semibold text-[#c4c6d0] uppercase tracking-wider">
             Confirm Password
           </label>
-          <div className="relative flex items-center rounded-2xl bg-[#111318] border border-[#44474f]/50 focus-within:border-[#a8c7fa] transition-all px-3.5 py-3">
-            <Lock className="w-4 h-4 text-[#8e9099] mr-2.5 shrink-0" />
+          <div className="relative group">
+            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#44474f] group-focus-within:text-[#a8c7fa] transition-colors pointer-events-none" />
             <input
               type={showConfirmPassword ? 'text' : 'password'}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Re-enter password"
               required
-              className="w-full bg-transparent text-sm text-white placeholder-[#8e9099] focus:outline-none"
+              className="w-full h-11 pl-10 pr-20 rounded-xl bg-[#111318] border border-[#44474f]/50 focus:border-[#a8c7fa]/70 focus:bg-[#0f1218] text-sm text-white placeholder-[#44474f] focus:outline-none transition-all shadow-inner"
             />
-            {passwordsMatch && (
-              <Check className="w-4 h-4 text-[#a8c7fa] mr-2 shrink-0" />
-            )}
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="text-[#8e9099] hover:text-white transition-colors cursor-pointer p-1 shrink-0"
-              title={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
-            >
-              {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {passwordsMatch && (
+                <Check className="w-4 h-4 text-[#a8c7fa] shrink-0" />
+              )}
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="text-[#44474f] hover:text-[#8e9099] transition-colors cursor-pointer p-1 shrink-0"
+              >
+                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Terms Agreement */}
-        <div className="pt-1">
-          <label className="flex items-start gap-2.5 cursor-pointer text-xs text-[#c4c6d0] leading-relaxed">
+        {/* Terms */}
+        <label className="flex items-start gap-2.5 cursor-pointer group pt-0.5">
+          <div className="relative mt-0.5 shrink-0">
             <input
               type="checkbox"
               checked={agreed}
               onChange={(e) => setAgreed(e.target.checked)}
-              className="rounded accent-[#a8c7fa] w-3.5 h-3.5 mt-0.5 cursor-pointer shrink-0"
+              className="sr-only"
             />
-            <span>
-              I agree to Rabbly's{' '}
-              <a href="#" className="text-[#a8c7fa] hover:underline">Terms of Service</a> and{' '}
-              <a href="#" className="text-[#a8c7fa] hover:underline">Privacy Policy</a>.
-            </span>
-          </label>
-        </div>
+            <div
+              className={`w-4 h-4 rounded border transition-all ${
+                agreed
+                  ? 'bg-[#a8c7fa] border-[#a8c7fa]'
+                  : 'bg-transparent border-[#44474f]/60 group-hover:border-[#8e9099]'
+              }`}
+            >
+              {agreed && (
+                <svg className="w-3 h-3 text-[#062e6f] absolute top-0.5 left-0.5" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </div>
+          </div>
+          <span className="text-[13px] text-[#8e9099] leading-relaxed group-hover:text-[#c4c6d0] transition-colors">
+            I agree to Rabbly's{' '}
+            <a href="#" className="text-[#a8c7fa] hover:underline">
+              Terms of Service
+            </a>{' '}
+            and{' '}
+            <a href="#" className="text-[#a8c7fa] hover:underline">
+              Privacy Policy
+            </a>
+            .
+          </span>
+        </label>
 
-        {/* Submit Button */}
+        {/* Submit */}
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full m3-btn-filled py-3.5 text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-[#a8c7fa]/15 cursor-pointer disabled:opacity-50 transition-all mt-2"
+          className="w-full h-11 rounded-xl text-sm font-bold text-[#062e6f] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-[0.98] mt-1"
+          style={{
+            background: isLoading
+              ? '#a8c7fa'
+              : 'linear-gradient(135deg, #a8c7fa 0%, #c2e7ff 100%)',
+            boxShadow: '0 4px 16px rgba(168,199,250,0.25)',
+          }}
         >
           {isLoading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Creating your account...</span>
+              <span>Creating account...</span>
             </>
           ) : (
             <>
@@ -348,19 +381,17 @@ export const SignupForm: React.FC<SignupFormProps> = ({
         </button>
       </form>
 
-      {/* Switch to Login */}
-      <div className="text-center pt-2 border-t border-[#44474f]/30">
-        <p className="text-xs text-[#c4c6d0]">
-          Already have an account?{' '}
-          <button
-            type="button"
-            onClick={onSwitchToLogin}
-            className="font-bold text-[#a8c7fa] hover:text-[#d3e3fd] underline cursor-pointer ml-1"
-          >
-            Sign in
-          </button>
-        </p>
-      </div>
+      {/* Switch to login */}
+      <p className="text-center text-[13px] text-[#8e9099]">
+        Already have an account?{' '}
+        <button
+          type="button"
+          onClick={onSwitchToLogin}
+          className="font-semibold text-[#a8c7fa] hover:text-[#c2e7ff] cursor-pointer transition-colors"
+        >
+          Sign in
+        </button>
+      </p>
     </div>
   );
 };
