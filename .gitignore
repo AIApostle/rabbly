@@ -5,6 +5,7 @@
 # Agent config with secrets
 .agents/mcp_config.json
 .agents/
+.codex/
 
 # Python
 __pycache__/
