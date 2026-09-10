@@ -6,6 +6,7 @@
 .agents/mcp_config.json
 .agents/
 .codex/
+.gemini/
 
 # Python
 __pycache__/
