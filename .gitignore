@@ -2,9 +2,9 @@
 .env
 .env*.local
 !.env.example
-
 # Agent config with secrets
 .agents/mcp_config.json
+.agents/
 
 # Python
 __pycache__/
