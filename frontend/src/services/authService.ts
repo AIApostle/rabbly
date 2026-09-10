@@ -218,12 +218,13 @@ export async function verifyActiveToken(): Promise<AuthUser | null> {
         setCurrentUser(normalized);
         return normalized;
       }
-    } else if (res.status === 401) {
-      removeAuthToken();
-      return null;
     }
+    // Any non-200 response (401, 403, 500…) means the session is invalid.
+    // Clear it so the user is sent to login instead of the stale cached profile.
+    removeAuthToken();
+    return null;
   } catch {
-    // Network or offline fallback
+    removeAuthToken();
+    return null;
   }
-  return getCurrentUser();
 }

@@ -29,10 +29,10 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 
 // ---------------------------------------------------------------------------
-// RootRedirect — the "/" route smart gate:
-//   • Still loading  →  splash screen (prevents flicker / wrong redirect)
-//   • Authenticated  →  go to /session (user is already logged in)
-//   • Guest          →  show the public LandingPage
+// RootRedirect — the "/" route:
+//   • Still loading  → splash screen (prevents flicker)
+//   • Authenticated  → show LandingPage with "Go to Dashboard" action
+//   • Guest          → show LandingPage with Sign In / Start Learning
 // ---------------------------------------------------------------------------
 interface RootRedirectProps {
   onGetStarted: () => void;
@@ -42,6 +42,7 @@ interface RootRedirectProps {
 
 const RootRedirect: React.FC<RootRedirectProps> = (props) => {
   const { isAuthenticated, isLoading } = useAuth();
+  const navigate = useNavigate();
 
   if (isLoading) {
     return (
@@ -59,8 +60,17 @@ const RootRedirect: React.FC<RootRedirectProps> = (props) => {
     );
   }
 
+  // If already authenticated, allow continuing lesson on getStarted,
+  // but signin and signup buttons ALWAYS navigate directly to their respective auth pages.
   if (isAuthenticated) {
-    return <Navigate to="/session" replace />;
+    return (
+      <LandingPage
+        {...props}
+        onGetStarted={() => navigate('/session')}
+        onLogin={() => navigate('/signin')}
+        onSignup={() => navigate('/signup')}
+      />
+    );
   }
 
   return <LandingPage {...props} />;
@@ -426,7 +436,7 @@ export function App() {
           element={
             <RootRedirect
               onGetStarted={() => navigate('/signup')}
-              onLogin={() => navigate('/login')}
+              onLogin={() => navigate('/signin')}
               onSignup={() => navigate('/signup')}
             />
           }
