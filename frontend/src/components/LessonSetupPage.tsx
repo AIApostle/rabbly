@@ -22,7 +22,7 @@ import {
   LogOut,
   BookOpen,
 } from 'lucide-react';
-import type { ExternalResource, RecentSessionData } from '../types';
+import type { ExternalResource, RecentSessionData, LessonPlan } from '../types';
 import { RecentSessionsPage } from './RecentSessionsPage';
 import { ClassroomHubPage } from './ClassroomHubPage';
 import { GoalsPage } from './GoalsPage';
@@ -32,7 +32,14 @@ import { useAuth } from '../context/AuthContext';
 
 interface LessonSetupPageProps {
   onBack: () => void;
-  onStartLesson: (topic: string, isClassroom: boolean, level: string, file?: File | null, resources?: ExternalResource[]) => void;
+  onStartLesson: (
+    topic: string,
+    isClassroom: boolean,
+    level: string,
+    file?: File | null,
+    resources?: ExternalResource[],
+    existingPlan?: LessonPlan | null
+  ) => void;
   initialTopic?: string;
 }
 
@@ -275,11 +282,13 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
 
   // Continue an existing session from Cards or Dropdown
   const handleContinueSession = (session: RecentSessionData) => {
-    onStartLesson(session.topic, session.isClassroom ?? false, session.level, null, []);
+    const savedPlan = session.boardState?.curriculum_plan as LessonPlan | undefined;
+    onStartLesson(session.topic, session.isClassroom ?? false, session.level, null, [], savedPlan || null);
   };
 
   const handleRestartSession = (session: RecentSessionData) => {
-    onStartLesson(session.topic, session.isClassroom ?? false, session.level, null, []);
+    const savedPlan = session.boardState?.curriculum_plan as LessonPlan | undefined;
+    onStartLesson(session.topic, session.isClassroom ?? false, session.level, null, [], savedPlan || null);
   };
 
   const handleDeleteRecentSession = (sessionId: string) => {

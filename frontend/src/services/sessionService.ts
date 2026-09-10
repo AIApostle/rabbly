@@ -28,67 +28,6 @@ export interface BackendSessionPayload {
   updated_at?: string;
 }
 
-const DEFAULT_SEEDS: RecentSessionData[] = [
-  {
-    id: 'sess-1',
-    roomCode: 'RAB-1011',
-    topic: 'Transformers & Self-Attention: The Engine of LLMs',
-    subject: 'AI & LLMs',
-    date: 'Today',
-    timestamp: 'Today, 2:45 PM',
-    lastCheckpoint: '2. The Query, Key, and Value (Q, K, V) Vector Mechanics',
-    completedModules: 2,
-    totalModules: 4,
-    progressPercent: 50,
-    level: 'Intermediate',
-    hasExternalResources: true,
-    resourceName: 'Attention_Is_All_You_Need.pdf',
-  },
-  {
-    id: 'sess-2',
-    roomCode: 'RAB-1012',
-    topic: 'Distributed Rate Limiter Design with Redis',
-    subject: 'System Architecture',
-    date: 'Today',
-    timestamp: 'Today, 11:20 AM',
-    lastCheckpoint: '3. Atomic Redis Lua Script Execution',
-    completedModules: 3,
-    totalModules: 4,
-    progressPercent: 75,
-    level: 'Advanced',
-    hasExternalResources: true,
-    resourceName: 'system_design_primer.md',
-  },
-  {
-    id: 'sess-3',
-    roomCode: 'RAB-1013',
-    topic: 'Quantum Superposition & Qubit Geometry',
-    subject: 'Quantum Physics',
-    date: 'Yesterday',
-    timestamp: 'Yesterday, 4:10 PM',
-    lastCheckpoint: '1. The Bloch Sphere & Linear Combinations',
-    completedModules: 1,
-    totalModules: 4,
-    progressPercent: 25,
-    level: 'Beginner',
-    hasExternalResources: false,
-  },
-  {
-    id: 'sess-4',
-    roomCode: 'RAB-1014',
-    topic: 'B-Tree Database Indexing & Page Splitting',
-    subject: 'Database Systems',
-    date: 'Earlier',
-    timestamp: 'Sep 5, 2026',
-    lastCheckpoint: '4. Summary & Range Query Performance',
-    completedModules: 4,
-    totalModules: 4,
-    progressPercent: 100,
-    level: 'Intermediate',
-    hasExternalResources: false,
-  },
-];
-
 /** Formats an ISO date string into human-friendly relative date tags */
 export function formatSessionDate(isoString?: string): { dateTag: string; timeTag: string } {
   if (!isoString) {
@@ -143,14 +82,15 @@ export function getLocalSessions(): RecentSessionData[] {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+      if (Array.isArray(parsed)) {
+        // Filter out any stale mock seeds if they were previously stored
+        return parsed.filter((s) => !['sess-1', 'sess-2', 'sess-3', 'sess-4'].includes(s.id));
       }
     }
   } catch (err) {
     console.warn('Failed reading sessions from localStorage', err);
   }
-  return DEFAULT_SEEDS;
+  return [];
 }
 
 /** Saves sessions list into localStorage */
@@ -173,7 +113,7 @@ export async function loadRecentSessions(): Promise<RecentSessionData[]> {
 
     if (res.ok) {
       const data: BackendSessionPayload[] = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         const mapped = data.map(mapBackendToSession);
         saveLocalSessions(mapped);
         return mapped;

@@ -20,6 +20,7 @@ import { LessonDrawer } from './components/LessonDrawer';
 import { ClassroomModal } from './components/ClassroomModal';
 import { LESSON_SCENARIOS, getScenarioResponse } from './services/simulationEngine';
 import { generateCurriculum } from './services/curriculumService';
+import { persistNewSession } from './services/sessionService';
 import type {
   LessonPlan,
   AiStatus,
@@ -151,24 +152,36 @@ export function App() {
     classroom: boolean,
     level?: string,
     _file?: File | null,
-    resources?: ExternalResource[]
+    resources?: ExternalResource[],
+    existingPlan?: LessonPlan | null
   ) => {
     const cleanTopic = topic.trim() || 'General Study';
     setCurrentTopicTitle(cleanTopic);
     setIsClassroomMode(classroom);
     setIsPreparing(true);
-    setIsGeneratingCurriculum(true);
     setElapsedSeconds(0);
     setIsPlaying(false);
     setIncomingAction(null);
 
     if (classroom) {
-      const newCode = `RAB-${Math.floor(1000 + Math.random() * 9000)}`;
+      const newCode = existingPlan?.room_code || `RAB-${Math.floor(1000 + Math.random() * 9000)}`;
       setRoomCode(newCode);
       navigate(`/classroom/${newCode}`);
     } else {
+      if (existingPlan?.room_code) {
+        setRoomCode(existingPlan.room_code);
+      }
       navigate('/learn');
     }
+
+    if (existingPlan) {
+      setCurrentPlan(existingPlan);
+      setCurrentTopicTitle(existingPlan.topic);
+      setIsGeneratingCurriculum(false);
+      return;
+    }
+
+    setIsGeneratingCurriculum(true);
 
     try {
       const plan = await generateCurriculum({
@@ -178,6 +191,24 @@ export function App() {
       });
       setCurrentPlan(plan);
       setCurrentTopicTitle(plan.topic);
+
+      // Persist the session with full curriculum modules into recent sessions
+      if (plan) {
+        persistNewSession({
+          id: plan.session_id,
+          roomCode: plan.room_code,
+          topic: plan.topic,
+          subject: plan.subject,
+          level: (level as any) || 'Intermediate',
+          completedModules: 0,
+          totalModules: plan.modules.length,
+          lastCheckpoint: plan.modules[0]?.title || '1. Foundation',
+          progressPercent: 0,
+          hasExternalResources: (plan.sourceMaterials?.length || 0) > 0,
+          resourceName: plan.sourceMaterials?.[0]?.title,
+          boardState: { curriculum_plan: plan },
+        }).catch((err) => console.warn('Failed syncing session after curriculum generation:', err));
+      }
     } catch (err) {
       console.error('Failed to generate curriculum:', err);
     } finally {

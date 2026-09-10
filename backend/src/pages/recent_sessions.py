@@ -17,10 +17,12 @@ from src.services.sessions import (
     create_session,
     delete_session,
     get_session_by_code,
+    list_all_sessions,
     list_user_sessions,
     update_session,
+    _hydrate_session_record,
 )
-from src.auth.client import get_supabase_client
+from src.auth.client import get_supabase_admin_client
 
 recent_sessions_router = APIRouter(prefix="/sessions", tags=["Recent Sessions Page"])
 
@@ -117,27 +119,34 @@ async def list_recent_sessions(
     user: Optional[UserProfile] = Depends(get_optional_user),
 ):
     """
-    Returns user sessions or public demo lessons.
+    Returns user sessions or real recent learning sessions.
     Connects with the active user from the Auth module when a Bearer token is provided.
     """
     if _is_supabase_ready():
         try:
-            client = get_supabase_client()
+            client = get_supabase_admin_client()
             if user and user.id:
-                user_records = list_user_sessions(client, user.id, limit=limit)
-                if user_records:
-                    return user_records
-        except Exception:
-            pass
+                # Return real sessions for this user from Supabase.
+                # If user has 0 sessions, this correctly returns [] without showing handcoded fake data.
+                return list_user_sessions(client, user.id, limit=limit)
+            else:
+                # If unauthenticated, retrieve the latest real sessions from Supabase
+                records = list_all_sessions(client, limit=limit)
+                if records:
+                    return records
+        except Exception as err:
+            print(f"[RecentSessions] Supabase list error: {err}")
 
-    # In-memory session store fallback
+    # Fallback to in-memory session store only when Supabase is not configured or in offline dev
     sessions = list(_memory_sessions.values())
     if user and user.id:
         scoped = [s for s in sessions if s.get("host_id") == user.id]
-        if scoped:
-            return [SessionResponse(**s) for s in scoped[:limit]]
+        return [SessionResponse(**_hydrate_session_record(s)) for s in scoped[:limit]]
 
-    return [SessionResponse(**s) for s in sessions[:limit]]
+    if not _is_supabase_ready():
+        return [SessionResponse(**_hydrate_session_record(s)) for s in sessions[:limit]]
+
+    return []
 
 
 @recent_sessions_router.post(
@@ -169,10 +178,10 @@ async def create_new_session(
 
     if _is_supabase_ready():
         try:
-            client = get_supabase_client()
+            client = get_supabase_admin_client()
             return create_session(client, full_payload)
-        except Exception:
-            pass
+        except Exception as err:
+            print(f"[RecentSessions] Supabase create error: {err}")
 
     # Memory store fallback
     record = {
@@ -190,12 +199,12 @@ async def create_new_session(
         "progress_percent": payload.progress_percent,
         "has_external_resources": payload.has_external_resources,
         "resource_name": payload.resource_name,
-        "board_state": {},
+        "board_state": payload.board_state or {},
         "created_at": now_iso,
         "updated_at": now_iso,
     }
     _memory_sessions[room_code] = record
-    return SessionResponse(**record)
+    return SessionResponse(**_hydrate_session_record(record))
 
 
 @recent_sessions_router.get(
@@ -208,7 +217,7 @@ async def get_session(room_code: str):
     """Fetches full session details and whiteboard state."""
     if _is_supabase_ready():
         try:
-            client = get_supabase_client()
+            client = get_supabase_admin_client()
             found = get_session_by_code(client, room_code)
             if found:
                 return found
@@ -216,7 +225,7 @@ async def get_session(room_code: str):
             pass
 
     if room_code in _memory_sessions:
-        return SessionResponse(**_memory_sessions[room_code])
+        return SessionResponse(**_hydrate_session_record(_memory_sessions[room_code]))
 
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
@@ -234,7 +243,7 @@ async def update_session_state(room_code: str, payload: SessionUpdate):
     """Updates progress or whiteboard state."""
     if _is_supabase_ready():
         try:
-            client = get_supabase_client()
+            client = get_supabase_admin_client()
             updated = update_session(client, room_code, payload)
             if updated:
                 return updated
@@ -252,7 +261,7 @@ async def update_session_state(room_code: str, payload: SessionUpdate):
     item.update(update_data)
     item["updated_at"] = datetime.now(timezone.utc).isoformat()
     _memory_sessions[room_code] = item
-    return SessionResponse(**item)
+    return SessionResponse(**_hydrate_session_record(item))
 
 
 @recent_sessions_router.delete(
@@ -265,7 +274,7 @@ async def delete_session_record(room_code: str):
     deleted = False
     if _is_supabase_ready():
         try:
-            client = get_supabase_client()
+            client = get_supabase_admin_client()
             deleted = delete_session(client, room_code)
         except Exception:
             pass

@@ -22,7 +22,7 @@ from src.schemas.curriculum import (
 )
 from src.schemas.profile import UserProfile
 from src.schemas.session import SessionCreate
-from src.auth.client import get_supabase_client
+from src.auth.client import get_supabase_admin_client
 from src.services.sessions import create_session, list_user_sessions
 from src.pages.recent_sessions import _memory_sessions
 
@@ -398,7 +398,7 @@ def generate_curriculum(
     # 1. Save to Supabase if credentials are available
     if _is_supabase_ready():
         try:
-            client = get_supabase_client()
+            client = get_supabase_admin_client()
             db_session = create_session(client, session_payload)
             if db_session:
                 curriculum_response.session_id = db_session.id
@@ -441,14 +441,13 @@ def list_user_library(user: Optional[UserProfile] = None, limit: int = 50) -> Li
     # 1. Query Supabase
     if _is_supabase_ready():
         try:
-            client = get_supabase_client()
+            client = get_supabase_admin_client()
             if user and user.id:
                 sessions = list_user_sessions(client, user.id, limit=limit)
             else:
                 # Public/anonymous fallback sessions
-                from src.services.general import select_all
-                sessions_raw = select_all(client, "sessions", order_by="created_at", desc=True, limit=limit)
-                sessions = [SessionCreate(**s) for s in sessions_raw]
+                from src.services.sessions import list_all_sessions
+                sessions = list_all_sessions(client, limit=limit)
 
             for sess in sessions:
                 board_state = getattr(sess, "board_state", None) or {}

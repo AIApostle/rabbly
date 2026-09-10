@@ -15,8 +15,13 @@ import {
   Sparkles,
   Hash,
   Award,
+  ChevronDown,
+  ChevronUp,
+  Layers,
+  Lightbulb,
+  FileText,
 } from 'lucide-react';
-import type { RecentSessionData } from '../types';
+import type { RecentSessionData, LessonPlan } from '../types';
 
 interface RecentSessionsPageProps {
   sessions: RecentSessionData[];
@@ -36,6 +41,7 @@ export const RecentSessionsPage: React.FC<RecentSessionsPageProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState<string>('All');
   const [viewMode, setViewMode] = useState<'rows' | 'grid'>('rows');
+  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
 
   // Compute distinct subjects for category chips
   const subjectList = useMemo(() => {
@@ -88,188 +94,303 @@ export const RecentSessionsPage: React.FC<RecentSessionsPageProps> = ({
         {/* Row Cards Layout */}
         {viewMode === 'rows' ? (
           <div className="space-y-3">
-            {items.map((session) => (
-              <div
-                key={session.id}
-                className="group p-4 sm:p-5 rounded-2xl bg-[#1d2024] hover:bg-[#212429] border border-[#44474f]/40 hover:border-[#a8c7fa]/50 transition-all duration-200 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4"
-              >
-                {/* Left info column */}
-                <div className="flex-1 min-w-0 space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#0842a0]/40 text-[#a8c7fa] border border-[#a8c7fa]/30">
-                      {session.subject}
-                    </span>
-                    <span className="text-[11px] font-mono text-[#8e9099] px-2 py-0.5 rounded-full bg-[#111318]">
-                      {session.level}
-                    </span>
-                    {session.roomCode && (
-                      <span className="inline-flex items-center gap-0.5 text-[11px] font-mono text-[#a8c7fa] px-2 py-0.5 rounded-full bg-[#191c20] border border-[#a8c7fa]/20">
-                        <Hash className="w-2.5 h-2.5" />
-                        {session.roomCode}
-                      </span>
-                    )}
-                    <span className="text-xs text-[#8e9099] font-mono">
-                      • {session.timestamp}
-                    </span>
+            {items.map((session) => {
+              const plan = session.boardState?.curriculum_plan as LessonPlan | undefined;
+              const savedModules = plan?.modules || [];
+              const isExpanded = expandedSessionId === session.id;
+
+              return (
+                <div
+                  key={session.id}
+                  className="group p-4 sm:p-5 rounded-2xl bg-[#1d2024] hover:bg-[#212429] border border-[#44474f]/40 hover:border-[#a8c7fa]/50 transition-all duration-200 shadow-md flex flex-col justify-between gap-4"
+                >
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
+                    {/* Left info column */}
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#0842a0]/40 text-[#a8c7fa] border border-[#a8c7fa]/30">
+                          {session.subject}
+                        </span>
+                        <span className="text-[11px] font-mono text-[#8e9099] px-2 py-0.5 rounded-full bg-[#111318]">
+                          {session.level}
+                        </span>
+                        {session.roomCode && (
+                          <span className="inline-flex items-center gap-0.5 text-[11px] font-mono text-[#a8c7fa] px-2 py-0.5 rounded-full bg-[#191c20] border border-[#a8c7fa]/20">
+                            <Hash className="w-2.5 h-2.5" />
+                            {session.roomCode}
+                          </span>
+                        )}
+                        <span className="text-xs text-[#8e9099] font-mono">
+                          • {session.timestamp}
+                        </span>
+                      </div>
+
+                      <h3 className="text-base font-bold text-white font-['Outfit'] group-hover:text-[#a8c7fa] transition-colors leading-snug">
+                        {session.topic}
+                      </h3>
+
+                      {/* Checkpoint & Progress */}
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-[#c4c6d0]">
+                        <span className="flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>{session.completedModules} of {session.totalModules} Checkpoints</span>
+                        </span>
+
+                        {savedModules.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setExpandedSessionId(isExpanded ? null : session.id)}
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg bg-[#a8c7fa]/10 hover:bg-[#a8c7fa]/20 text-[#a8c7fa] border border-[#a8c7fa]/30 transition-all cursor-pointer"
+                            title="Inspect saved curriculum modules & notes"
+                          >
+                            <Layers className="w-3.5 h-3.5" />
+                            <span>{savedModules.length} Modules</span>
+                            {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                          </button>
+                        )}
+
+                        <span className="text-[#8e9099] hidden sm:inline">•</span>
+
+                        <span className="flex items-center gap-1 text-[#8e9099] truncate max-w-md">
+                          <Clock className="w-3.5 h-3.5 text-[#a8c7fa]" />
+                          <span>Left off: <strong className="text-[#e2e2e9] font-medium">{session.lastCheckpoint}</strong></span>
+                        </span>
+
+                        {session.hasExternalResources && (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-[#8e9099] font-mono">
+                            <Paperclip className="w-3 h-3 text-[#a8c7fa]" />
+                            <span>{session.resourceName}</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Right Action column with Continue Button */}
+                    <div className="flex items-center gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-[#44474f]/30">
+                      <button
+                        type="button"
+                        onClick={() => onRestartSession(session)}
+                        className="p-2 rounded-xl bg-[#282a2f] hover:bg-[#33353a] text-[#c4c6d0] hover:text-white transition-colors cursor-pointer"
+                        title="Restart lesson from beginning"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => onDeleteSession(session.id)}
+                        className="p-2 rounded-xl hover:bg-[#282a2f] text-[#8e9099] hover:text-rose-400 transition-colors cursor-pointer"
+                        title="Remove from history"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+
+                      {/* Prominent Enter Class Button */}
+                      <button
+                        type="button"
+                        onClick={() => onContinueSession(session)}
+                        className="m3-btn-filled px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-[#0842a0]/40 hover:scale-[1.02] active:scale-[0.98] transition-transform cursor-pointer"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        <span>Enter Class</span>
+                      </button>
+                    </div>
                   </div>
 
-                  <h3 className="text-base font-bold text-white font-['Outfit'] group-hover:text-[#a8c7fa] transition-colors leading-snug">
-                    {session.topic}
-                  </h3>
+                  {/* Expanded Modules & Notes Inspection Panel */}
+                  {isExpanded && savedModules.length > 0 && (
+                    <div className="w-full mt-2 pt-4 border-t border-[#44474f]/30 space-y-3 animate-in fade-in duration-200">
+                      <div className="flex items-center justify-between text-xs text-[#a8c7fa] font-bold uppercase tracking-wider font-mono">
+                        <span className="flex items-center gap-1.5">
+                          <Layers className="w-3.5 h-3.5" />
+                          Curriculum Checkpoints ({savedModules.length})
+                        </span>
+                        {plan?.estimatedMinutes && (
+                          <span className="text-[#8e9099] font-normal font-sans">
+                            ⏱ Est. {plan.estimatedMinutes} mins
+                          </span>
+                        )}
+                      </div>
 
-                  {/* Checkpoint & Progress */}
-                  <div className="flex flex-wrap items-center gap-4 text-xs text-[#c4c6d0]">
-                    <span className="flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>{session.completedModules} of {session.totalModules} Checkpoints</span>
-                    </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {savedModules.map((m, idx) => (
+                          <div
+                            key={m.id || idx}
+                            className="p-3 rounded-xl bg-[#14171a] border border-[#44474f]/30 flex flex-col justify-between gap-1.5"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-bold text-white leading-snug">
+                                {m.title}
+                              </span>
+                              <span className="text-[10px] font-mono text-[#a8c7fa] bg-[#0842a0]/30 px-1.5 py-0.5 rounded shrink-0">
+                                {m.duration}
+                              </span>
+                            </div>
 
-                    <span className="text-[#8e9099] hidden sm:inline">•</span>
+                            {m.keyTakeaways && m.keyTakeaways.length > 0 && (
+                              <ul className="space-y-1 mt-1">
+                                {m.keyTakeaways.slice(0, 2).map((t, tIdx) => (
+                                  <li key={tIdx} className="text-[11px] text-[#c4c6d0] flex items-start gap-1.5">
+                                    <Lightbulb className="w-3 h-3 text-amber-400/80 shrink-0 mt-0.5" />
+                                    <span className="line-clamp-2">{t}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        ))}
+                      </div>
 
-                    <span className="flex items-center gap-1 text-[#8e9099] truncate max-w-md">
-                      <Clock className="w-3.5 h-3.5 text-[#a8c7fa]" />
-                      <span>Left off: <strong className="text-[#e2e2e9] font-medium">{session.lastCheckpoint}</strong></span>
-                    </span>
-
-                    {session.hasExternalResources && (
-                      <span className="inline-flex items-center gap-1 text-[11px] text-[#8e9099] font-mono">
-                        <Paperclip className="w-3 h-3 text-[#a8c7fa]" />
-                        <span>{session.resourceName}</span>
-                      </span>
-                    )}
-                  </div>
+                      {plan?.lectureNotes && plan.lectureNotes.length > 0 && (
+                        <div className="p-3 rounded-xl bg-[#14171a]/70 border border-[#44474f]/20 text-xs text-[#c4c6d0] flex items-start gap-2">
+                          <FileText className="w-3.5 h-3.5 text-[#a8c7fa] shrink-0 mt-0.5" />
+                          <div className="min-w-0">
+                            <span className="text-[10px] uppercase font-bold text-[#8e9099] tracking-wider font-mono block mb-1">
+                              Lecture Formula / Key Note Preview
+                            </span>
+                            <p className="line-clamp-2 font-mono text-[11px] text-[#e2e2e9]">
+                              {plan.lectureNotes[0]}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-
-                {/* Right Action column with Continue Button */}
-                <div className="flex items-center gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-[#44474f]/30">
-                  <button
-                    type="button"
-                    onClick={() => onRestartSession(session)}
-                    className="p-2 rounded-xl bg-[#282a2f] hover:bg-[#33353a] text-[#c4c6d0] hover:text-white transition-colors cursor-pointer"
-                    title="Restart lesson from beginning"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => onDeleteSession(session.id)}
-                    className="p-2 rounded-xl hover:bg-[#282a2f] text-[#8e9099] hover:text-rose-400 transition-colors cursor-pointer"
-                    title="Remove from history"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-
-                  {/* Prominent Enter Class Button */}
-                  <button
-                    type="button"
-                    onClick={() => onContinueSession(session)}
-                    className="m3-btn-filled px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-[#0842a0]/40 hover:scale-[1.02] active:scale-[0.98] transition-transform cursor-pointer"
-                  >
-                    <Play className="w-3.5 h-3.5 fill-current" />
-                    <span>Enter Class</span>
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           /* Grid Cards Layout */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {items.map((session) => (
-              <div
-                key={session.id}
-                className="group p-5 rounded-2xl bg-[#1d2024] hover:bg-[#212429] border border-[#44474f]/40 hover:border-[#a8c7fa]/50 transition-all duration-200 shadow-lg flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-2.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#0842a0]/40 text-[#a8c7fa] border border-[#a8c7fa]/30">
-                        {session.subject}
-                      </span>
-                      <span className="text-[11px] font-mono text-[#8e9099] px-2 py-0.5 rounded-full bg-[#111318]">
-                        {session.level}
-                      </span>
-                      {session.roomCode && (
-                        <span className="text-[10px] font-mono text-[#a8c7fa] px-1.5 py-0.5 rounded bg-[#111318] border border-[#a8c7fa]/20">
-                          {session.roomCode}
+            {items.map((session) => {
+              const plan = session.boardState?.curriculum_plan as LessonPlan | undefined;
+              const savedModules = plan?.modules || [];
+              const isExpanded = expandedSessionId === session.id;
+
+              return (
+                <div
+                  key={session.id}
+                  className="group p-5 rounded-2xl bg-[#1d2024] hover:bg-[#212429] border border-[#44474f]/40 hover:border-[#a8c7fa]/50 transition-all duration-200 shadow-lg flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#0842a0]/40 text-[#a8c7fa] border border-[#a8c7fa]/30">
+                          {session.subject}
                         </span>
-                      )}
+                        <span className="text-[11px] font-mono text-[#8e9099] px-2 py-0.5 rounded-full bg-[#111318]">
+                          {session.level}
+                        </span>
+                        {session.roomCode && (
+                          <span className="text-[10px] font-mono text-[#a8c7fa] px-1.5 py-0.5 rounded bg-[#111318] border border-[#a8c7fa]/20">
+                            {session.roomCode}
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => onDeleteSession(session.id)}
+                        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-[#282a2f] text-[#8e9099] hover:text-rose-400 transition-all cursor-pointer"
+                        title="Remove from history"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => onDeleteSession(session.id)}
-                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-[#282a2f] text-[#8e9099] hover:text-rose-400 transition-all cursor-pointer"
-                      title="Remove from history"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <h3 className="text-base font-bold text-white font-['Outfit'] group-hover:text-[#a8c7fa] transition-colors leading-snug mb-2">
+                      {session.topic}
+                    </h3>
+
+                    {savedModules.length > 0 && (
+                      <div className="mb-2">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedSessionId(isExpanded ? null : session.id)}
+                          className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-[#a8c7fa]/10 hover:bg-[#a8c7fa]/20 text-[#a8c7fa] border border-[#a8c7fa]/30 transition-all cursor-pointer"
+                        >
+                          <Layers className="w-3 h-3" />
+                          <span>{savedModules.length} Modules</span>
+                          {isExpanded ? <ChevronUp className="w-2.5 h-2.5" /> : <ChevronDown className="w-2.5 h-2.5" />}
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="space-y-1.5 my-3">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-[#c4c6d0] font-medium flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>{session.completedModules} of {session.totalModules} Checkpoints</span>
+                        </span>
+                        <span className="text-[#a8c7fa] font-mono font-bold">
+                          {session.progressPercent}%
+                        </span>
+                      </div>
+
+                      <div className="w-full h-1.5 rounded-full bg-[#111318] overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-[#0842a0] via-[#4f378b] to-[#a8c7fa] transition-all duration-500"
+                          style={{ width: `${session.progressPercent}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {isExpanded && savedModules.length > 0 && (
+                      <div className="my-3 p-3 rounded-xl bg-[#14171a] border border-[#44474f]/30 space-y-2 animate-in fade-in duration-200">
+                        <span className="text-[10px] uppercase font-bold text-[#a8c7fa] font-mono block">
+                          Modules ({savedModules.length})
+                        </span>
+                        {savedModules.map((m, idx) => (
+                          <div key={m.id || idx} className="text-xs text-white flex items-center justify-between gap-1">
+                            <span className="truncate">{m.title}</span>
+                            <span className="text-[10px] font-mono text-[#8e9099] shrink-0">{m.duration}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="p-2.5 rounded-xl bg-[#111318] border border-[#44474f]/30 text-xs text-[#c4c6d0] flex items-start gap-2 mb-4">
+                      <Clock className="w-3.5 h-3.5 text-[#a8c7fa] shrink-0 mt-0.5" />
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[10px] uppercase font-bold text-[#8e9099] tracking-wider font-mono">
+                          Last Left Off
+                        </span>
+                        <span className="text-xs text-white truncate font-medium">
+                          {session.lastCheckpoint}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  <h3 className="text-base font-bold text-white font-['Outfit'] group-hover:text-[#a8c7fa] transition-colors leading-snug mb-2">
-                    {session.topic}
-                  </h3>
+                  <div className="pt-3 border-t border-[#44474f]/30 flex items-center justify-between gap-2">
+                    <span className="text-[11px] text-[#8e9099] font-mono">
+                      {session.timestamp}
+                    </span>
 
-                  <div className="space-y-1.5 my-3">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-[#c4c6d0] font-medium flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>{session.completedModules} of {session.totalModules} Checkpoints</span>
-                      </span>
-                      <span className="text-[#a8c7fa] font-mono font-bold">
-                        {session.progressPercent}%
-                      </span>
-                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onRestartSession(session)}
+                        className="p-2 rounded-xl bg-[#282a2f] hover:bg-[#33353a] text-[#c4c6d0] hover:text-white transition-colors cursor-pointer"
+                        title="Restart lesson from beginning"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </button>
 
-                    <div className="w-full h-1.5 rounded-full bg-[#111318] overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-[#0842a0] via-[#4f378b] to-[#a8c7fa] transition-all duration-500"
-                        style={{ width: `${session.progressPercent}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 rounded-xl bg-[#111318] border border-[#44474f]/30 text-xs text-[#c4c6d0] flex items-start gap-2 mb-4">
-                    <Clock className="w-3.5 h-3.5 text-[#a8c7fa] shrink-0 mt-0.5" />
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[10px] uppercase font-bold text-[#8e9099] tracking-wider font-mono">
-                        Last Left Off
-                      </span>
-                      <span className="text-xs text-white truncate font-medium">
-                        {session.lastCheckpoint}
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onContinueSession(session)}
+                        className="m3-btn-filled px-4 py-2 text-xs font-bold flex items-center gap-1.5 shadow-md shadow-[#0842a0]/30 hover:scale-[1.02] active:scale-[0.98] transition-transform cursor-pointer"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        <span>Enter Class</span>
+                      </button>
                     </div>
                   </div>
                 </div>
-
-                <div className="pt-3 border-t border-[#44474f]/30 flex items-center justify-between gap-2">
-                  <span className="text-[11px] text-[#8e9099] font-mono">
-                    {session.timestamp}
-                  </span>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => onRestartSession(session)}
-                      className="p-2 rounded-xl bg-[#282a2f] hover:bg-[#33353a] text-[#c4c6d0] hover:text-white transition-colors cursor-pointer"
-                      title="Restart lesson from beginning"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => onContinueSession(session)}
-                      className="m3-btn-filled px-4 py-2 text-xs font-bold flex items-center gap-1.5 shadow-md shadow-[#0842a0]/30 hover:scale-[1.02] active:scale-[0.98] transition-transform cursor-pointer"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>Enter Class</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
