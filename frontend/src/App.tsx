@@ -21,6 +21,7 @@ import { ClassroomModal } from './components/ClassroomModal';
 import { LESSON_SCENARIOS, getScenarioResponse } from './services/simulationEngine';
 import { generateCurriculum } from './services/curriculumService';
 import { persistNewSession } from './services/sessionService';
+import { liveDualSessionService } from './services/liveDualSessionService';
 import type {
   LessonPlan,
   AiStatus,
@@ -145,6 +146,38 @@ export function App() {
       clearInterval(timer);
     };
   }, [isLiveScreen, isPreparing, isPlaying]);
+
+  // Connect Live Dual WebSocket Session when entering /learn or /classroom
+  useEffect(() => {
+    if (!isLiveScreen) {
+      liveDualSessionService.disconnect();
+      return;
+    }
+
+    const currentSessionId = roomCode || 'RAB-DEFAULT';
+
+    liveDualSessionService.setCallbacks({
+      onStatusChange: (newStatus, msg) => {
+        if (newStatus === 'speaking') {
+          setAiStatus('explaining');
+        } else if (newStatus === 'thinking') {
+          setAiStatus('thinking');
+        } else if (newStatus === 'listening') {
+          setAiStatus('listening');
+        }
+        if (msg) setAiSpeechText(msg);
+      },
+      onTranscript: (transcriptText) => {
+        setAiSpeechText(transcriptText);
+      },
+    });
+
+    liveDualSessionService.connect(currentSessionId);
+
+    return () => {
+      liveDualSessionService.disconnect();
+    };
+  }, [isLiveScreen, roomCode]);
 
   // Start lesson from Setup & generate curriculum modules
   const handleStartLesson = async (
@@ -310,6 +343,9 @@ export function App() {
     const nextMuted = !isMuted;
     setIsMuted(nextMuted);
 
+    // Update real microphone capture and streaming to Gemini Live
+    liveDualSessionService.setMicMuted(nextMuted);
+
     // Update host participant mute status
     setParticipants((prev) =>
       prev.map((p) => (p.isHost ? { ...p, isMuted: nextMuted } : p))
@@ -319,7 +355,7 @@ export function App() {
       // Student has unmuted! AI immediately stops speaking and listens
       setIsPlaying(false);
       setAiStatus('listening');
-      setAiSpeechText("I'm listening! Ask your question, or pick a suggested topic below...");
+      setAiSpeechText("I'm listening! Speak into your microphone or ask a question...");
     } else {
       // Student muted back
       if (aiStatus === 'listening') {
@@ -336,24 +372,25 @@ export function App() {
     setAiStatus('thinking');
     setAiSpeechText(`Processing your question: "${questionText}"...`);
 
-    // 2. Pause the ongoing linear lecture
+    // 2. Transmit to Gemini Live agent over Input WebSocket
+    liveDualSessionService.sendTextMessage(questionText);
+
+    // 3. Pause linear lecture
     setIsPlaying(false);
 
-    // 3. After short simulated thinking, AI answers and updates the whiteboard!
+    // 4. Fallback simulation response if backend is offline
     setTimeout(() => {
-      const response = getScenarioResponse(topicKey, questionText);
-      setAiStatus('answering');
-      setAiSpeechText(response.speech);
-
-      // Programmatically draw the answer note on the whiteboard
-      setIncomingAction(response.action);
-
-      // Student is returned to muted state after asking
-      setIsMuted(true);
+      if (aiStatus === 'thinking') {
+        const response = getScenarioResponse(topicKey, questionText);
+        setAiStatus('answering');
+        setAiSpeechText(response.speech);
+        setIncomingAction(response.action);
+        setIsMuted(true);
+      }
       setParticipants((prev) =>
         prev.map((p) => (p.isHost ? { ...p, isMuted: true } : p))
       );
-    }, 1200);
+    }, 1500);
   };
 
   // Classroom & Whiteboard Workspace

@@ -74,6 +74,15 @@ export class WhiteboardMcpServer {
   }
 
   /**
+   * Retrieves the current snapshot of all shapes, coordinates, and spatial summary
+   * for streaming over the Input WebSocket to the backend agent.
+   */
+  public getBoardStateSnapshot(): BoardStatePayload | null {
+    if (!this.editor) return null;
+    return extractBoardState(this.editor);
+  }
+
+  /**
    * MCP Tool Definitions (tools/list)
    */
   public listTools(): McpToolDefinition[] {

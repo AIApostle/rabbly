@@ -3,6 +3,7 @@ import { Tldraw, Editor } from 'tldraw';
 import 'tldraw/tldraw.css';
 import type { WhiteboardShapeAction, BoardStatePayload } from '../types';
 import { whiteboardMcpServer } from '../mcp/whiteboardMcpServer';
+import { liveDualSessionService } from '../services/liveDualSessionService';
 import { WhiteboardMcpDrawer } from './WhiteboardMcpDrawer';
 import {
   executeAiActionOnBoard,
@@ -29,6 +30,9 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     setElementCount(state.elementCount);
   }, []);
 
+  // Store listener cleanup ref
+  const storeUnsubRef = useRef<(() => void) | null>(null);
+
   // Initialize and lock the board on mount
   const handleMount = (editor: Editor) => {
     editorRef.current = editor;
@@ -53,20 +57,36 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     }
 
     syncBoardState();
+
+    // Stream initial board state to backend agent
+    liveDualSessionService.streamBoardState(true);
+
+    // Listen to store changes (shapes added, updated, removed) and stream to agent
+    if (storeUnsubRef.current) {
+      storeUnsubRef.current();
+    }
+    storeUnsubRef.current = editor.store.listen(() => {
+      syncBoardState();
+      liveDualSessionService.streamBoardState();
+    });
   };
 
-  // Detach MCP editor on unmount
+  // Detach MCP editor and unsubscribe on unmount
   useEffect(() => {
     return () => {
+      if (storeUnsubRef.current) {
+        storeUnsubRef.current();
+      }
       whiteboardMcpServer.detachEditor();
     };
   }, []);
 
-  // Handle incoming actions passed via props (e.g. from local curriculum cue playback)
+  // Handle incoming actions passed via props
   useEffect(() => {
     if (!incomingAction || !editorRef.current) return;
     executeAiActionOnBoard(editorRef.current, incomingAction);
     syncBoardState();
+    liveDualSessionService.streamBoardState();
   }, [incomingAction, syncBoardState]);
 
   return (

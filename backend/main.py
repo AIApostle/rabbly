@@ -13,12 +13,22 @@ from fastapi.middleware.cors import CORSMiddleware
 env_path = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
+import logging
+
+# Configure structured logging with timestamp and level
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
 from src.auth import get_current_user, UserProfile
 from src.pages.auth import auth_page_router
 from src.pages.recent_sessions import recent_sessions_router
 from src.pages.sprints import sprints_router
 from src.pages.classrooms import classrooms_router
 from src.pages.curriculum import curriculum_router
+from src.connection import connection_router
 
 app = FastAPI(
     title="Rabbly AI Tutor API",
@@ -46,6 +56,10 @@ app.include_router(recent_sessions_router, prefix="/api")
 app.include_router(sprints_router, prefix="/api")
 app.include_router(classrooms_router, prefix="/api")
 app.include_router(curriculum_router, prefix="/api")
+
+# Mount Live Dual WebSocket router
+app.include_router(connection_router)
+app.include_router(connection_router, prefix="/api")
 
 
 @app.get("/health", tags=["Health"])
