@@ -8,7 +8,7 @@ wheels/
 
 
 .env
-
+.agents/
 # Virtual environments
 .venv
 
