@@ -347,6 +347,24 @@ class GeminiLiveAgent:
                 f"[GeminiLiveAgent:{self.session_id}] [SimMode] Received {len(pcm_bytes)} bytes audio."
             )
 
+    async def send_audio_stream_end(self) -> None:
+        """
+        Notify the Gemini Live session that the student has finished speaking / muted microphone.
+        Dispatches audio_stream_end to trigger immediate response generation.
+        """
+        if not self.is_active or not self._session:
+            return
+
+        try:
+            await self._session.send_realtime_input(audio_stream_end=True)
+            logger.info(
+                f"[GeminiLiveAgent:{self.session_id}] Dispatched audio_stream_end signal."
+            )
+        except Exception as err:
+            logger.error(
+                f"[GeminiLiveAgent:{self.session_id}] Failed to send audio_stream_end: {err}"
+            )
+
     async def send_text_message(self, text: str) -> None:
         """
         Send a text message from the student to the agent.

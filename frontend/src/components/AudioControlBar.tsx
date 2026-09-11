@@ -15,6 +15,7 @@ interface AudioControlBarProps {
   onToggleMute: () => void;
   isSpeakerMuted: boolean;
   onToggleSpeaker: () => void;
+  audioLevel?: number;
   onAskQuestion: (question: string) => void;
   suggestedQuestions: string[];
   onOpenClassroom: () => void;
@@ -29,6 +30,7 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
   onToggleMute,
   isSpeakerMuted,
   onToggleSpeaker,
+  audioLevel = 0,
   onAskQuestion,
   suggestedQuestions,
   onOpenClassroom,
@@ -115,13 +117,21 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
           <button
             onClick={onToggleMute}
             aria-label={isMuted ? 'Unmute yourself' : 'Mute microphone'}
-            className={`p-2.5 rounded-xl transition-all duration-300 cursor-pointer shadow-md active:scale-95 flex items-center justify-center ${
+            style={{
+              boxShadow: !isMuted && audioLevel > 0.04
+                ? `0 0 0 ${Math.round(3 + audioLevel * 10)}px rgba(16, 185, 129, ${Math.min(0.8, 0.25 + audioLevel * 0.5)})`
+                : undefined,
+            }}
+            className={`p-2.5 rounded-xl transition-all duration-150 cursor-pointer shadow-md active:scale-95 flex items-center justify-center relative ${
               isMuted
                 ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30 hover:bg-rose-500/25'
-                : 'bg-emerald-500 text-slate-950 font-bold ring-4 ring-emerald-500/30 shadow-emerald-500/30 hover:bg-emerald-400'
+                : 'bg-emerald-500 text-slate-950 font-bold ring-2 ring-emerald-400 shadow-emerald-500/30 hover:bg-emerald-400'
             }`}
           >
             {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            {!isMuted && audioLevel > 0.05 && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+            )}
           </button>
 
           {/* Tooltip on hover */}

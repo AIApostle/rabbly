@@ -23,6 +23,38 @@ export interface LiveSessionCallbacks {
   onAudioLevel?: (level: number) => void;
 }
 
+/**
+ * High-fidelity linear interpolation downsampler from arbitrary browser/hardware
+ * AudioContext sampleRate (e.g. 48000Hz or 44100Hz) to 16000Hz 16-bit linear PCM.
+ */
+function downsampleTo16kHz(inputData: Float32Array, inputSampleRate: number): Int16Array {
+  if (inputSampleRate === 16000) {
+    const pcm16 = new Int16Array(inputData.length);
+    for (let i = 0; i < inputData.length; i++) {
+      const s = Math.max(-1, Math.min(1, inputData[i]));
+      pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+    }
+    return pcm16;
+  }
+
+  const ratio = inputSampleRate / 16000;
+  const newLength = Math.round(inputData.length / ratio);
+  const pcm16 = new Int16Array(newLength);
+
+  for (let i = 0; i < newLength; i++) {
+    const originIdx = i * ratio;
+    const idxFloor = Math.floor(originIdx);
+    const idxCeil = Math.min(inputData.length - 1, idxFloor + 1);
+    const fraction = originIdx - idxFloor;
+
+    const interpolated = inputData[idxFloor] + fraction * (inputData[idxCeil] - inputData[idxFloor]);
+    const clamped = Math.max(-1, Math.min(1, interpolated));
+    pcm16[i] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff;
+  }
+
+  return pcm16;
+}
+
 export class LiveDualSessionService {
   private sessionId: string | null = null;
   private inputSocket: WebSocket | null = null;
@@ -39,7 +71,10 @@ export class LiveDualSessionService {
 
   // Audio Playback (Output WS -> Speakers)
   private playbackContext: AudioContext | null = null;
+  private gainNode: GainNode | null = null;
+  private activeSources: AudioBufferSourceNode[] = [];
   private nextPlayTime: number = 0;
+  private isSpeakerMuted: boolean = false;
 
   // Board State Streaming
   private lastStreamedElementCount: number = -1;
@@ -284,32 +319,38 @@ export class LiveDualSessionService {
   // ---------------------------------------------------------------------------
 
   /**
-   * Start capturing student microphone audio and streaming PCM to backend.
+   * Start capturing student microphone audio, resample to 16kHz PCM, and stream to backend.
    */
   public async startAudioCapture(): Promise<void> {
-    if (this.mediaStream) {
+    if (this.mediaStream && this.audioContext) {
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
       this.isMicMuted = false;
       return;
     }
 
     try {
-      console.log('[AudioBridge] Requesting microphone access...');
+      console.log('[AudioBridge] Requesting microphone access with acoustic processing...');
       this.mediaStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           channelCount: 1,
-          sampleRate: 16000,
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
         },
       });
 
-      this.audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)({
-        sampleRate: 16000,
-      });
+      this.audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
+
+      const inputRate = this.audioContext.sampleRate;
+      console.log(`[AudioBridge] AudioContext active at native rate: ${inputRate}Hz. Resampling to 16000Hz PCM.`);
 
       const source = this.audioContext.createMediaStreamSource(this.mediaStream);
-      // 2048 buffer size gives ~128ms chunks at 16kHz
+      // 2048 buffer size gives ~42ms chunks at 48kHz, ~128ms at 16kHz
       this.processorNode = this.audioContext.createScriptProcessor(2048, 1, 1);
 
       this.processorNode.onaudioprocess = (e) => {
@@ -324,12 +365,13 @@ export class LiveDualSessionService {
         const rms = Math.sqrt(sum / inputData.length);
         this.callbacks.onAudioLevel?.(Math.min(rms * 5, 1));
 
-        // Convert Float32Array to 16-bit Int16 Linear PCM
-        const pcm16 = new Int16Array(inputData.length);
-        for (let i = 0; i < inputData.length; i++) {
-          const s = Math.max(-1, Math.min(1, inputData[i]));
-          pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+        // Barge-in: if student speaks while agent is playing speech, instantly silence AI audio
+        if (rms > 0.04 && this.status === 'speaking') {
+          this.clearAudioPlaybackQueue();
         }
+
+        // Downsample input from native sample rate to exact 16kHz 16-bit linear PCM
+        const pcm16 = downsampleTo16kHz(inputData, inputRate);
 
         // Base64 encode raw PCM bytes
         const bytes = new Uint8Array(pcm16.buffer);
@@ -351,7 +393,7 @@ export class LiveDualSessionService {
       this.processorNode.connect(this.audioContext.destination);
 
       this.isMicMuted = false;
-      console.log('[AudioBridge] Microphone streaming active (16kHz PCM).');
+      console.log('[AudioBridge] Microphone streaming active (resampled to 16kHz mono PCM).');
     } catch (err) {
       console.error('[AudioBridge] Failed to initialize microphone:', err);
     }
@@ -374,14 +416,30 @@ export class LiveDualSessionService {
       this.audioContext.close();
       this.audioContext = null;
     }
+    this.callbacks.onAudioLevel?.(0);
     console.log('[AudioBridge] Microphone stopped.');
   }
 
   public setMicMuted(muted: boolean): void {
+    const wasUnmuted = !this.isMicMuted;
     this.isMicMuted = muted;
     console.log(`[AudioBridge] Mic muted state: ${muted}`);
-    if (!muted && !this.mediaStream) {
-      this.startAudioCapture();
+
+    if (muted) {
+      this.callbacks.onAudioLevel?.(0);
+      if (wasUnmuted) {
+        // Dispatched end-of-speech to prompt Gemini Live to reply immediately
+        this.sendToInput({
+          type: 'audio_stream_end',
+          sessionId: this.sessionId,
+        });
+      }
+    } else {
+      if (!this.mediaStream) {
+        this.startAudioCapture();
+      } else if (this.audioContext && this.audioContext.state === 'suspended') {
+        this.audioContext.resume();
+      }
     }
   }
 
@@ -391,12 +449,29 @@ export class LiveDualSessionService {
 
   private initPlaybackContext(): void {
     if (!this.playbackContext || this.playbackContext.state === 'closed') {
-      // Gemini Live typically outputs 24kHz audio
+      // Gemini Live natively outputs 24kHz mono linear PCM
       this.playbackContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)({
         sampleRate: 24000,
       });
+
+      this.gainNode = this.playbackContext.createGain();
+      this.gainNode.gain.setValueAtTime(this.isSpeakerMuted ? 0 : 1, this.playbackContext.currentTime);
+      this.gainNode.connect(this.playbackContext.destination);
+
       this.nextPlayTime = 0;
-      console.log('[AudioPlayback] Initialized at 24kHz.');
+      this.activeSources = [];
+      console.log('[AudioPlayback] Initialized at 24kHz with Master Gain.');
+    }
+  }
+
+  /**
+   * Set speaker output mute status.
+   */
+  public setSpeakerMuted(muted: boolean): void {
+    this.isSpeakerMuted = muted;
+    console.log(`[AudioPlayback] Speaker muted: ${muted}`);
+    if (this.gainNode && this.playbackContext) {
+      this.gainNode.gain.setValueAtTime(muted ? 0 : 1, this.playbackContext.currentTime);
     }
   }
 
@@ -404,7 +479,11 @@ export class LiveDualSessionService {
    * Queue raw 24kHz 1-channel PCM audio chunk from Gemini for smooth playback.
    */
   private queueAudioChunk(base64Data: string): void {
-    if (!this.playbackContext) return;
+    if (!this.playbackContext) {
+      this.initPlaybackContext();
+    }
+    if (!this.playbackContext || !this.gainNode) return;
+
     if (this.playbackContext.state === 'suspended') {
       this.playbackContext.resume();
     }
@@ -412,13 +491,17 @@ export class LiveDualSessionService {
     try {
       const binary = window.atob(base64Data);
       const len = binary.length;
-      const bytes = new Uint8Array(len);
-      for (let i = 0; i < len; i++) {
+      if (len < 2) return;
+
+      // Ensure length is an even number of bytes for 16-bit PCM samples
+      const evenLen = len - (len % 2);
+      const bytes = new Uint8Array(evenLen);
+      for (let i = 0; i < evenLen; i++) {
         bytes[i] = binary.charCodeAt(i);
       }
 
-      // Convert 16-bit PCM bytes to Float32
-      const int16 = new Int16Array(bytes.buffer);
+      // Convert 16-bit PCM little-endian bytes to Float32 [-1.0, 1.0]
+      const int16 = new Int16Array(bytes.buffer, bytes.byteOffset, evenLen / 2);
       const float32 = new Float32Array(int16.length);
       for (let i = 0; i < int16.length; i++) {
         float32[i] = int16[i] / (int16[i] < 0 ? 0x8000 : 0x7fff);
@@ -434,11 +517,11 @@ export class LiveDualSessionService {
   }
 
   private scheduleBufferPlayback(buffer: AudioBuffer): void {
-    if (!this.playbackContext) return;
+    if (!this.playbackContext || !this.gainNode) return;
 
     const source = this.playbackContext.createBufferSource();
     source.buffer = buffer;
-    source.connect(this.playbackContext.destination);
+    source.connect(this.gainNode);
 
     const currentTime = this.playbackContext.currentTime;
     if (this.nextPlayTime < currentTime) {
@@ -448,16 +531,31 @@ export class LiveDualSessionService {
     source.start(this.nextPlayTime);
     this.nextPlayTime += buffer.duration;
 
+    this.activeSources.push(source);
     this.updateStatus('speaking');
+
     source.onended = () => {
-      if (this.playbackContext && this.playbackContext.currentTime >= this.nextPlayTime - 0.05) {
+      this.activeSources = this.activeSources.filter((s) => s !== source);
+      if (this.playbackContext && this.activeSources.length === 0 && this.playbackContext.currentTime >= this.nextPlayTime - 0.05) {
         this.updateStatus('listening');
       }
     };
   }
 
+  /**
+   * Instantly halt playback of all scheduled buffers and reset playback pointer.
+   * Triggered on student speech or server interruption.
+   */
   private clearAudioPlaybackQueue(): void {
-    console.log('[AudioPlayback] Clearing playback queue (interrupted).');
+    console.log('[AudioPlayback] Clearing playback queue (interrupted). Stopping', this.activeSources.length, 'active buffers.');
+    for (const source of this.activeSources) {
+      try {
+        source.stop(0);
+        source.disconnect();
+      } catch {}
+    }
+    this.activeSources = [];
+
     if (this.playbackContext) {
       this.nextPlayTime = this.playbackContext.currentTime;
     }
@@ -479,6 +577,7 @@ export class LiveDualSessionService {
   public disconnect(): void {
     console.log('[DualWS] Disconnecting session...');
     this.stopAudioCapture();
+    this.clearAudioPlaybackQueue();
 
     if (this.inputSocket) {
       this.inputSocket.close();
@@ -492,6 +591,7 @@ export class LiveDualSessionService {
     if (this.playbackContext && this.playbackContext.state !== 'closed') {
       this.playbackContext.close();
       this.playbackContext = null;
+      this.gainNode = null;
     }
 
     this.updateStatus('idle', 'Disconnected');

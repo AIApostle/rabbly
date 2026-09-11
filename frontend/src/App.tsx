@@ -105,6 +105,7 @@ export function App() {
   // Student Audio Controls (MUTED BY DEFAULT as required)
   const [isMuted, setIsMuted] = useState<boolean>(true);
   const [isSpeakerMuted, setIsSpeakerMuted] = useState<boolean>(false);
+  const [studentAudioLevel, setStudentAudioLevel] = useState<number>(0);
 
   // Whiteboard Communication
   const [incomingAction, setIncomingAction] = useState<WhiteboardShapeAction | null>(null);
@@ -169,6 +170,9 @@ export function App() {
       },
       onTranscript: (transcriptText) => {
         setAiSpeechText(transcriptText);
+      },
+      onAudioLevel: (level) => {
+        setStudentAudioLevel(level);
       },
     });
 
@@ -366,6 +370,13 @@ export function App() {
     }
   };
 
+  // Audio Speaker Output Toggle (AI Voice)
+  const handleToggleSpeaker = () => {
+    const nextSpeakerMuted = !isSpeakerMuted;
+    setIsSpeakerMuted(nextSpeakerMuted);
+    liveDualSessionService.setSpeakerMuted(nextSpeakerMuted);
+  };
+
   // Student Asks a Question
   const handleAskQuestion = (questionText: string) => {
     // 1. Switch AI to thinking
@@ -477,7 +488,8 @@ export function App() {
           isMuted={isMuted}
           onToggleMute={handleToggleMute}
           isSpeakerMuted={isSpeakerMuted}
-          onToggleSpeaker={() => setIsSpeakerMuted(!isSpeakerMuted)}
+          onToggleSpeaker={handleToggleSpeaker}
+          audioLevel={studentAudioLevel}
           onAskQuestion={handleAskQuestion}
           suggestedQuestions={currentPlan.suggestedQuestions}
           onOpenClassroom={() => setIsClassroomModalOpen(true)}

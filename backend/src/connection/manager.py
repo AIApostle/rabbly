@@ -243,6 +243,13 @@ class LiveSessionManager:
                         f"[LiveSessionManager:{session.session_id}] Failed to decode audio chunk: {err}"
                     )
 
+        # 2b. Student Microphone Utterance End
+        elif msg_type == "audio_stream_end":
+            logger.info(
+                f"[LiveSessionManager:{session.session_id}] Received audio_stream_end from student."
+            )
+            await session.agent.send_audio_stream_end()
+
         # 3. Student Text Message
         elif msg_type == "text":
             text = data.get("text", "")
