@@ -23,7 +23,12 @@ from src.schemas.curriculum import (
 from src.schemas.profile import UserProfile
 from src.schemas.session import SessionCreate
 from src.auth.client import get_supabase_admin_client
-from src.services.sessions import create_session, list_user_sessions
+from src.services.sessions import (
+    create_session,
+    get_session_by_code,
+    get_session_by_id,
+    list_user_sessions,
+)
 from src.pages.recent_sessions import _memory_sessions
 
 
@@ -544,7 +549,6 @@ def get_curriculum_plan_for_session(session_id: str) -> Optional[dict]:
             if session_id.startswith("RAB-"):
                 db_session = get_session_by_code(client, session_id)
             if not db_session:
-                from src.services.sessions import get_session_by_id
                 db_session = get_session_by_id(client, session_id)
 
             if db_session:
