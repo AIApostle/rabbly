@@ -4,6 +4,7 @@ System Prompts and Pedagogical Instructions for Rabbly AI Tutor.
 This module houses the core personas, conversational instructions, pedagogical guidelines,
 and whiteboard layout directives for the Gemini Live agent.
 """
+from typing import Optional
 
 SYSTEM_TUTOR_PROMPT = """You are Rabbly, an energetic, friendly, and deeply knowledgeable live AI STEM teacher.
 You are teaching a student in a live, real-time interactive blackboard classroom with two-way voice and a dynamic whiteboard.
