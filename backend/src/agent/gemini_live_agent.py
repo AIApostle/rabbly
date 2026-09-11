@@ -68,6 +68,7 @@ class GeminiLiveAgent:
         )
 
         self.is_active = False
+        self._session_context: Optional[Any] = None
         self._session: Optional[genai.live.AsyncSession] = None
         self._receive_task: Optional[asyncio.Task] = None
         self._client: Optional[genai.Client] = None
@@ -146,11 +147,11 @@ class GeminiLiveAgent:
                 output_audio_transcription=genai_types.AudioTranscriptionConfig(),
             )
 
-            # Initiate async bidirectional live session
-            session_context = self._client.aio.live.connect(
+            # Initiate async bidirectional live session and preserve context manager to prevent premature GC closure
+            self._session_context = self._client.aio.live.connect(
                 model=self.model_name, config=config
             )
-            self._session = await session_context.__aenter__()
+            self._session = await self._session_context.__aenter__()
             self.is_active = True
 
             logger.info(
@@ -172,21 +173,12 @@ class GeminiLiveAgent:
 
             # Proactively prompt the live teacher to greet the student and introduce the blackboard
             try:
-                await self._session.send_client_content(
-                    turns=[
-                        genai_types.Content(
-                            role="user",
-                            parts=[
-                                genai_types.Part.from_text(
-                                    text=(
-                                        "[Session connected. Greet the student with warmth and enthusiasm as Rabbly, "
-                                        "introduce yourself as their live math & STEM teacher, let them know the blackboard "
-                                        "is ready for drawings and formulas, and ask what topic or question they want to explore!]"
-                                    )
-                                )
-                            ],
-                        )
-                    ]
+                await self._session.send_realtime_input(
+                    text=(
+                        "[Session connected. Greet the student with warmth and enthusiasm as Rabbly, "
+                        "introduce yourself as their live math & STEM teacher, let them know the blackboard "
+                        "is ready for drawings and formulas, and ask what topic or question they want to explore!]"
+                    )
                 )
                 logger.info(f"[GeminiLiveAgent:{self.session_id}] Dispatched initial greeting prompt to live session.")
             except Exception as greet_err:
@@ -208,99 +200,124 @@ class GeminiLiveAgent:
 
     async def _receive_loop(self) -> None:
         """
-        Continuously receives messages from the Gemini Live session, parses audio/text,
-        and executes tool calls via the MCP client.
+        Continuously receives messages from the Gemini Live session across multiple turns,
+        parses audio/text, and executes tool calls via the MCP client.
         """
         logger.info(f"[GeminiLiveAgent:{self.session_id}] Started receive loop.")
         try:
             assert self._session is not None
-            async for response in self._session.receive():
-                # 1. Handle Model Content (Audio & Transcript)
-                server_content = response.server_content
-                if server_content:
-                    if server_content.interrupted:
-                        logger.info(
-                            f"[GeminiLiveAgent:{self.session_id}] Student interrupted the agent."
-                        )
-                        await self.emit_to_frontend(
-                            {
-                                "type": "agent_status",
-                                "sessionId": self.session_id,
-                                "status": "interrupted",
-                            }
-                        )
-
-                    model_turn = server_content.model_turn
-                    if model_turn:
-                        for part in model_turn.parts:
-                            # Audio chunk (PCM)
-                            if part.inline_data and part.inline_data.mime_type.startswith("audio/"):
-                                audio_b64 = base64.b64encode(part.inline_data.data).decode("utf-8")
-                                await self.emit_to_frontend(
-                                    {
-                                        "type": "audio",
-                                        "sessionId": self.session_id,
-                                        "data": audio_b64,
-                                        "mimeType": part.inline_data.mime_type,
-                                    }
-                                )
-
-                            # Subtitle / Text transcript chunk
-                            if part.text:
+            while self.is_active and self._session:
+                try:
+                    async for response in self._session.receive():
+                        # 1. Handle Model Content (Audio & Transcript)
+                        server_content = response.server_content
+                        if server_content:
+                            if server_content.interrupted:
                                 logger.info(
-                                    f"[GeminiLiveAgent:{self.session_id}] Spoken transcript chunk: '{part.text}'"
+                                    f"[GeminiLiveAgent:{self.session_id}] Student interrupted the agent."
                                 )
                                 await self.emit_to_frontend(
                                     {
-                                        "type": "transcript",
+                                        "type": "agent_status",
                                         "sessionId": self.session_id,
-                                        "text": part.text,
+                                        "status": "interrupted",
                                     }
                                 )
 
-                # 2. Handle Tool Calls from Gemini
-                tool_call = response.tool_call
-                if tool_call:
-                    logger.info(
-                        f"[GeminiLiveAgent:{self.session_id}] Received {len(tool_call.function_calls)} tool calls from Gemini."
-                    )
-                    await self.emit_to_frontend(
-                        {
-                            "type": "agent_status",
-                            "sessionId": self.session_id,
-                            "status": "thinking",
-                            "message": "Updating blackboard...",
-                        }
-                    )
+                            model_turn = server_content.model_turn
+                            if model_turn:
+                                for part in model_turn.parts:
+                                    # Audio chunk (PCM)
+                                    if part.inline_data and part.inline_data.mime_type.startswith("audio/"):
+                                        audio_b64 = base64.b64encode(part.inline_data.data).decode("utf-8")
+                                        await self.emit_to_frontend(
+                                            {
+                                                "type": "audio",
+                                                "sessionId": self.session_id,
+                                                "data": audio_b64,
+                                                "mimeType": part.inline_data.mime_type,
+                                            }
+                                        )
 
-                    function_responses = []
-                    for call in tool_call.function_calls:
-                        logger.info(
-                            f"[GeminiLiveAgent:{self.session_id}] Executing MCP tool '{call.name}' (ID: {call.id})"
-                        )
-                        result = await self.mcp_client.call_tool(call.name, call.args or {})
+                                    # Subtitle / Text transcript chunk
+                                    if part.text:
+                                        logger.info(
+                                            f"[GeminiLiveAgent:{self.session_id}] Spoken transcript chunk: '{part.text}'"
+                                        )
+                                        await self.emit_to_frontend(
+                                            {
+                                                "type": "transcript",
+                                                "sessionId": self.session_id,
+                                                "text": part.text,
+                                            }
+                                        )
 
-                        function_responses.append(
-                            genai_types.FunctionResponse(
-                                name=call.name,
-                                id=call.id,
-                                response=result,
+                        # 2. Handle Tool Calls from Gemini
+                        tool_call = response.tool_call
+                        if tool_call:
+                            logger.info(
+                                f"[GeminiLiveAgent:{self.session_id}] Received {len(tool_call.function_calls)} tool calls from Gemini."
                             )
-                        )
+                            await self.emit_to_frontend(
+                                {
+                                    "type": "agent_status",
+                                    "sessionId": self.session_id,
+                                    "status": "thinking",
+                                    "message": "Updating blackboard...",
+                                }
+                            )
 
-                    # Return tool results to Gemini session
-                    logger.info(
-                        f"[GeminiLiveAgent:{self.session_id}] Sending {len(function_responses)} tool responses back to Gemini."
-                    )
-                    await self._session.send_tool_response(function_responses=function_responses)
+                            function_responses = []
+                            for call in tool_call.function_calls:
+                                logger.info(
+                                    f"[GeminiLiveAgent:{self.session_id}] Executing MCP tool '{call.name}' (ID: {call.id})"
+                                )
+                                result = await self.mcp_client.call_tool(call.name, call.args or {})
+
+                                function_responses.append(
+                                    genai_types.FunctionResponse(
+                                        name=call.name,
+                                        id=call.id,
+                                        response=result,
+                                    )
+                                )
+
+                            # Return tool results to Gemini session
+                            logger.info(
+                                f"[GeminiLiveAgent:{self.session_id}] Sending {len(function_responses)} tool responses back to Gemini."
+                            )
+                            await self._session.send_tool_response(function_responses=function_responses)
+
+                except asyncio.CancelledError:
+                    break
+                except Exception as turn_err:
+                    if not self.is_active:
+                        break
+                    err_str = str(turn_err)
+                    if "1000" in err_str or "ConnectionClosedOK" in err_str:
+                        logger.info(
+                            f"[GeminiLiveAgent:{self.session_id}] Live session closed normally (1000 OK)."
+                        )
+                    else:
+                        logger.error(
+                            f"[GeminiLiveAgent:{self.session_id}] Error in receive turn: {turn_err}",
+                            exc_info=True,
+                        )
+                    break
 
         except asyncio.CancelledError:
             logger.info(f"[GeminiLiveAgent:{self.session_id}] Receive loop cancelled.")
         except Exception as err:
-            logger.error(
-                f"[GeminiLiveAgent:{self.session_id}] Error in receive loop: {err}",
-                exc_info=True,
-            )
+            err_str = str(err)
+            if "1000" in err_str or "ConnectionClosedOK" in err_str:
+                logger.info(
+                    f"[GeminiLiveAgent:{self.session_id}] Live session closed normally: {err}"
+                )
+            else:
+                logger.error(
+                    f"[GeminiLiveAgent:{self.session_id}] Error in receive loop: {err}",
+                    exc_info=True,
+                )
         finally:
             self.is_active = False
 
@@ -318,7 +335,7 @@ class GeminiLiveAgent:
             try:
                 # Dispatch realtime audio chunk to Gemini
                 await self._session.send_realtime_input(
-                    media_chunks=[genai_types.Blob(data=pcm_bytes, mime_type="audio/pcm;rate=16000")]
+                    media=genai_types.Blob(data=pcm_bytes, mime_type="audio/pcm;rate=16000")
                 )
             except Exception as err:
                 logger.error(
@@ -341,23 +358,17 @@ class GeminiLiveAgent:
             f"[GeminiLiveAgent:{self.session_id}] Student sent text: '{text}'"
         )
 
-        if self._session:
+        if self.is_active and self._session:
             try:
-                await self._session.send_client_content(
-                    turns=[
-                        genai_types.Content(
-                            role="user",
-                            parts=[genai_types.Part.from_text(text=text)],
-                        )
-                    ]
-                )
+                await self._session.send_realtime_input(text=text)
+                return
             except Exception as err:
                 logger.error(
-                    f"[GeminiLiveAgent:{self.session_id}] Failed to send text: {err}"
+                    f"[GeminiLiveAgent:{self.session_id}] Failed to send text via Live API: {err}"
                 )
-        else:
-            # In simulation mode, respond with dynamic whiteboard illustration
-            await self._handle_simulation_text(text)
+
+        # Fallback to interactive blackboard illustration so student is always answered
+        await self._handle_simulation_text(text)
 
     async def _simulation_loop(self) -> None:
         """
@@ -496,6 +507,15 @@ class GeminiLiveAgent:
                 await self._receive_task
             except asyncio.CancelledError:
                 pass
+
+        if self._session_context:
+            try:
+                await self._session_context.__aexit__(None, None, None)
+            except Exception as err:
+                logger.debug(
+                    f"[GeminiLiveAgent:{self.session_id}] Context exit error: {err}"
+                )
+            self._session_context = None
 
         if self._session:
             try:

@@ -14,7 +14,7 @@ from src.schemas.profile import UserProfile
 
 curriculum_router = APIRouter(prefix="/curriculum", tags=["Curriculum & Library Engine"])
 
-
+# different departments for oil and gas
 @curriculum_router.post(
     "/generate",
     response_model=CurriculumPlanResponse,
