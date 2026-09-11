@@ -193,20 +193,26 @@ class TldrawMcpClient:
             McpToolDefinition(
                 name="write_formula",
                 description=(
-                    "Writes mathematical formulas, step-by-step derivations, or theorem cards with formatted equations on the board."
+                    "Writes mathematical formulas, step-by-step derivations, or theorem cards with formatted equations on the board. "
+                    "Supports LaTeX and math notation, auto-formatting superscripts/greek symbols, and adaptive layout."
                 ),
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "title": {"type": "string", "description": "Title header for the formula card."},
-                        "formula": {"type": "string", "description": "Mathematical formula or equations to render."},
-                        "x": {"type": "number", "description": "Horizontal position (0-1280)."},
-                        "y": {"type": "number", "description": "Vertical position (0-720)."},
-                        "width": {"type": "number", "description": "Card width."},
-                        "height": {"type": "number", "description": "Card height."},
+                        "title": {"type": "string", "description": "Title header for the formula card (e.g. 'Pythagorean Theorem')."},
+                        "formula": {"type": "string", "description": "Mathematical formula or equations to render (supports multi-line proofs)."},
+                        "style": {
+                            "type": "string",
+                            "enum": ["card", "text"],
+                            "description": "Visual format: 'card' for an accented equation box, or 'text' for clean chalkboard math typography.",
+                        },
+                        "x": {"type": "number", "description": "Horizontal coordinate (0-1280). If omitted, positioned dynamically."},
+                        "y": {"type": "number", "description": "Vertical coordinate (0-720). If omitted, positioned dynamically."},
+                        "width": {"type": "number", "description": "Custom width in pixels. If omitted, calculated dynamically."},
+                        "height": {"type": "number", "description": "Custom height in pixels. If omitted, calculated dynamically."},
                         "color": {
                             "type": "string",
-                            "enum": ["yellow", "green", "light-blue", "orange", "violet", "red"],
+                            "enum": ["yellow", "green", "light-blue", "orange", "violet", "red", "grey"],
                             "description": "Accent chalk highlight color.",
                         },
                     },

@@ -40,13 +40,15 @@ WHITEBOARD_SKILLS: List[AgentSkill] = [
     ),
     AgentSkill(
         name="Mathematical Formula Derivation",
-        description="Presents mathematical proofs, derivations, and equations clearly on blackboard cards.",
+        description="Presents mathematical proofs, derivations, and equations clearly on blackboard cards or clean chalk typography.",
         tools_used=["write_formula"],
         guidelines=[
             "Format equations with concise step-by-step lines (e.g. 'sin(θ) = Opposite / Hypotenuse = b / c').",
-            "Position formulas on the right side of the blackboard (x: 540-1050, y: 120-400).",
+            "Leverage dynamic layout: you can omit x, y, width, and height to let the blackboard automatically stack and position formulas.",
+            "Use style='card' for prominent theorem boxes, or style='text' for clean standalone chalk equations.",
+            "Write standard math notation: superscripts (a^2 + b^2 = c^2), greek letters (\\theta, \\alpha, \\pi), and fractions are auto-formatted into clean typography.",
             "Use warm accent colors ('yellow' for primary theorems, 'light-blue' for definitions, 'green' for final answers).",
-            "Break multi-part derivations into separate cards rather than jamming everything into one block.",
+            "Break multi-part derivations into separate sequential steps rather than jamming everything into one block.",
         ],
     ),
     AgentSkill(

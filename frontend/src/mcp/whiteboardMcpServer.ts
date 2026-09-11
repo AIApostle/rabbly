@@ -5,7 +5,12 @@
  */
 
 import { Editor, createShapeId, toRichText, type TLShapeId } from 'tldraw';
-import { executeAiActionOnBoard, extractBoardState } from '../utils/tldrawAiBridge';
+import {
+  executeAiActionOnBoard,
+  extractBoardState,
+  formatMathFormula,
+  calculateAdaptiveFormulaLayout,
+} from '../utils/tldrawAiBridge';
 import type { WhiteboardShapeAction, BoardStatePayload, WhiteboardColor } from '../types';
 
 export interface McpToolDefinition {
@@ -166,13 +171,18 @@ export class WhiteboardMcpServer {
           properties: {
             title: { type: 'string', description: 'Title or concept name (e.g. "Pythagorean Theorem")' },
             formula: { type: 'string', description: 'Mathematical equation or derivation steps.' },
-            x: { type: 'number', description: 'Horizontal coordinate.' },
-            y: { type: 'number', description: 'Vertical coordinate.' },
-            width: { type: 'number', description: 'Card width.' },
-            height: { type: 'number', description: 'Card height.' },
+            style: {
+              type: 'string',
+              enum: ['card', 'text'],
+              description: 'Rendering style: "card" for an accented box, or "text" for standalone clean chalkboard typography.',
+            },
+            x: { type: 'number', description: 'Horizontal coordinate (0-1280). If omitted, placed dynamically.' },
+            y: { type: 'number', description: 'Vertical coordinate (0-720). If omitted, placed dynamically.' },
+            width: { type: 'number', description: 'Custom width in pixels. If omitted, calculated dynamically.' },
+            height: { type: 'number', description: 'Custom height in pixels. If omitted, calculated dynamically.' },
             color: {
               type: 'string',
-              enum: ['yellow', 'green', 'light-blue', 'orange', 'violet', 'red'],
+              enum: ['yellow', 'green', 'light-blue', 'orange', 'violet', 'red', 'grey'],
               description: 'Accent border and highlight color.',
             },
           },
@@ -544,25 +554,75 @@ export class WhiteboardMcpServer {
 
       // 4. write_formula
       if (name === 'write_formula') {
-        const formulaId = `formula-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
-        const action: WhiteboardShapeAction = {
-          action: 'draw_formula',
-          id: formulaId,
-          title: typeof args.title === 'string' ? args.title : undefined,
-          x: typeof args.x === 'number' ? args.x : undefined,
-          y: typeof args.y === 'number' ? args.y : undefined,
-          w: typeof args.width === 'number' ? args.width : undefined,
-          h: typeof args.height === 'number' ? args.height : undefined,
-          color: (args.color as WhiteboardColor) || 'yellow',
-          geometryParams: {
-            formulaLatex: String(args.formula || ''),
-          },
-        };
+        const formulaId = createShapeId(`formula-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`);
+        const rawFormula = String(args.formula || '');
+        const title = typeof args.title === 'string' ? args.title : undefined;
+        const style = String(args.style || 'card');
+        const color = (args.color as any) || 'yellow';
 
-        executeAiActionOnBoard(this.editor, action);
-        this.log('tools/call:write_formula', { formulaId, title: args.title }, 'ok');
+        const formattedFormula = formatMathFormula(rawFormula);
+        const layout = calculateAdaptiveFormulaLayout(
+          this.editor,
+          formattedFormula,
+          title,
+          typeof args.x === 'number' ? args.x : undefined,
+          typeof args.y === 'number' ? args.y : undefined,
+          typeof args.width === 'number' ? args.width : undefined,
+          typeof args.height === 'number' ? args.height : undefined
+        );
+
+        if (style === 'text') {
+          // Pure standalone chalk formula typography
+          const displayText = title ? `**${title}**\n${formattedFormula}` : formattedFormula;
+          this.editor.createShapes([
+            {
+              id: formulaId,
+              type: 'text',
+              x: layout.x,
+              y: layout.y,
+              props: {
+                richText: toRichText(displayText),
+                size: 'm',
+                font: 'mono',
+                color,
+                textAlign: 'start',
+              },
+            },
+          ]);
+        } else {
+          // Beautifully accented equation card
+          const fullText = title ? `**${title}**\n\n${formattedFormula}` : formattedFormula;
+          this.editor.createShapes([
+            {
+              id: formulaId,
+              type: 'geo',
+              x: layout.x,
+              y: layout.y,
+              props: {
+                geo: 'rectangle',
+                w: layout.w,
+                h: layout.h,
+                color,
+                fill: 'semi',
+                dash: 'solid',
+                size: 'm',
+                font: 'mono',
+                align: 'start',
+                verticalAlign: 'start',
+                richText: toRichText(fullText),
+              },
+            },
+          ]);
+        }
+
+        this.log('tools/call:write_formula', { formulaId, layout, style, title }, 'ok');
         return {
-          content: [{ type: 'text', text: `Successfully wrote formula card on board (ID: ${formulaId}).` }],
+          content: [
+            {
+              type: 'text',
+              text: `Successfully wrote mathematical formula on board (ID: ${formulaId}) at (${layout.x}, ${layout.y}) with dimensions ${layout.w}x${layout.h}.\nFormulas:\n${formattedFormula}`,
+            },
+          ],
         };
       }
 

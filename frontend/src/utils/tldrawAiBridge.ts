@@ -11,6 +11,150 @@ export const CANONICAL_BOARD_WIDTH = 1280;
 export const CANONICAL_BOARD_HEIGHT = 720;
 
 /**
+ * Formats LaTeX / ASCII math notation into clean, legible mathematical typography.
+ */
+export function formatMathFormula(input: string): string {
+  if (!input) return '';
+
+  let out = input;
+
+  // Handle common LaTeX fractions: \frac{num}{den} -> (num / den)
+  out = out.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1 / $2)');
+
+  // Handle square root: \sqrt{arg} or \sqrt[n]{arg}
+  out = out.replace(/\\sqrt\[([^\]]+)\]\{([^}]+)\}/g, '$1√($2)');
+  out = out.replace(/\\sqrt\{([^}]+)\}/g, '√($1)');
+
+  // Handle superscripts
+  const superscripts: Record<string, string> = {
+    '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
+    '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
+    '+': '⁺', '-': '⁻', '=': '⁼', '(': '⁽', ')': '⁾',
+    'n': 'ⁿ', 'i': 'ⁱ', 'x': 'ˣ', 'y': 'ʸ',
+  };
+  out = out.replace(/\^{?([0-9+\-nixy])}?/g, (_, char) => superscripts[char] || `^${char}`);
+  out = out.replace(/\^([0-9+\-nixy])/g, (_, char) => superscripts[char] || `^${char}`);
+
+  // Handle subscripts
+  const subscripts: Record<string, string> = {
+    '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
+    '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉',
+    '+': '₊', '-': '₋', '=': '₌', '(': '₍', ')': '₎',
+    'a': 'ₐ', 'e': 'ₑ', 'i': 'ᵢ', 'j': 'ⱼ', 'o': 'ₒ', 'x': 'ₓ',
+  };
+  out = out.replace(/_{?([0-9+\-aeijox])}?/g, (_, char) => subscripts[char] || `_${char}`);
+
+  // Greek letters and mathematical symbols
+  const mathSymbols: Record<string, string> = {
+    '\\theta': 'θ', '\\Theta': 'Θ',
+    '\\alpha': 'α', '\\beta': 'β', '\\gamma': 'γ', '\\Gamma': 'Γ',
+    '\\delta': 'δ', '\\Delta': 'Δ',
+    '\\pi': 'π', '\\Pi': 'Π',
+    '\\lambda': 'λ', '\\Lambda': 'Λ',
+    '\\sigma': 'σ', '\\Sigma': 'Σ',
+    '\\omega': 'ω', '\\Omega': 'Ω',
+    '\\phi': 'φ', '\\Phi': 'Φ',
+    '\\psi': 'ψ', '\\Psi': 'Ψ',
+    '\\mu': 'μ', '\\rho': 'ρ', '\\tau': 'τ',
+    '\\times': '×', '\\cdot': '·', '\\div': '÷',
+    '\\approx': '≈', '\\neq': '≠', '\\leq': '≤', '\\geq': '≥',
+    '\\pm': '±', '\\mp': '∓', '\\infty': '∞',
+    '\\sum': '∑', '\\prod': '∏', '\\int': '∫', '\\oint': '∮',
+    '\\partial': '∂', '\\nabla': '∇',
+    '\\rightarrow': '→', '\\Rightarrow': '⇒', '\\to': '→',
+    '\\circ': '°', '\\degree': '°',
+  };
+
+  for (const [latex, unicode] of Object.entries(mathSymbols)) {
+    out = out.split(latex).join(unicode);
+  }
+
+  out = out.replace(/\\left\(/g, '(').replace(/\\right\)/g, ')');
+  out = out.replace(/\\left\[/g, '[').replace(/\\right\]/g, ']');
+
+  return out;
+}
+
+/**
+ * Calculates adaptive placement and dimensions for mathematical formula shapes,
+ * avoiding collision with existing shapes and scaling proportionally to formula complexity.
+ */
+export function calculateAdaptiveFormulaLayout(
+  editor: Editor,
+  formulaText: string,
+  title?: string,
+  requestedX?: number,
+  requestedY?: number,
+  requestedW?: number,
+  requestedH?: number
+): { x: number; y: number; w: number; h: number } {
+  const lines = formulaText.split('\n');
+  const maxLineLen = Math.max(
+    ...lines.map((l) => l.trim().length),
+    title ? title.length : 0,
+    12
+  );
+  const lineCount = lines.length;
+
+  // Compute adaptive dimensions
+  const autoW = requestedW ?? Math.min(880, Math.max(300, Math.round(maxLineLen * 13 + 52)));
+  const autoH = requestedH ?? Math.max(90, Math.round(lineCount * 32 + (title ? 56 : 32)));
+
+  // If coordinates are explicitly given, use them
+  if (typeof requestedX === 'number' && typeof requestedY === 'number') {
+    return { x: requestedX, y: requestedY, w: autoW, h: autoH };
+  }
+
+  // Determine intelligent placement based on existing shapes
+  const pageShapes = editor.getCurrentPageShapes();
+  if (pageShapes.length === 0) {
+    return {
+      x: requestedX ?? 540,
+      y: requestedY ?? 120,
+      w: autoW,
+      h: autoH,
+    };
+  }
+
+  // Look for existing shapes on the right half (x >= 480)
+  let maxRightY = 90;
+  let hasRightShapes = false;
+
+  for (const shape of pageShapes) {
+    try {
+      const bounds = editor.getShapeGeometry(shape).bounds;
+      const shapeBottom = shape.y + bounds.height;
+      if (shape.x >= 480) {
+        hasRightShapes = true;
+        if (shapeBottom > maxRightY) {
+          maxRightY = shapeBottom;
+        }
+      }
+    } catch {
+      // Ignored for shapes without standard geometry
+    }
+  }
+
+  let computedX = requestedX ?? 560;
+  let computedY = requestedY;
+
+  if (typeof computedY !== 'number') {
+    if (hasRightShapes) {
+      if (maxRightY + autoH <= 680) {
+        computedY = maxRightY + 24;
+      } else {
+        computedY = 110;
+        computedX = 580;
+      }
+    } else {
+      computedY = 110;
+    }
+  }
+
+  return { x: computedX, y: computedY, w: autoW, h: autoH };
+}
+
+/**
  * Executes a high-level WhiteboardShapeAction on the tldraw editor.
  */
 export function executeAiActionOnBoard(editor: Editor, action: WhiteboardShapeAction): TLShapeId[] {
@@ -165,7 +309,6 @@ export function executeAiActionOnBoard(editor: Editor, action: WhiteboardShapeAc
       ]);
       createdIds.push(adjId, oppId, hypId);
 
-      return createdIds;
     }
 
     // -------------------------------------------------------------------------
@@ -173,27 +316,38 @@ export function executeAiActionOnBoard(editor: Editor, action: WhiteboardShapeAc
     // -------------------------------------------------------------------------
     if (action.action === 'draw_formula') {
       const formulaId = createShapeId(action.id);
+      const rawFormula = action.geometryParams?.formulaLatex || action.text || '';
+      const formattedFormula = formatMathFormula(rawFormula);
       const title = action.title ? `**${action.title}**\n\n` : '';
-      const formula = action.geometryParams?.formulaLatex || action.text || '';
-      const fullText = `${title}${formula}`;
+      const fullText = `${title}${formattedFormula}`;
+
+      const layout = calculateAdaptiveFormulaLayout(
+        editor,
+        formattedFormula,
+        action.title,
+        action.x,
+        action.y,
+        action.w,
+        action.h
+      );
 
       editor.createShapes([
         {
           id: formulaId,
           type: 'geo',
-          x: action.x ?? 540,
-          y: action.y ?? 160,
+          x: layout.x,
+          y: layout.y,
           props: {
             geo: 'rectangle',
-            w: action.w ?? 380,
-            h: action.h ?? 160,
-            color: action.color ?? 'light-violet',
+            w: layout.w,
+            h: layout.h,
+            color: action.color ?? 'yellow',
             fill: 'semi',
             dash: 'solid',
             size: 'm',
             font: 'mono',
             align: 'start',
-            verticalAlign: 'middle',
+            verticalAlign: 'start',
             richText: toRichText(fullText),
           },
         },

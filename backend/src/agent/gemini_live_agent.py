@@ -143,6 +143,7 @@ class GeminiLiveAgent:
                     parts=[genai_types.Part.from_text(text=FULL_AGENT_PROMPT)]
                 ),
                 tools=tools,
+                output_audio_transcription=genai_types.AudioTranscriptionConfig(),
             )
 
             # Initiate async bidirectional live session
@@ -168,6 +169,30 @@ class GeminiLiveAgent:
                     "message": "Rabbly AI Tutor is live and listening.",
                 }
             )
+
+            # Proactively prompt the live teacher to greet the student and introduce the blackboard
+            try:
+                await self._session.send_client_content(
+                    turns=[
+                        genai_types.Content(
+                            role="user",
+                            parts=[
+                                genai_types.Part.from_text(
+                                    text=(
+                                        "[Session connected. Greet the student with warmth and enthusiasm as Rabbly, "
+                                        "introduce yourself as their live math & STEM teacher, let them know the blackboard "
+                                        "is ready for drawings and formulas, and ask what topic or question they want to explore!]"
+                                    )
+                                )
+                            ],
+                        )
+                    ]
+                )
+                logger.info(f"[GeminiLiveAgent:{self.session_id}] Dispatched initial greeting prompt to live session.")
+            except Exception as greet_err:
+                logger.warning(
+                    f"[GeminiLiveAgent:{self.session_id}] Could not dispatch initial greeting: {greet_err}"
+                )
 
         except Exception as err:
             logger.error(
@@ -376,7 +401,8 @@ class GeminiLiveAgent:
                     "text": "Let's draw a right-angled triangle on the board to visualize the Pythagorean theorem!",
                 }
             )
-            await self.mcp_client.call_tool(
+            # 1. Draw geometry figure
+            tri_result = await self.mcp_client.call_tool(
                 "draw_geometry",
                 {
                     "shape": "right_triangle",
@@ -388,16 +414,49 @@ class GeminiLiveAgent:
                     "labels": {"hypotenuse": "c (5)", "opposite": "b (4)", "adjacent": "a (3)", "angle": "θ"},
                 },
             )
+            # 2. Dynamically write formula without hardcoded width/height
             await self.mcp_client.call_tool(
                 "write_formula",
                 {
                     "title": "Pythagorean Theorem",
                     "formula": "a² + b² = c²\n3² + 4² = 9 + 16 = 25 = 5²",
-                    "x": 520,
-                    "y": 140,
-                    "width": 380,
-                    "height": 180,
+                    "style": "card",
                     "color": "yellow",
+                },
+            )
+            # 3. Add pedagogical chalk step
+            await self.mcp_client.call_tool(
+                "write_formula",
+                {
+                    "formula": "∴ c = √(a² + b²) = √(9 + 16) = 5",
+                    "style": "text",
+                    "color": "green",
+                },
+            )
+        elif "formula" in lower or "equation" in lower or "quadrat" in lower or "math" in lower:
+            await self.emit_to_frontend(
+                {
+                    "type": "transcript",
+                    "sessionId": self.session_id,
+                    "text": "Great question! Let me write out the quadratic formula derivation step-by-step on the blackboard.",
+                }
+            )
+            await self.mcp_client.call_tool(
+                "write_formula",
+                {
+                    "title": "Quadratic Formula Derivation",
+                    "formula": "ax² + bx + c = 0\nx² + (b/a)x = -c/a\n(x + b/(2a))² = (b² - 4ac)/(4a²)\nx = (-b ± √(b² - 4ac)) / (2a)",
+                    "style": "card",
+                    "color": "yellow",
+                },
+            )
+            await self.mcp_client.call_tool(
+                "create_sticky_note",
+                {
+                    "text": "Discriminant (Δ = b² - 4ac):\nΔ > 0: 2 real roots\nΔ = 0: 1 real root\nΔ < 0: 2 complex roots",
+                    "color": "light-blue",
+                    "x": 160,
+                    "y": 180,
                 },
             )
         elif "clear" in lower:
@@ -405,7 +464,7 @@ class GeminiLiveAgent:
                 {
                     "type": "transcript",
                     "sessionId": self.session_id,
-                    "text": "Clearing the blackboard for our next topic.",
+                    "text": "Clearing the blackboard for our next topic. What would you like to explore next?",
                 }
             )
             await self.mcp_client.call_tool("clear_board", {})
@@ -415,7 +474,10 @@ class GeminiLiveAgent:
                 {
                     "type": "transcript",
                     "sessionId": self.session_id,
-                    "text": f"I heard you! Currently, the blackboard has {board.elementCount} elements ({board.spatialSummary}). Let's continue exploring!",
+                    "text": (
+                        f"I hear you! Currently, the blackboard has {board.elementCount} elements "
+                        f"({board.spatialSummary}). Ask me to write a formula, draw a diagram, or explain a concept!"
+                    ),
                 }
             )
 
