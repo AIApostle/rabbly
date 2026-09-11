@@ -265,7 +265,16 @@ class LiveSessionManager:
             )
             session.mcp_client.handle_incoming_response(data)
 
-        # 5. Heartbeat / ping
+        # 5. Curriculum Context (Topic, Modules, Notes, Questions)
+        elif msg_type == "curriculum_context":
+            payload = data.get("payload", {})
+            if payload and isinstance(payload, dict):
+                logger.info(
+                    f"[LiveSessionManager:{session.session_id}] Received curriculum context: '{payload.get('topic')}'"
+                )
+                await session.agent.update_curriculum_context(payload)
+
+        # 6. Heartbeat / ping
         elif msg_type == "ping":
             if session.input_ws:
                 await session.input_ws.send_text(json.dumps({"type": "pong"}))

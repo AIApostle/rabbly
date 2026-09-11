@@ -17,15 +17,17 @@ from google import genai
 from google.genai import types as genai_types
 
 from src.mcp.client import TldrawMcpClient
-from src.prompt import SYSTEM_TUTOR_PROMPT
+from src.prompt.tutor_prompt import (
+    SYSTEM_TUTOR_PROMPT,
+    build_curriculum_instructions,
+    build_initial_greeting_prompt,
+)
+from src.services.curriculum import get_curriculum_plan_for_session
 from src.skills import build_skills_instruction
 
 # Configure module-level logger
 logger = logging.getLogger("rabbly.agent.gemini_live")
 logger.setLevel(logging.INFO)
-
-# Assemble system instruction prompt with modular whiteboard skills
-FULL_AGENT_PROMPT = f"{SYSTEM_TUTOR_PROMPT}\n\n{build_skills_instruction()}"
 
 
 class GeminiLiveAgent:
@@ -46,6 +48,7 @@ class GeminiLiveAgent:
         mcp_client: TldrawMcpClient,
         outbound_callback: Optional[Callable[[Dict[str, Any]], Coroutine[Any, Any, None]]] = None,
         model_name: Optional[str] = None,
+        curriculum_data: Optional[Dict[str, Any]] = None,
     ):
         """
         Initialize the Gemini Live Agent.
@@ -55,10 +58,12 @@ class GeminiLiveAgent:
             mcp_client: Bound TldrawMcpClient for whiteboard tool calls.
             outbound_callback: Callback to emit messages out to the client.
             model_name: Optional custom model name.
+            curriculum_data: Optional pre-loaded curriculum plan dictionary.
         """
         self.session_id = session_id
         self.mcp_client = mcp_client
         self.outbound_callback = outbound_callback
+        self.curriculum_data = curriculum_data
 
         self.api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         self.model_name = (
@@ -77,6 +82,10 @@ class GeminiLiveAgent:
             f"[GeminiLiveAgent:{self.session_id}] Initialized with model '{self.model_name}'. "
             f"API Key present: {bool(self.api_key)}"
         )
+
+    def set_curriculum_data(self, curriculum_data: Dict[str, Any]) -> None:
+        """Assign or update the curriculum data for this session."""
+        self.curriculum_data = curriculum_data
 
     def set_outbound_callback(
         self, callback: Callable[[Dict[str, Any]], Coroutine[Any, Any, None]]
@@ -104,19 +113,18 @@ class GeminiLiveAgent:
                 await self.outbound_callback(message)
             except Exception as err:
                 logger.error(
-                    f"[GeminiLiveAgent:{self.session_id}] Error emitting to frontend: {err}",
+                    f"[GeminiLiveAgent:{self.session_id}] Error in outbound callback: {err}",
                     exc_info=True,
                 )
 
     async def start(self) -> None:
         """
-        Connect to the Gemini Live session and start background receive loop.
-
-        If GEMINI_API_KEY is not configured, switches to simulation mode gracefully.
+        Connect to the Gemini Live Multimodal WebSocket API and launch the receive loop.
+        Fallbacks to simulation loop if API key is not configured.
         """
         if not self.api_key:
             logger.warning(
-                f"[GeminiLiveAgent:{self.session_id}] GEMINI_API_KEY is not set. "
+                f"[GeminiLiveAgent:{self.session_id}] No GEMINI_API_KEY configured. "
                 "Starting in Interactive Simulation Mode."
             )
             self.is_active = True
@@ -129,7 +137,30 @@ class GeminiLiveAgent:
             )
             self._client = genai.Client(api_key=self.api_key)
 
+            # Pre-load curriculum plan for this session if not provided
+            if not self.curriculum_data:
+                try:
+                    self.curriculum_data = get_curriculum_plan_for_session(self.session_id)
+                    if self.curriculum_data:
+                        logger.info(
+                            f"[GeminiLiveAgent:{self.session_id}] Pre-loaded curriculum plan for topic: '{self.curriculum_data.get('topic')}'"
+                        )
+                except Exception as plan_err:
+                    logger.warning(
+                        f"[GeminiLiveAgent:{self.session_id}] Could not pre-fetch curriculum plan: {plan_err}"
+                    )
+
             tools = self.mcp_client.get_genai_tools()
+
+            # Compose system instruction incorporating topic, modules, and notes
+            curriculum_text = (
+                build_curriculum_instructions(self.curriculum_data)
+                if self.curriculum_data
+                else ""
+            )
+            full_system_prompt = f"{SYSTEM_TUTOR_PROMPT}\n\n{build_skills_instruction()}"
+            if curriculum_text:
+                full_system_prompt = f"{full_system_prompt}\n\n{curriculum_text}"
 
             config = genai_types.LiveConnectConfig(
                 response_modalities=["AUDIO"],
@@ -141,7 +172,7 @@ class GeminiLiveAgent:
                     )
                 ),
                 system_instruction=genai_types.Content(
-                    parts=[genai_types.Part.from_text(text=FULL_AGENT_PROMPT)]
+                    parts=[genai_types.Part.from_text(text=full_system_prompt)]
                 ),
                 tools=tools,
                 output_audio_transcription=genai_types.AudioTranscriptionConfig(),
@@ -171,16 +202,13 @@ class GeminiLiveAgent:
                 }
             )
 
-            # Proactively prompt the live teacher to greet the student and introduce the blackboard
+            # Proactively prompt the live teacher to greet the student with the curriculum topic
             try:
-                await self._session.send_realtime_input(
-                    text=(
-                        "[Session connected. Greet the student with warmth and enthusiasm as Rabbly, "
-                        "introduce yourself as their live math & STEM teacher, let them know the blackboard "
-                        "is ready for drawings and formulas, and ask what topic or question they want to explore!]"
-                    )
+                greeting_text = build_initial_greeting_prompt(self.curriculum_data)
+                await self._session.send_realtime_input(text=greeting_text)
+                logger.info(
+                    f"[GeminiLiveAgent:{self.session_id}] Dispatched curriculum greeting prompt to live session."
                 )
-                logger.info(f"[GeminiLiveAgent:{self.session_id}] Dispatched initial greeting prompt to live session.")
             except Exception as greet_err:
                 logger.warning(
                     f"[GeminiLiveAgent:{self.session_id}] Could not dispatch initial greeting: {greet_err}"
@@ -333,9 +361,9 @@ class GeminiLiveAgent:
 
         if self._session:
             try:
-                # Dispatch realtime audio chunk to Gemini
+                # Dispatch realtime audio chunk to Gemini (using audio= parameter for raw PCM)
                 await self._session.send_realtime_input(
-                    media=genai_types.Blob(data=pcm_bytes, mime_type="audio/pcm;rate=16000")
+                    audio=genai_types.Blob(data=pcm_bytes, mime_type="audio/pcm;rate=16000")
                 )
             except Exception as err:
                 logger.error(
@@ -387,6 +415,42 @@ class GeminiLiveAgent:
 
         # Fallback to interactive blackboard illustration so student is always answered
         await self._handle_simulation_text(text)
+
+    async def update_curriculum_context(self, curriculum_data: Dict[str, Any]) -> None:
+        """
+        Update the agent's teaching curriculum with new modules, notes, and topic details.
+        Sends realtime prompt update to live model so it seamlessly adapts its lesson plan.
+
+        Args:
+            curriculum_data: Dictionary containing topic, modules, notes, and questions.
+        """
+        self.curriculum_data = curriculum_data
+        topic = curriculum_data.get("topic", "the selected topic")
+        modules = curriculum_data.get("modules") or []
+        module_titles = ", ".join([m.get("title", "") for m in modules if isinstance(m, dict)])
+        notes = curriculum_data.get("lectureNotes") or []
+        notes_str = "; ".join(notes[:3]) if notes else ""
+
+        logger.info(
+            f"[GeminiLiveAgent:{self.session_id}] Received curriculum context for topic: '{topic}' ({len(modules)} modules)"
+        )
+
+        if self.is_active and self._session:
+            prompt_update = (
+                f"[System Pedagogical Update: Active curriculum is set to '{topic}'. "
+                f"Modules to teach: {module_titles}. "
+                f"Key Notes & Formulas: {notes_str}. "
+                f"Please guide the student through these modules and illustrate them on the blackboard!]"
+            )
+            try:
+                await self._session.send_realtime_input(text=prompt_update)
+                logger.info(
+                    f"[GeminiLiveAgent:{self.session_id}] Dispatched curriculum update prompt to live session."
+                )
+            except Exception as err:
+                logger.warning(
+                    f"[GeminiLiveAgent:{self.session_id}] Failed to send curriculum update prompt: {err}"
+                )
 
     async def _simulation_loop(self) -> None:
         """

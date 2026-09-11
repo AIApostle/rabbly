@@ -11,6 +11,7 @@ export interface GenerateCurriculumParams {
   topic: string;
   level: 'Beginner' | 'Intermediate' | 'Advanced';
   subject?: string;
+  room_code?: string;
   resources?: ExternalResource[];
 }
 
@@ -93,7 +94,7 @@ function createFallbackPlan(topic: string, level: string): LessonPlan {
  * Calls backend API to generate curriculum modules and lecture notes.
  */
 export async function generateCurriculum(params: GenerateCurriculumParams): Promise<LessonPlan> {
-  const { topic, level, subject, resources } = params;
+  const { topic, level, subject, room_code, resources } = params;
 
   try {
     const formattedResources = (resources || []).map((r) => ({
@@ -115,6 +116,7 @@ export async function generateCurriculum(params: GenerateCurriculumParams): Prom
         topic,
         level,
         subject,
+        room_code,
         resources: formattedResources,
       }),
     });

@@ -13,7 +13,7 @@
  */
 
 import { whiteboardMcpServer, type McpJsonRpcRequest } from '../mcp/whiteboardMcpServer';
-import type { BoardStatePayload } from '../types';
+import type { BoardStatePayload, LessonPlan } from '../types';
 
 export type AgentLiveStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking' | 'interrupted' | 'error';
 
@@ -80,6 +80,9 @@ export class LiveDualSessionService {
   private lastStreamedElementCount: number = -1;
   private boardStreamDebounceTimer: number | null = null;
 
+  // Pedagogical Curriculum Plan
+  private curriculumPlan: LessonPlan | null = null;
+
   constructor() {
     console.log('[LiveDualSessionService] Initialized.');
   }
@@ -92,10 +95,29 @@ export class LiveDualSessionService {
   }
 
   /**
+   * Set and immediately synchronize the active curriculum plan (topic, modules, notes)
+   * with the backend Gemini Live agent over the Input WebSocket channel.
+   */
+  public setCurriculumPlan(plan: LessonPlan | null): void {
+    this.curriculumPlan = plan;
+    if (plan && this.inputSocket && this.inputSocket.readyState === WebSocket.OPEN) {
+      console.log(`[DualWS:Input] Transmitting curriculum context to live agent: "${plan.topic}"`);
+      this.sendToInput({
+        type: 'curriculum_context',
+        sessionId: this.sessionId,
+        payload: plan,
+      });
+    }
+  }
+
+  /**
    * Connect to both /input and /output WebSocket endpoints for the given session.
    */
-  public async connect(sessionId: string, baseWsUrl?: string): Promise<void> {
+  public async connect(sessionId: string, baseWsUrl?: string, initialPlan?: LessonPlan | null): Promise<void> {
     this.sessionId = sessionId;
+    if (initialPlan) {
+      this.curriculumPlan = initialPlan;
+    }
     this.updateStatus('connecting', 'Connecting to Rabbly AI Tutor live session...');
 
     const host = baseWsUrl || (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + (window.location.hostname === 'localhost' ? 'localhost:8000' : window.location.host);
@@ -170,6 +192,15 @@ export class LiveDualSessionService {
 
       this.inputSocket.onopen = () => {
         console.log('[DualWS:Input] Channel OPEN.');
+        // Transmit curriculum context if available upon connection
+        if (this.curriculumPlan) {
+          console.log(`[DualWS:Input] Transmitting curriculum context on open for session '${this.sessionId}': "${this.curriculumPlan.topic}"`);
+          this.sendToInput({
+            type: 'curriculum_context',
+            sessionId: this.sessionId,
+            payload: this.curriculumPlan,
+          });
+        }
         resolve();
       };
 

@@ -155,7 +155,7 @@ export function App() {
       return;
     }
 
-    const currentSessionId = roomCode || 'RAB-DEFAULT';
+    const currentSessionId = roomCode || currentPlan?.room_code || 'RAB-DEFAULT';
 
     liveDualSessionService.setCallbacks({
       onStatusChange: (newStatus, msg) => {
@@ -176,12 +176,19 @@ export function App() {
       },
     });
 
-    liveDualSessionService.connect(currentSessionId);
+    liveDualSessionService.connect(currentSessionId, undefined, currentPlan);
 
     return () => {
       liveDualSessionService.disconnect();
     };
   }, [isLiveScreen, roomCode]);
+
+  // Synchronize dynamic curriculum plan updates with the Live Agent
+  useEffect(() => {
+    if (isLiveScreen && currentPlan) {
+      liveDualSessionService.setCurriculumPlan(currentPlan);
+    }
+  }, [isLiveScreen, currentPlan]);
 
   // Start lesson from Setup & generate curriculum modules
   const handleStartLesson = async (
@@ -200,14 +207,12 @@ export function App() {
     setIsPlaying(false);
     setIncomingAction(null);
 
+    const effectiveRoomCode = existingPlan?.room_code || `RAB-${Math.floor(1000 + Math.random() * 9000)}`;
+    setRoomCode(effectiveRoomCode);
+
     if (classroom) {
-      const newCode = existingPlan?.room_code || `RAB-${Math.floor(1000 + Math.random() * 9000)}`;
-      setRoomCode(newCode);
-      navigate(`/classroom/${newCode}`);
+      navigate(`/classroom/${effectiveRoomCode}`);
     } else {
-      if (existingPlan?.room_code) {
-        setRoomCode(existingPlan.room_code);
-      }
       navigate('/learn');
     }
 
@@ -224,6 +229,7 @@ export function App() {
       const plan = await generateCurriculum({
         topic: cleanTopic,
         level: (level as any) || 'Intermediate',
+        room_code: effectiveRoomCode,
         resources,
       });
       setCurrentPlan(plan);

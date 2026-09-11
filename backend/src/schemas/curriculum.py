@@ -25,6 +25,7 @@ class CurriculumGenerateRequest(BaseModel):
     topic: str = Field(..., min_length=2, description="Topic or question prompt from student.")
     level: str = Field("Intermediate", description="'Beginner', 'Intermediate', or 'Advanced'")
     subject: Optional[str] = Field(None, description="Optional academic category.")
+    room_code: Optional[str] = Field(None, description="Optional room code or session ID.")
     resources: Optional[List[CurriculumResource]] = Field(default_factory=list, description="Attached documents/links.")
 
 

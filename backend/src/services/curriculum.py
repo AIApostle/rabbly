@@ -355,7 +355,7 @@ def generate_curriculum(
         )
 
     lesson_id = f"lesson-{uuid.uuid4().hex[:8]}"
-    room_code = f"RAB-{uuid.uuid4().hex[:4].upper()}"
+    room_code = (request.room_code.strip() if request.room_code else None) or f"RAB-{uuid.uuid4().hex[:4].upper()}"
     now_iso = datetime.now(timezone.utc).isoformat()
 
     curriculum_response = CurriculumPlanResponse(
@@ -512,3 +512,48 @@ def list_user_library(user: Optional[UserProfile] = None, limit: int = 50) -> Li
                 )
 
     return library[:limit]
+
+
+def get_curriculum_plan_for_session(session_id: str) -> Optional[dict]:
+    """
+    Retrieve the full curriculum plan dictionary for a given session ID or room code.
+    Checks memory session store first, then Supabase database.
+    """
+    if not session_id:
+        return None
+
+    # 1. Check in-memory store by room_code or session ID
+    if session_id in _memory_sessions:
+        board_state = _memory_sessions[session_id].get("board_state", {})
+        plan = board_state.get("curriculum_plan")
+        if plan and isinstance(plan, dict):
+            return plan
+
+    for s in _memory_sessions.values():
+        if s.get("id") == session_id or s.get("room_code") == session_id:
+            board_state = s.get("board_state", {})
+            plan = board_state.get("curriculum_plan")
+            if plan and isinstance(plan, dict):
+                return plan
+
+    # 2. Check Supabase
+    if _is_supabase_ready():
+        try:
+            client = get_supabase_admin_client()
+            db_session = None
+            if session_id.startswith("RAB-"):
+                db_session = get_session_by_code(client, session_id)
+            if not db_session:
+                from src.services.sessions import get_session_by_id
+                db_session = get_session_by_id(client, session_id)
+
+            if db_session:
+                board_state = getattr(db_session, "board_state", None) or {}
+                plan = board_state.get("curriculum_plan")
+                if plan and isinstance(plan, dict):
+                    return plan
+        except Exception as err:
+            print(f"[CurriculumService] Error fetching curriculum plan for session {session_id}: {err}")
+
+    return None
+
