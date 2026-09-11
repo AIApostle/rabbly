@@ -2,7 +2,7 @@
 Gemini Live Real-Time Multimodal Agent.
 
 This module implements the Rabbly AI Tutor agent using Google GenAI SDK (google-genai).
-It manages bidirectional audio streaming with Gemini Live models (e.g. gemini-2.0-flash-exp),
+It manages bidirectional audio streaming with Gemini Live models (e.g. gemini-2.5-flash-native-audio-latest),
 integrates the Python tldraw MCP client to execute whiteboard drawing tools, tracks student
 interruptions, and coordinates voice/subtitles with blackboard illustrations.
 """
@@ -36,7 +36,7 @@ class GeminiLiveAgent:
         session_id: Unique session identifier for the live classroom.
         mcp_client: TldrawMcpClient instance providing tool execution on the blackboard.
         outbound_callback: Coroutine to push messages (audio, transcripts, status) to the Output WebSocket.
-        model_name: Gemini model name (defaults to 'gemini-2.0-flash-exp' or GEMINI_LIVE_MODEL env).
+        model_name: Gemini model name (defaults to 'gemini-2.5-flash-native-audio-latest' or GEMINI_LIVE_MODEL env).
         is_active: Whether the agent is currently connected and streaming.
     """
 
@@ -64,7 +64,7 @@ class GeminiLiveAgent:
         self.model_name = (
             model_name
             or os.getenv("GEMINI_LIVE_MODEL")
-            or "gemini-2.0-flash-exp"
+            or "gemini-2.5-flash-native-audio-latest"
         )
 
         self.is_active = False
