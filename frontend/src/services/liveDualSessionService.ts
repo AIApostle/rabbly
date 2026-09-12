@@ -83,6 +83,9 @@ export class LiveDualSessionService {
   // Pedagogical Curriculum Plan
   private curriculumPlan: LessonPlan | null = null;
 
+  // Outbound message queue for Input channel (prevents dropped MCP responses)
+  private inputQueue: string[] = [];
+
   constructor() {
     console.log('[LiveDualSessionService] Initialized.');
   }
@@ -130,16 +133,16 @@ export class LiveDualSessionService {
     console.log(`[DualWS:Output] URL: ${outputUrl}`);
 
     try {
-      // 1. Establish Output Channel (Backend -> Frontend)
-      await this.initOutputChannel(outputUrl);
+      // 1. Establish both Output and Input channels concurrently
+      await Promise.all([
+        this.initOutputChannel(outputUrl),
+        this.initInputChannel(inputUrl),
+      ]);
 
-      // 2. Establish Input Channel (Frontend -> Backend)
-      await this.initInputChannel(inputUrl);
-
-      // 3. Initialize Audio Playback Context
+      // 2. Initialize Audio Playback Context
       this.initPlaybackContext();
 
-      // 4. Send initial board state immediately
+      // 3. Send initial board state immediately
       this.streamBoardState();
 
       this.updateStatus('listening', 'Connected and listening.');
@@ -192,6 +195,14 @@ export class LiveDualSessionService {
 
       this.inputSocket.onopen = () => {
         console.log('[DualWS:Input] Channel OPEN.');
+        // Flush any queued messages (e.g. MCP tool responses or initial sync payloads)
+        while (this.inputQueue.length > 0) {
+          const item = this.inputQueue.shift();
+          if (item && this.inputSocket && this.inputSocket.readyState === WebSocket.OPEN) {
+            console.log('[DualWS:Input] Delivering queued message to backend.');
+            this.inputSocket.send(item);
+          }
+        }
         // Transmit curriculum context if available upon connection
         if (this.curriculumPlan) {
           console.log(`[DualWS:Input] Transmitting curriculum context on open for session '${this.sessionId}': "${this.curriculumPlan.topic}"`);
@@ -291,13 +302,17 @@ export class LiveDualSessionService {
 
   /**
    * Helper to transmit data over the Input WebSocket channel.
+   * If the input socket is still connecting, buffers the message to ensure
+   * critical payloads (such as MCP tool call responses) are never dropped.
    */
   public sendToInput(data: Record<string, unknown>): boolean {
+    const serialized = JSON.stringify(data);
     if (this.inputSocket && this.inputSocket.readyState === WebSocket.OPEN) {
-      this.inputSocket.send(JSON.stringify(data));
+      this.inputSocket.send(serialized);
       return true;
     }
-    console.warn('[DualWS:Input] Cannot send: Input socket is not open.');
+    console.warn(`[DualWS:Input] Socket not open yet (readyState=${this.inputSocket?.readyState}). Queuing message: ${data.type}`);
+    this.inputQueue.push(serialized);
     return false;
   }
 

@@ -562,15 +562,9 @@ class GeminiLiveAgent:
                 if modules and isinstance(modules[0], dict)
                 else "Module 1"
             )
-            first_formula = notes[0] if notes else topic
             prompt_update = (
-                f"Curriculum transition to '{topic}' ({len(modules)} modules: {module_titles}).\n"
-                f"MANDATORY IMMEDIATE ACTIONS FOR THIS TURN:\n"
-                f"1. Tool Call: Call `clear_board()` to clean the board for the new topic.\n"
-                f"2. Tool Call: Call `write_text(text='{topic}', x=80, y=50, size='l', color='violet')`.\n"
-                f"3. Tool Call: Call `write_formula(title='{first_mod}', formula='{first_formula}', style='card', color='yellow')`.\n"
-                f"4. Voice: Enthusiastically announce '{topic}' to the student, summarize the roadmap in one sentence, and invite them to explore {first_mod}.\n"
-                f"STRICT: Do NOT output stage directions, headers like '**Initiating Module Transition**', or tool names in voice. Execute the tool calls now and speak naturally."
+                f"Hi Rabbly! I am ready to transition to our next topic: '{topic}'. "
+                f"Please clear the board, announce today's topic, and draw the opening concepts for {first_mod} on the blackboard now."
             )
             try:
                 await self._session.send_realtime_input(text=prompt_update)

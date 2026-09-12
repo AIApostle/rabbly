@@ -472,6 +472,14 @@ export class WhiteboardMcpServer {
    * Executes an MCP Tool Call (tools/call)
    */
   public async callTool(name: string, args: Record<string, unknown> = {}): Promise<McpToolCallResult> {
+    // If editor has not yet attached (e.g. during initial React mount), wait briefly
+    if (!this.editor) {
+      const waitStart = Date.now();
+      while (!this.editor && Date.now() - waitStart < 2500) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+    }
+
     if (!this.editor) {
       this.log(`tools/call:${name}`, { error: 'Editor not attached' }, 'error');
       return {
