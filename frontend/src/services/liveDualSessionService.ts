@@ -284,7 +284,7 @@ export class LiveDualSessionService {
         });
 
         // Trigger fresh board state stream after canvas modification
-        setTimeout(() => this.streamBoardState(), 300);
+        setTimeout(() => this.streamBoardState(true), 300);
       } catch (err) {
         console.error(`[DualWS:Output] Error handling MCP tool request:`, err);
         this.sendToInput({

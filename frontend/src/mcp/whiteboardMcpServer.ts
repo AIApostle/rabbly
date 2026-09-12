@@ -488,6 +488,11 @@ export class WhiteboardMcpServer {
       };
     }
 
+    // Ensure the editor mutation engine is unlocked so createShapes/deleteShapes succeed
+    if (this.editor.getIsReadonly()) {
+      this.editor.updateInstanceState({ isReadonly: false });
+    }
+
     try {
       // 1. get_board_state
       if (name === 'get_board_state') {

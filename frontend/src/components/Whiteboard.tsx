@@ -28,8 +28,9 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     // Attach to the Frontend MCP Server
     whiteboardMcpServer.attachEditor(editor);
 
-    // Strict Read-Only Mode: Ensure ONLY the AI agent can write to the board
-    editor.updateInstanceState({ isReadonly: true });
+    // Ensure read-only is FALSE so the AI agent and MCP server can create and update shapes.
+    // Manual UI drawing tools are already completely hidden via hideUi={true}.
+    editor.updateInstanceState({ isReadonly: false });
 
     // Allow smooth programmatic camera adjustments and student viewport adaptation
     editor.setCameraOptions({ isLocked: false });
