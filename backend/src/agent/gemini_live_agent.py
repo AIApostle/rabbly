@@ -15,6 +15,7 @@ from typing import Any, Callable, Coroutine, Dict, List, Optional
 
 from google import genai
 from google.genai import types as genai_types
+from google.genai import live
 
 from src.mcp.client import TldrawMcpClient
 from src.prompt.tutor_prompt import (
@@ -74,7 +75,7 @@ class GeminiLiveAgent:
 
         self.is_active = False
         self._session_context: Optional[Any] = None
-        self._session: Optional[genai.live.AsyncSession] = None
+        self._session: Optional[live.AsyncSession] = None
         self._receive_task: Optional[asyncio.Task] = None
         self._client: Optional[genai.Client] = None
 
@@ -130,7 +131,7 @@ class GeminiLiveAgent:
             full_system_prompt = f"{full_system_prompt}\n\n{curriculum_text}"
 
         return genai_types.LiveConnectConfig(
-            response_modalities=["AUDIO"],
+            response_modalities=[genai_types.Modality.AUDIO],
             speech_config=genai_types.SpeechConfig(
                 voice_config=genai_types.VoiceConfig(
                     prebuilt_voice_config=genai_types.PrebuiltVoiceConfig(
@@ -187,6 +188,8 @@ class GeminiLiveAgent:
                         await self._session_context.__aexit__(None, None, None)
                     except Exception:
                         pass
+                if not self._client:
+                    self._client = genai.Client(api_key=self.api_key)
                 config = self._build_live_config()
                 self._session_context = self._client.aio.live.connect(
                     model=self.model_name, config=config
@@ -211,12 +214,13 @@ class GeminiLiveAgent:
                         if self.curriculum_data
                         else "the current topic"
                     )
-                    await self._session.send_realtime_input(
-                        text=(
-                            f"Connection recovered. Please continue teaching {topic} on the blackboard seamlessly where you left off. "
-                            "Execute whiteboard tool calls as needed and speak naturally to the student."
+                    if self._session:
+                        await self._session.send_realtime_input(
+                            text=(
+                                f"Connection recovered. Please continue teaching {topic} on the blackboard seamlessly where you left off. "
+                                "Execute whiteboard tool calls as needed and speak naturally to the student."
+                            )
                         )
-                    )
                 except Exception as prompt_err:
                     logger.warning(
                         f"[GeminiLiveAgent:{self.session_id}] Could not send post-reconnect prompt: {prompt_err}"
@@ -290,10 +294,11 @@ class GeminiLiveAgent:
             # Proactively prompt the live teacher to greet the student with the curriculum topic
             try:
                 greeting_text = build_initial_greeting_prompt(self.curriculum_data)
-                await self._session.send_realtime_input(text=greeting_text)
-                logger.info(
-                    f"[GeminiLiveAgent:{self.session_id}] Dispatched curriculum greeting prompt to live session."
-                )
+                if self._session:
+                    await self._session.send_realtime_input(text=greeting_text)
+                    logger.info(
+                        f"[GeminiLiveAgent:{self.session_id}] Dispatched curriculum greeting prompt to live session."
+                    )
             except Exception as greet_err:
                 logger.warning(
                     f"[GeminiLiveAgent:{self.session_id}] Could not dispatch initial greeting: {greet_err}"
@@ -347,10 +352,15 @@ class GeminiLiveAgent:
                                 )
 
                             model_turn = server_content.model_turn
-                            if model_turn:
+                            if model_turn and model_turn.parts:
                                 for part in model_turn.parts:
                                     # Audio chunk (PCM)
-                                    if part.inline_data and part.inline_data.mime_type.startswith("audio/"):
+                                    if (
+                                        part.inline_data
+                                        and part.inline_data.mime_type
+                                        and part.inline_data.mime_type.startswith("audio/")
+                                        and part.inline_data.data
+                                    ):
                                         audio_b64 = base64.b64encode(part.inline_data.data).decode("utf-8")
                                         await self.emit_to_frontend(
                                             {
@@ -382,9 +392,10 @@ class GeminiLiveAgent:
 
                         # 2. Handle Tool Calls from Gemini
                         tool_call = response.tool_call
-                        if tool_call:
+                        if tool_call and tool_call.function_calls:
+                            calls = tool_call.function_calls
                             logger.info(
-                                f"[GeminiLiveAgent:{self.session_id}] Received {len(tool_call.function_calls)} tool calls from Gemini."
+                                f"[GeminiLiveAgent:{self.session_id}] Received {len(calls)} tool calls from Gemini."
                             )
                             await self.emit_to_frontend(
                                 {
@@ -396,26 +407,28 @@ class GeminiLiveAgent:
                             )
 
                             function_responses = []
-                            for call in tool_call.function_calls:
+                            for call in calls:
+                                call_name = call.name or ""
                                 logger.info(
-                                    f"[GeminiLiveAgent:{self.session_id}] Executing MCP tool '{call.name}' (ID: {call.id})"
+                                    f"[GeminiLiveAgent:{self.session_id}] Executing MCP tool '{call_name}' (ID: {call.id})"
                                 )
-                                result = await self.mcp_client.call_tool(call.name, call.args or {})
+                                result = await self.mcp_client.call_tool(call_name, call.args or {})
                                 norm_response = self._normalize_tool_result(result)
 
                                 function_responses.append(
                                     genai_types.FunctionResponse(
-                                        name=call.name,
+                                        name=call_name,
                                         id=call.id,
                                         response=norm_response,
                                     )
                                 )
 
                             # Return tool results to Gemini session
-                            logger.info(
-                                f"[GeminiLiveAgent:{self.session_id}] Sending {len(function_responses)} tool responses back to Gemini."
-                            )
-                            await self._session.send_tool_response(function_responses=function_responses)
+                            if self._session:
+                                logger.info(
+                                    f"[GeminiLiveAgent:{self.session_id}] Sending {len(function_responses)} tool responses back to Gemini."
+                                )
+                                await self._session.send_tool_response(function_responses=function_responses)
 
                 except asyncio.CancelledError:
                     break
