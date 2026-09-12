@@ -120,14 +120,6 @@ class GeminiLiveAgent:
     def _build_live_config(self) -> genai_types.LiveConnectConfig:
         """Constructs the LiveConnectConfig for Gemini Live session."""
         tools = self.mcp_client.get_genai_tools()
-        curriculum_text = (
-            build_curriculum_instructions(self.curriculum_data)
-            if self.curriculum_data
-            else ""
-        )
-        full_system_prompt = SYSTEM_TUTOR_PROMPT
-        if curriculum_text:
-            full_system_prompt = f"{full_system_prompt}\n\n{curriculum_text}"
 
         return genai_types.LiveConnectConfig(
             response_modalities=[genai_types.Modality.AUDIO],
@@ -139,7 +131,7 @@ class GeminiLiveAgent:
                 )
             ),
             system_instruction=genai_types.Content(
-                parts=[genai_types.Part.from_text(text=full_system_prompt)]
+                parts=[genai_types.Part.from_text(text=SYSTEM_TUTOR_PROMPT)]
             ),
             tools=tools,
             output_audio_transcription=genai_types.AudioTranscriptionConfig(),
@@ -213,6 +205,7 @@ class GeminiLiveAgent:
                         if self.curriculum_data
                         else "the current topic"
                     )
+                    board = self.mcp_client.get_latest_board_state()
                     if self._session:
                         await self._session.send_client_content(
                             turns=[
@@ -221,8 +214,9 @@ class GeminiLiveAgent:
                                     parts=[
                                         genai_types.Part.from_text(
                                             text=(
-                                                f"Connection recovered. Please continue teaching {topic} on the blackboard seamlessly where you left off. "
-                                                "Execute whiteboard tool calls as needed and speak naturally to the student."
+                                                f"Connection recovered. Current blackboard has {board.elementCount} elements ({board.spatialSummary}). "
+                                                f"Please continue teaching {topic} on the blackboard seamlessly where you left off. "
+                                                "Call get_board_state or your drawing tools as needed and speak naturally to the student."
                                             )
                                         )
                                     ],
@@ -533,7 +527,7 @@ class GeminiLiveAgent:
 
     async def send_text_message(self, text: str) -> None:
         """
-        Send a text message from the student to the agent.
+        Send a text message from the student to the agent enriched with real-time blackboard context.
 
         Args:
             text: Text message content.
@@ -542,13 +536,17 @@ class GeminiLiveAgent:
             f"[GeminiLiveAgent:{self.session_id}] Student sent text: '{text}'"
         )
 
+        board = self.mcp_client.get_latest_board_state()
+        board_ctx = f"[Current Blackboard: {board.spatialSummary} ({board.elementCount} elements on canvas)]"
+        enriched_text = f"{text}\n\n{board_ctx}"
+
         if self.is_active and self._session:
             try:
                 await self._session.send_client_content(
                     turns=[
                         genai_types.Content(
                             role="user",
-                            parts=[genai_types.Part.from_text(text=text)],
+                            parts=[genai_types.Part.from_text(text=enriched_text)],
                         )
                     ],
                     turn_complete=True,
@@ -587,9 +585,12 @@ class GeminiLiveAgent:
                 if modules and isinstance(modules[0], dict)
                 else "Module 1"
             )
+            board = self.mcp_client.get_latest_board_state()
             prompt_update = (
                 f"Hi Rabbly! I am ready to transition to our next topic: '{topic}'. "
-                f"Please clear the board, announce today's topic, and draw the opening concepts for {first_mod} on the blackboard now."
+                f"Current blackboard has {board.elementCount} elements. "
+                f"Please call clear_board to start with a fresh canvas, announce today's topic, "
+                f"write the title '{topic}' at (80, 50), and draw the opening concepts for {first_mod} on the blackboard now."
             )
             try:
                 await self._session.send_client_content(

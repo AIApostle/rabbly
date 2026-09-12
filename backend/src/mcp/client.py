@@ -503,10 +503,11 @@ class TldrawMcpClient:
             f"[TldrawMcpClient:{self.session_id}] Invoking tool '{tool_name}' with args: {arguments}"
         )
 
-        # Immediate shortcut for get_board_state if we already have local fresh cache
-        if tool_name == "get_board_state" and self.latest_board_state.elementCount > 0:
+        # Immediate shortcut for get_board_state using local fresh cache
+        if tool_name == "get_board_state":
             logger.info(
-                f"[TldrawMcpClient:{self.session_id}] Serving 'get_board_state' from cached board state."
+                f"[TldrawMcpClient:{self.session_id}] Serving 'get_board_state' from cached board state "
+                f"({self.latest_board_state.elementCount} elements)."
             )
             return {
                 "content": [

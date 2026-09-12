@@ -10,8 +10,8 @@ SYSTEM_TUTOR_PROMPT = """You are Rabbly, an energetic live AI STEM teacher.
 You teach students at an interactive digital blackboard in real time with two-way voice and synchronized visual illustrations.
 You have 15 real-time blackboard tools: write_text, write_formula, draw_geometry, create_shape, create_sticky_note, draw_connector, update_shape, delete_shapes, align_shapes, distribute_shapes, reorder_shapes, set_camera, clear_board, get_board_state.
 
-Teaching Guidelines:
-1. Active Live Teacher: Greet the student warmly, introduce concepts with intuition, and teach step-by-step.
+Whiteboard Vision & Action Directives:
+1. Whiteboard Inspection: You teach at a 1280x720 blackboard canvas. Always call `get_board_state` whenever you need to check what is currently drawn or written on the board, inspect student work, or verify open coordinates.
 2. Synchronized Speech & Visuals: Whenever you introduce, explain, or derive a concept, theorem, or equation, you MUST immediately call your whiteboard tools to draw the diagrams and write the formulas on the blackboard while speaking naturally.
 3. Natural Conversational Tone: Speak directly to the student as if standing at a chalkboard. Never recite internal tool syntax, parameter names, or planning headers in your spoken voice.
 
@@ -24,9 +24,9 @@ Spatial Layout (1280x720 Canvas):
 
 def build_curriculum_instructions(curriculum_data: Optional[dict]) -> str:
     """
-    Formats an active curriculum plan into structured pedagogical guidelines,
-    ensuring the agent knows the topic, module roadmap, lecture notes, key formulas,
-    and checkpoint questions.
+    Formats an active curriculum plan into concise pedagogical guidelines,
+    ensuring the agent knows the topic, module roadmap, and key formulas without
+    bloating the system prompt.
     """
     if not curriculum_data or not isinstance(curriculum_data, dict):
         return ""
@@ -37,52 +37,26 @@ def build_curriculum_instructions(curriculum_data: Optional[dict]) -> str:
     overview = curriculum_data.get("overview") or f"Interactive session on {topic}."
 
     lines = [
-        "\n---",
-        "## Active Teaching Assignment & Curriculum:",
-        f"- **Primary Topic**: {topic}",
-        f"- **Academic Field**: {subject}",
-        f"- **Target Difficulty**: {level}",
-        f"- **Lesson Overview**: {overview}\n",
+        f"Active Lesson Assignment: {topic} ({subject}, {level})",
+        f"Lesson Goal: {overview}",
     ]
 
     # Modules
     modules = curriculum_data.get("modules") or []
     if modules:
-        lines.append("### Module Roadmap (Teach sequentially, guiding the student through each):")
+        lines.append("Modules to cover:")
         for idx, m in enumerate(modules, start=1):
             if isinstance(m, dict):
                 title = m.get("title", f"Module {idx}")
-                duration = m.get("duration", "")
                 desc = m.get("description", "")
-                takeaways = m.get("keyTakeaways", [])
-                lines.append(f"{idx}. **{title}** ({duration}): {desc}")
-                if takeaways:
-                    lines.append(f"   - Key Takeaways: {', '.join(takeaways)}")
-        lines.append("")
+                lines.append(f"- Module {idx}: {title} - {desc}")
 
     # Lecture Notes & Formulas
     notes = curriculum_data.get("lectureNotes") or []
     if notes:
-        lines.append("### Prepared Lecture Notes & Key Formulas (Illustrate and write these on the blackboard):")
-        for n in notes:
+        lines.append("Key Concepts & Formulas to illustrate on the blackboard:")
+        for n in notes[:5]:
             lines.append(f"- {n}")
-        lines.append("")
-
-    # Checkpoint Questions
-    questions = curriculum_data.get("suggestedQuestions") or []
-    if questions:
-        lines.append("### Discussion & Checkpoint Questions (Ask these Socratically to verify understanding):")
-        for q in questions:
-            lines.append(f"- \"{q}\"")
-        lines.append("")
-
-    lines.append("### Pedagogical Execution & Mandatory Whiteboard Drawing:")
-    lines.append(f"1. Begin immediately with '{topic}' and introduce Module 1.")
-    lines.append("2. Proactively use your whiteboard tools (`write_text`, `write_formula`, `draw_geometry`, `create_sticky_note`) to build the lesson visually as you speak.")
-    lines.append("3. For every formula in the lecture notes, execute `write_formula`. For every shape or diagram, execute `draw_geometry` or `create_shape`.")
-    lines.append("4. Ask checkpoint questions Socratically to verify understanding before proceeding.")
-    lines.append("5. When transitioning to a new module, execute `clear_board` to start with a fresh canvas.")
-    lines.append("---\n")
 
     return "\n".join(lines)
 
@@ -90,12 +64,14 @@ def build_curriculum_instructions(curriculum_data: Optional[dict]) -> str:
 def build_initial_greeting_prompt(curriculum_data: Optional[dict] = None) -> str:
     """
     Constructs the initial spoken greeting prompt from the student perspective,
-    prompting the live teacher to introduce the lesson and immediately illustrate
-    the opening concepts on the blackboard.
+    prompting the live teacher to check the blackboard state, introduce the lesson,
+    and immediately draw the opening concepts on the blackboard.
     """
     if not curriculum_data or not isinstance(curriculum_data, dict) or not curriculum_data.get("topic"):
         return (
-            "Hi Rabbly! I am ready to begin our live STEM lesson. Please introduce yourself and write a welcome message on the blackboard now."
+            "Hi Rabbly! I am ready to begin our live STEM lesson. "
+            "Please call get_board_state to check the blackboard, introduce yourself warmly, "
+            "write a welcome title at (80, 50), and sketch our opening concepts on the board now."
         )
 
     topic = curriculum_data.get("topic")
@@ -105,7 +81,9 @@ def build_initial_greeting_prompt(curriculum_data: Optional[dict] = None) -> str
         first_module = modules[0].get("title", "Module 1")
 
     return (
-        f"Hi Rabbly! I am ready to learn about {topic}. Please introduce yourself, announce today's topic, and draw the opening concepts for {first_module} on the blackboard now."
+        f"Hi Rabbly! I am ready to learn about {topic}. "
+        f"Please call get_board_state to check the blackboard, introduce yourself warmly, "
+        f"write the lesson title '{topic}' at (80, 50), and draw the opening concepts for {first_module} on the blackboard now."
     )
 
 
