@@ -97,8 +97,8 @@ export function calculateAdaptiveFormulaLayout(
   const lineCount = lines.length;
 
   // Compute adaptive dimensions
-  const autoW = requestedW ?? Math.min(880, Math.max(300, Math.round(maxLineLen * 13 + 52)));
-  const autoH = requestedH ?? Math.max(90, Math.round(lineCount * 32 + (title ? 56 : 32)));
+  const autoW = Math.max(50, Math.round(Math.abs(requestedW ?? Math.min(880, Math.max(300, Math.round(maxLineLen * 13 + 52))))));
+  const autoH = Math.max(40, Math.round(Math.abs(requestedH ?? Math.max(90, Math.round(lineCount * 32 + (title ? 56 : 32))))));
 
   // If coordinates are explicitly given, use them
   if (typeof requestedX === 'number' && typeof requestedY === 'number') {
@@ -182,10 +182,22 @@ export function executeAiActionOnBoard(editor: Editor, action: WhiteboardShapeAc
     // 1. Draw Right-Angled Triangle (Trigonometry)
     // -------------------------------------------------------------------------
     if (action.action === 'draw_right_triangle') {
-      const originX = action.x ?? 120;
-      const originY = action.y ?? 160;
-      const base = action.geometryParams?.base ?? 320;
-      const height = action.geometryParams?.height ?? 220;
+      let originX = action.x ?? 120;
+      let originY = action.y ?? 160;
+      let rawBase = action.geometryParams?.base ?? 320;
+      let rawHeight = action.geometryParams?.height ?? 220;
+
+      // Defensively normalize against negative Cartesian deltas
+      if (rawBase < 0) {
+        originX += rawBase;
+        rawBase = Math.abs(rawBase);
+      }
+      if (rawHeight < 0) {
+        originY += rawHeight;
+        rawHeight = Math.abs(rawHeight);
+      }
+      const base = Math.max(10, Math.round(rawBase));
+      const height = Math.max(10, Math.round(rawHeight));
       const color = action.color ?? 'light-blue';
 
       const vertexB = { x: originX + base, y: originY + height }; // Bottom-right
@@ -207,6 +219,7 @@ export function executeAiActionOnBoard(editor: Editor, action: WhiteboardShapeAc
             fill: 'semi',
             dash: 'draw',
             size: 'm',
+            richText: toRichText(''),
           },
         },
       ]);
@@ -214,26 +227,29 @@ export function executeAiActionOnBoard(editor: Editor, action: WhiteboardShapeAc
 
       // 1B. Right-Angle Square Marker at bottom-left corner
       if (action.geometryParams?.showRightAngleMarker !== false) {
-        const markerSize = 22;
-        const markerId = createShapeId(`${action.id}-rt-marker`);
-        editor.createShapes([
-          {
-            id: markerId,
-            type: 'geo',
-            x: originX + 2,
-            y: originY + height - markerSize - 2,
-            props: {
-              geo: 'rectangle',
-              w: markerSize,
-              h: markerSize,
-              color: 'grey',
-              fill: 'none',
-              dash: 'solid',
-              size: 's',
+        const markerSize = Math.min(22, Math.floor(Math.min(base, height) / 4));
+        if (markerSize >= 4) {
+          const markerId = createShapeId(`${action.id}-rt-marker`);
+          editor.createShapes([
+            {
+              id: markerId,
+              type: 'geo',
+              x: originX + 2,
+              y: originY + height - markerSize - 2,
+              props: {
+                geo: 'rectangle',
+                w: markerSize,
+                h: markerSize,
+                color: 'grey',
+                fill: 'none',
+                dash: 'solid',
+                size: 's',
+                richText: toRichText(''),
+              },
             },
-          },
-        ]);
-        createdIds.push(markerId);
+          ]);
+          createdIds.push(markerId);
+        }
       }
 
       // 1C. Angle Theta Arc / Label at bottom-right acute angle
@@ -361,7 +377,8 @@ export function executeAiActionOnBoard(editor: Editor, action: WhiteboardShapeAc
     // -------------------------------------------------------------------------
     if (action.action === 'draw_circle') {
       const circleId = createShapeId(action.id);
-      const radius = action.geometryParams?.radius ?? 140;
+      const rawRadius = action.geometryParams?.radius ?? 140;
+      const radius = Math.max(10, Math.round(Math.abs(rawRadius)));
       const size = radius * 2;
 
       editor.createShapes([
@@ -378,6 +395,7 @@ export function executeAiActionOnBoard(editor: Editor, action: WhiteboardShapeAc
             fill: 'semi',
             dash: 'draw',
             size: 'm',
+            richText: toRichText(''),
           },
         },
       ]);
@@ -411,6 +429,21 @@ export function executeAiActionOnBoard(editor: Editor, action: WhiteboardShapeAc
       const shapeId = createShapeId(action.id);
       if (editor.getShape(shapeId)) return [];
 
+      let rawX = action.x ?? 100;
+      let rawY = action.y ?? 100;
+      let rawW = action.w ?? 340;
+      let rawH = action.h ?? 180;
+      if (rawW < 0) {
+        rawX += rawW;
+        rawW = Math.abs(rawW);
+      }
+      if (rawH < 0) {
+        rawY += rawH;
+        rawH = Math.abs(rawH);
+      }
+      const w = Math.max(10, Math.round(rawW));
+      const h = Math.max(10, Math.round(rawH));
+
       const titleText = action.title ? `**${action.title}**\n\n` : '';
       const bodyText = action.text || '';
       const fullContent = `${titleText}${bodyText}`;
@@ -419,12 +452,12 @@ export function executeAiActionOnBoard(editor: Editor, action: WhiteboardShapeAc
         {
           id: shapeId,
           type: 'geo',
-          x: action.x ?? 100,
-          y: action.y ?? 100,
+          x: rawX,
+          y: rawY,
           props: {
             geo: 'rectangle',
-            w: action.w ?? 340,
-            h: action.h ?? 180,
+            w,
+            h,
             color: action.color ?? 'blue',
             fill: 'semi',
             dash: 'draw',
@@ -432,7 +465,7 @@ export function executeAiActionOnBoard(editor: Editor, action: WhiteboardShapeAc
             font: 'sans',
             align: 'start',
             verticalAlign: 'start',
-            richText: toRichText(fullContent),
+            richText: toRichText(fullContent || ''),
           },
         },
       ]);

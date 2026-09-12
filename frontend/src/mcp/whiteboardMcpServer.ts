@@ -643,10 +643,23 @@ export class WhiteboardMcpServer {
       if (name === 'create_shape') {
         const shapeId = createShapeId(`shape-${Date.now()}`);
         const geo = String(args.geo || 'rectangle');
-        const x = typeof args.x === 'number' ? args.x : 150;
-        const y = typeof args.y === 'number' ? args.y : 150;
-        const w = typeof args.w === 'number' ? args.w : 220;
-        const h = typeof args.h === 'number' ? args.h : 140;
+        let x = typeof args.x === 'number' ? args.x : 150;
+        let y = typeof args.y === 'number' ? args.y : 150;
+        let w = typeof args.w === 'number' ? args.w : 220;
+        let h = typeof args.h === 'number' ? args.h : 140;
+
+        // Defensively normalize negative dimensions from Cartesian coordinates
+        if (w < 0) {
+          x += w;
+          w = Math.abs(w);
+        }
+        if (h < 0) {
+          y += h;
+          h = Math.abs(h);
+        }
+        w = Math.max(10, Math.round(w));
+        h = Math.max(10, Math.round(h));
+
         const text = typeof args.text === 'string' ? args.text : '';
         const color = (args.color as any) || 'blue';
         const fill = (args.fill as any) || 'none';
@@ -663,7 +676,7 @@ export class WhiteboardMcpServer {
               geo: geo as any,
               w,
               h,
-              richText: text ? toRichText(text) : undefined,
+              richText: toRichText(text || ''),
               color,
               fill,
               dash,
@@ -684,18 +697,31 @@ export class WhiteboardMcpServer {
         const shapeId = `geom-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
         const labels = (args.labels as Record<string, string>) || {};
 
+        let rawBase = typeof args.base === 'number' ? args.base : 320;
+        let rawHeight = typeof args.height === 'number' ? args.height : 220;
+        let x = typeof args.x === 'number' ? args.x : undefined;
+        let y = typeof args.y === 'number' ? args.y : undefined;
+
         let action: WhiteboardShapeAction;
 
         if (shapeType === 'right_triangle') {
+          if (rawBase < 0) {
+            if (typeof x === 'number') x += rawBase;
+            rawBase = Math.abs(rawBase);
+          }
+          if (rawHeight < 0) {
+            if (typeof y === 'number') y += rawHeight;
+            rawHeight = Math.abs(rawHeight);
+          }
           action = {
             action: 'draw_right_triangle',
             id: shapeId,
-            x: typeof args.x === 'number' ? args.x : undefined,
-            y: typeof args.y === 'number' ? args.y : undefined,
+            x,
+            y,
             color: (args.color as WhiteboardColor) || 'light-blue',
             geometryParams: {
-              base: typeof args.base === 'number' ? args.base : 320,
-              height: typeof args.height === 'number' ? args.height : 220,
+              base: Math.max(10, Math.round(rawBase)),
+              height: Math.max(10, Math.round(rawHeight)),
               showRightAngleMarker: true,
               showAngleArc: true,
               angleLabel: labels.angle || 'θ',
@@ -705,24 +731,25 @@ export class WhiteboardMcpServer {
             },
           };
         } else if (shapeType === 'circle') {
+          const rawRadius = typeof args.radius === 'number' ? args.radius : 140;
           action = {
             action: 'draw_circle',
             id: shapeId,
-            x: typeof args.x === 'number' ? args.x : undefined,
-            y: typeof args.y === 'number' ? args.y : undefined,
+            x,
+            y,
             color: (args.color as WhiteboardColor) || 'blue',
             geometryParams: {
-              radius: typeof args.radius === 'number' ? args.radius : 140,
+              radius: Math.max(10, Math.round(Math.abs(rawRadius))),
             },
           };
         } else {
           action = {
             action: 'create_card',
             id: shapeId,
-            x: typeof args.x === 'number' ? args.x : 100,
-            y: typeof args.y === 'number' ? args.y : 100,
-            w: typeof args.base === 'number' ? args.base : 300,
-            h: typeof args.height === 'number' ? args.height : 180,
+            x: x ?? 100,
+            y: y ?? 100,
+            w: Math.max(10, Math.round(Math.abs(rawBase))),
+            h: Math.max(10, Math.round(Math.abs(rawHeight))),
             color: (args.color as WhiteboardColor) || 'blue',
           };
         }
@@ -758,7 +785,7 @@ export class WhiteboardMcpServer {
         const endX = toShape.x + toBounds.width / 2;
         const endY = toShape.y + toBounds.height / 2;
 
-        const label = typeof args.label === 'string' ? args.label : undefined;
+        const label = typeof args.label === 'string' ? args.label : '';
         const color = (args.color as any) || 'grey';
 
         this.editor.createShapes([
@@ -770,7 +797,7 @@ export class WhiteboardMcpServer {
             props: {
               start: { x: 0, y: 0 },
               end: { x: endX - startX, y: endY - startY },
-              richText: label ? toRichText(label) : undefined,
+              richText: toRichText(label || ''),
               color,
               size: 'm',
               arrowheadEnd: 'arrow',
@@ -799,8 +826,8 @@ export class WhiteboardMcpServer {
         const newProps: Record<string, unknown> = { ...(existing.props as Record<string, unknown>) };
         if (typeof args.text === 'string') newProps.richText = toRichText(args.text);
         if (typeof args.color === 'string') newProps.color = args.color;
-        if (typeof args.w === 'number') newProps.w = args.w;
-        if (typeof args.h === 'number') newProps.h = args.h;
+        if (typeof args.w === 'number') newProps.w = Math.max(10, Math.round(Math.abs(args.w)));
+        if (typeof args.h === 'number') newProps.h = Math.max(10, Math.round(Math.abs(args.h)));
 
         updates.props = newProps;
         this.editor.updateShapes([updates as any]);
