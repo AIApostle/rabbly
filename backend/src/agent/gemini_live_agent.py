@@ -69,7 +69,7 @@ class GeminiLiveAgent:
         self.model_name = (
             model_name
             or os.getenv("GEMINI_LIVE_MODEL")
-            or "gemini-2.5-flash-native-audio-latest"
+            or "gemini-3.1-flash-live-preview"
         )
 
         self.is_active = False
