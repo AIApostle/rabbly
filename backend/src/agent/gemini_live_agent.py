@@ -212,7 +212,10 @@ class GeminiLiveAgent:
                         else "the current topic"
                     )
                     await self._session.send_realtime_input(
-                        text=f"[Connection recovered. Please continue teaching {topic} on the blackboard seamlessly where you left off.]"
+                        text=(
+                            f"Connection recovered. Please continue teaching {topic} on the blackboard seamlessly where you left off. "
+                            "Execute whiteboard tool calls as needed and speak naturally to the student."
+                        )
                     )
                 except Exception as prompt_err:
                     logger.warning(
@@ -541,11 +544,20 @@ class GeminiLiveAgent:
         )
 
         if self.is_active and self._session:
+            first_mod = (
+                modules[0].get("title", "Module 1")
+                if modules and isinstance(modules[0], dict)
+                else "Module 1"
+            )
+            first_formula = notes[0] if notes else topic
             prompt_update = (
-                f"[System Pedagogical Update: Active curriculum is set to '{topic}'. "
-                f"Modules to teach: {module_titles}. "
-                f"Key Notes & Formulas: {notes_str}. "
-                f"Please guide the student through these modules and illustrate them on the blackboard!]"
+                f"Curriculum transition to '{topic}' ({len(modules)} modules: {module_titles}).\n"
+                f"MANDATORY IMMEDIATE ACTIONS FOR THIS TURN:\n"
+                f"1. Tool Call: Call `clear_board()` to clean the board for the new topic.\n"
+                f"2. Tool Call: Call `write_text(text='{topic}', x=80, y=50, size='l', color='violet')`.\n"
+                f"3. Tool Call: Call `write_formula(title='{first_mod}', formula='{first_formula}', style='card', color='yellow')`.\n"
+                f"4. Voice: Enthusiastically announce '{topic}' to the student, summarize the roadmap in one sentence, and invite them to explore {first_mod}.\n"
+                f"STRICT: Do NOT output stage directions, headers like '**Initiating Module Transition**', or tool names in voice. Execute the tool calls now and speak naturally."
             )
             try:
                 await self._session.send_realtime_input(text=prompt_update)

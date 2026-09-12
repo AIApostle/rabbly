@@ -122,7 +122,12 @@ def build_skills_instruction() -> str:
     Returns:
         str: Formatted markdown instructions detailing all available skills.
     """
-    sections = ["## Specialized Whiteboard Skills & Tool Protocols:"]
+    sections = [
+        "## Specialized Whiteboard Skills & Tool Protocols:",
+        "CRITICAL INSTRUCTION: Whenever you teach, you MUST invoke these skills via direct MCP tool calls.",
+        "The blackboard on the student's screen remains completely blank unless you call the tools.",
+        "NEVER verbally narrate or speak tool names (e.g. do NOT say 'I will use write_formula'). Call the tool and speak naturally.",
+    ]
     for skill in WHITEBOARD_SKILLS:
         tools_str = ", ".join(f"'{t}'" for t in skill.tools_used)
         sections.append(f"\n### Skill: {skill.name}")

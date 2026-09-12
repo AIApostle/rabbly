@@ -4,7 +4,7 @@
  * Exposes the full suite of digital whiteboard actions to AI agents via JSON-RPC 2.0.
  */
 
-import { Editor, createShapeId, toRichText, type TLShapeId } from 'tldraw';
+import { Editor, createShapeId, toRichText, Box, type TLShapeId } from 'tldraw';
 import {
   executeAiActionOnBoard,
   extractBoardState,
@@ -884,7 +884,7 @@ export class WhiteboardMcpServer {
         const mode = String(args.mode || 'zoom_to_fit');
 
         if (mode === 'zoom_to_fit') {
-          this.editor.zoomToFit({ animation: { duration: 350 } });
+          this.editor.zoomToFit({ animation: { duration: 350 }, force: true } as any);
           this.log('tools/call:set_camera', { mode }, 'ok');
           return { content: [{ type: 'text', text: 'Camera adjusted to fit all elements.' }] };
         }
@@ -893,7 +893,7 @@ export class WhiteboardMcpServer {
           const ids = ((args.shape_ids as string[]) || []).map((id) => id as TLShapeId);
           const shapes = ids.map((id) => this.editor!.getShape(id)).filter(Boolean);
           if (shapes.length > 0) {
-            this.editor.zoomToSelection();
+            this.editor.zoomToSelection({ force: true } as any);
           }
           this.log('tools/call:set_camera', { mode, count: ids.length }, 'ok');
           return { content: [{ type: 'text', text: `Zoomed camera to focus on ${ids.length} shapes.` }] };
@@ -903,7 +903,7 @@ export class WhiteboardMcpServer {
           const x = typeof args.x === 'number' ? args.x : 0;
           const y = typeof args.y === 'number' ? args.y : 0;
           const z = typeof args.zoom === 'number' ? args.zoom : 1;
-          this.editor.setCamera({ x, y, z });
+          this.editor.setCamera({ x, y, z }, { force: true } as any);
           this.log('tools/call:set_camera', { mode, x, y, z }, 'ok');
           return { content: [{ type: 'text', text: `Camera set to (${x}, ${y}) at zoom ${z}x.` }] };
         }
@@ -914,6 +914,7 @@ export class WhiteboardMcpServer {
       // 15. clear_board
       if (name === 'clear_board') {
         executeAiActionOnBoard(this.editor, { action: 'clear', id: 'clear-all' });
+        this.editor.zoomToBounds(new Box(0, 0, 1280, 720), { inset: 30, force: true });
         this.log('tools/call:clear_board', { cleared: true }, 'ok');
         return {
           content: [{ type: 'text', text: 'Blackboard cleared completely.' }],

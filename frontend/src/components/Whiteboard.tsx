@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Tldraw, Editor } from 'tldraw';
+import { Tldraw, Editor, Box } from 'tldraw';
 import 'tldraw/tldraw.css';
 import type { WhiteboardShapeAction } from '../types';
 import { whiteboardMcpServer } from '../mcp/whiteboardMcpServer';
@@ -21,7 +21,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   // Store listener cleanup ref
   const storeUnsubRef = useRef<(() => void) | null>(null);
 
-  // Initialize and lock the board on mount
+  // Initialize and frame the board on mount
   const handleMount = (editor: Editor) => {
     editorRef.current = editor;
 
@@ -31,14 +31,14 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     // Strict Read-Only Mode: Ensure ONLY the AI agent can write to the board
     editor.updateInstanceState({ isReadonly: true });
 
-    // Lock camera so student cannot scroll or pan the board
-    editor.setCameraOptions({ isLocked: true });
+    // Allow smooth programmatic camera adjustments and student viewport adaptation
+    editor.setCameraOptions({ isLocked: false });
 
     // Force crisp light whiteboard theme
     editor.user.updateUserPreferences({ colorScheme: 'light' });
 
-    // Set initial centered camera position
-    editor.setCamera({ x: 0, y: 0, z: 1 });
+    // Center and frame canonical 1280x720 blackboard area cleanly
+    editor.zoomToBounds(new Box(0, 0, 1280, 720), { inset: 30, force: true });
 
     if (onEditorReady) {
       onEditorReady(editor);
@@ -55,6 +55,19 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
       liveDualSessionService.streamBoardState();
     });
   };
+
+  // Window resize handler to maintain 1280x720 blackboard framing
+  useEffect(() => {
+    const handleResize = () => {
+      if (editorRef.current) {
+        editorRef.current.zoomToBounds(new Box(0, 0, 1280, 720), { inset: 30, force: true });
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   // Detach MCP editor and unsubscribe on unmount
   useEffect(() => {
@@ -76,7 +89,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   return (
     <div
       className="tldraw-container absolute inset-0 w-full h-full overflow-hidden bg-white select-none"
-      onWheel={(e) => e.preventDefault()}
       onContextMenu={(e) => e.preventDefault()}
     >
       {/* Embedded tldraw Editor strictly forced into white canvas light mode with UI tools removed */}
