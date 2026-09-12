@@ -24,7 +24,6 @@ from src.prompt.tutor_prompt import (
     build_initial_greeting_prompt,
 )
 from src.services.curriculum import get_curriculum_plan_for_session
-from src.skills import build_skills_instruction
 
 # Configure module-level logger
 logger = logging.getLogger("rabbly.agent.gemini_live")
@@ -126,7 +125,7 @@ class GeminiLiveAgent:
             if self.curriculum_data
             else ""
         )
-        full_system_prompt = f"{SYSTEM_TUTOR_PROMPT}\n\n{build_skills_instruction()}"
+        full_system_prompt = SYSTEM_TUTOR_PROMPT
         if curriculum_text:
             full_system_prompt = f"{full_system_prompt}\n\n{curriculum_text}"
 
@@ -215,11 +214,21 @@ class GeminiLiveAgent:
                         else "the current topic"
                     )
                     if self._session:
-                        await self._session.send_realtime_input(
-                            text=(
-                                f"Connection recovered. Please continue teaching {topic} on the blackboard seamlessly where you left off. "
-                                "Execute whiteboard tool calls as needed and speak naturally to the student."
-                            )
+                        await self._session.send_client_content(
+                            turns=[
+                                genai_types.Content(
+                                    role="user",
+                                    parts=[
+                                        genai_types.Part.from_text(
+                                            text=(
+                                                f"Connection recovered. Please continue teaching {topic} on the blackboard seamlessly where you left off. "
+                                                "Execute whiteboard tool calls as needed and speak naturally to the student."
+                                            )
+                                        )
+                                    ],
+                                )
+                            ],
+                            turn_complete=True,
                         )
                 except Exception as prompt_err:
                     logger.warning(
@@ -295,9 +304,17 @@ class GeminiLiveAgent:
             try:
                 greeting_text = build_initial_greeting_prompt(self.curriculum_data)
                 if self._session:
-                    await self._session.send_realtime_input(text=greeting_text)
+                    await self._session.send_client_content(
+                        turns=[
+                            genai_types.Content(
+                                role="user",
+                                parts=[genai_types.Part.from_text(text=greeting_text)],
+                            )
+                        ],
+                        turn_complete=True,
+                    )
                     logger.info(
-                        f"[GeminiLiveAgent:{self.session_id}] Dispatched curriculum greeting prompt to live session."
+                        f"[GeminiLiveAgent:{self.session_id}] Dispatched curriculum greeting prompt to live session via send_client_content."
                     )
             except Exception as greet_err:
                 logger.warning(
@@ -527,7 +544,15 @@ class GeminiLiveAgent:
 
         if self.is_active and self._session:
             try:
-                await self._session.send_realtime_input(text=text)
+                await self._session.send_client_content(
+                    turns=[
+                        genai_types.Content(
+                            role="user",
+                            parts=[genai_types.Part.from_text(text=text)],
+                        )
+                    ],
+                    turn_complete=True,
+                )
                 return
             except Exception as err:
                 logger.error(
@@ -567,9 +592,17 @@ class GeminiLiveAgent:
                 f"Please clear the board, announce today's topic, and draw the opening concepts for {first_mod} on the blackboard now."
             )
             try:
-                await self._session.send_realtime_input(text=prompt_update)
+                await self._session.send_client_content(
+                    turns=[
+                        genai_types.Content(
+                            role="user",
+                            parts=[genai_types.Part.from_text(text=prompt_update)],
+                        )
+                    ],
+                    turn_complete=True,
+                )
                 logger.info(
-                    f"[GeminiLiveAgent:{self.session_id}] Dispatched curriculum update prompt to live session."
+                    f"[GeminiLiveAgent:{self.session_id}] Dispatched curriculum update prompt to live session via send_client_content."
                 )
             except Exception as err:
                 logger.warning(
