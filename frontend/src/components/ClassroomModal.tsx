@@ -19,7 +19,7 @@ export const ClassroomModal: React.FC<ClassroomModalProps> = ({
 
   if (!isOpen) return null;
 
-  const shareUrl = `https://rabbly.ai/classroom/${roomCode}`;
+  const shareUrl = `${window.location.origin}/classroom/${roomCode}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(shareUrl);

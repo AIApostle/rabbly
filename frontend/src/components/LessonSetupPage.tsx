@@ -38,7 +38,8 @@ interface LessonSetupPageProps {
     level: string,
     file?: File | null,
     resources?: ExternalResource[],
-    existingPlan?: LessonPlan | null
+    existingPlan?: LessonPlan | null,
+    specificRoomCode?: string
   ) => void;
   initialTopic?: string;
 }
@@ -718,10 +719,10 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
         {activeView === 'classrooms' && (
           <ClassroomHubPage
             onJoinRoom={(roomCode) => {
-              onStartLesson(`Classroom: ${roomCode}`, true, 'Intermediate', null, []);
+              onStartLesson(`Classroom: ${roomCode}`, true, 'Intermediate', null, [], null, roomCode);
             }}
-            onCreateRoom={(topic, resources, level) => {
-              onStartLesson(topic, true, level || 'Intermediate', null, resources || []);
+            onCreateRoom={(topic, resources, level, createdRoomCode) => {
+              onStartLesson(topic, true, level || 'Intermediate', null, resources || [], null, createdRoomCode);
             }}
             onBackToChat={() => navigateToView('chat')}
           />

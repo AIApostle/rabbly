@@ -241,7 +241,8 @@ export function App() {
     level?: string,
     _file?: File | null,
     resources?: ExternalResource[],
-    existingPlan?: LessonPlan | null
+    existingPlan?: LessonPlan | null,
+    specificRoomCode?: string
   ) => {
     const cleanTopic = topic.trim() || 'General Study';
     setCurrentTopicTitle(cleanTopic);
@@ -251,7 +252,7 @@ export function App() {
     setIsPlaying(false);
     setIncomingAction(null);
 
-    const effectiveRoomCode = existingPlan?.room_code || `RAB-${Math.floor(1000 + Math.random() * 9000)}`;
+    const effectiveRoomCode = specificRoomCode || existingPlan?.room_code || `RAB-${Math.floor(1000 + Math.random() * 9000)}`;
     setRoomCode(effectiveRoomCode);
 
     if (classroom) {

@@ -56,50 +56,8 @@ class ClassroomDetailsResponse(BaseModel):
     updated_at: str
 
 
-# Initial in-memory study rooms (fallback for local dev & testing)
-_memory_classrooms: Dict[str, dict] = {
-    "RAB-9412": {
-        "id": "room-1",
-        "room_code": "RAB-9412",
-        "topic": "Distributed Token Bucket Rate Limiting with Redis & Lua",
-        "level": "Advanced",
-        "subject": "System Architecture",
-        "status": "active",
-        "host_id": "user-alex",
-        "host_name": "Alex Rivera",
-        "participant_count": 3,
-        "participants": [
-            {"id": "p-1", "name": "Alex Rivera (Host)", "avatar": "🎓", "is_host": True},
-            {"id": "p-2", "name": "Maya Chen", "avatar": "👩🏻‍💻", "is_host": False},
-            {"id": "p-3", "name": "Jordan Patel", "avatar": "👨🏽‍🎓", "is_host": False},
-        ],
-        "has_external_resources": True,
-        "resources": [
-            {"id": "r-1", "type": "link", "title": "System Design Primer - Rate Limiter", "detail": "github.com"},
-        ],
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-    },
-    "RAB-3820": {
-        "id": "room-2",
-        "room_code": "RAB-3820",
-        "topic": "Quantum Superposition & Bell State Entanglement",
-        "level": "Beginner",
-        "subject": "Quantum Physics",
-        "status": "active",
-        "host_id": "user-elena",
-        "host_name": "Elena Rostova",
-        "participant_count": 2,
-        "participants": [
-            {"id": "p-4", "name": "Elena Rostova (Host)", "avatar": "⚛️", "is_host": True},
-            {"id": "p-5", "name": "Marcus Vance", "avatar": "👨🏼‍🔬", "is_host": False},
-        ],
-        "has_external_resources": False,
-        "resources": [],
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-    },
-}
+# In-memory study rooms cache for active session lifecycle
+_memory_classrooms: Dict[str, dict] = {}
 
 
 def _is_supabase_ready() -> bool:

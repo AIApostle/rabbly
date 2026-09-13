@@ -12,6 +12,10 @@ client = TestClient(app)
 
 def test_list_classrooms():
     """Verify GET /api/classrooms returns active study classrooms."""
+    client.post(
+        "/api/classrooms",
+        json={"topic": "Linear Algebra & Eigenvectors", "level": "Beginner"},
+    )
     response = client.get("/api/classrooms")
     assert response.status_code == 200
     data = response.json()
