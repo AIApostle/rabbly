@@ -26,8 +26,8 @@ export const AiTutorHud: React.FC<AiTutorHudProps> = ({
       case 'explaining':
         return {
           text: 'Teaching',
-          color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40',
-          dot: 'bg-indigo-400',
+          color: 'bg-blue-500/20 text-sky-300 border-blue-500/40',
+          dot: 'bg-sky-400',
         };
       case 'diagramming':
         return {
@@ -44,8 +44,8 @@ export const AiTutorHud: React.FC<AiTutorHudProps> = ({
       case 'thinking':
         return {
           text: 'Thinking...',
-          color: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
-          dot: 'bg-purple-400',
+          color: 'bg-blue-600/20 text-sky-200 border-blue-400/40',
+          dot: 'bg-sky-300',
         };
       default:
         return {
@@ -66,7 +66,7 @@ export const AiTutorHud: React.FC<AiTutorHudProps> = ({
           className="relative flex items-center justify-center cursor-help"
           title={speechText ? `Rabbly: ${speechText}` : 'Rabbly AI Tutor'}
         >
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-400 flex items-center justify-center text-base shadow-sm">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-sky-400 flex items-center justify-center text-base shadow-sm">
             🐰
           </div>
           <span className="absolute -bottom-0.5 -right-0.5 flex h-2 w-2">

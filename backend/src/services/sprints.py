@@ -56,6 +56,18 @@ def list_user_sprints(client: Client, user_id: str, limit: int = 20) -> List[Spr
     return [SprintResponse(**r) for r in records]
 
 
+def list_all_sprints(client: Client, limit: int = 20) -> List[SprintResponse]:
+    """Lists all learning sprints from the database ordered by creation date."""
+    records = select_all(
+        client,
+        SPRINTS_TABLE,
+        order_by="created_at",
+        desc=True,
+        limit=limit,
+    )
+    return [SprintResponse(**r) for r in records]
+
+
 def delete_sprint(client: Client, sprint_id: str) -> bool:
     """Deletes a sprint by ID."""
     return delete_record(client, SPRINTS_TABLE, "id", sprint_id)

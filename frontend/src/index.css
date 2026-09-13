@@ -29,9 +29,9 @@
   --md-secondary-container: #004a77;
   --md-on-secondary-container: #c2e7ff;
 
-  --md-tertiary: #d0bcff;
-  --md-tertiary-container: #4f378b;
-  --md-on-tertiary-container: #eaddff;
+  --md-tertiary: #7dd3fc;
+  --md-tertiary-container: #0369a1;
+  --md-on-tertiary-container: #e0f2fe;
 }
 
 html.light {
@@ -58,9 +58,9 @@ html.light {
   --md-secondary-container: #c2e7ff;
   --md-on-secondary-container: #001d32;
 
-  --md-tertiary: #4f378b;
-  --md-tertiary-container: #eaddff;
-  --md-on-tertiary-container: #21005d;
+  --md-tertiary: #0284c7;
+  --md-tertiary-container: #e0f2fe;
+  --md-on-tertiary-container: #082f49;
 }
 
 html.light body {

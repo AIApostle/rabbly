@@ -610,7 +610,7 @@ export function App() {
               }`}
               title={isPlaying ? '1-on-1 teaching session is active' : 'Teaching session is paused'}
             >
-              <Clock className={`w-3.5 h-3.5 ${isPlaying ? 'text-indigo-400' : 'text-amber-400'}`} />
+              <Clock className={`w-3.5 h-3.5 ${isPlaying ? 'text-sky-400' : 'text-amber-400'}`} />
               {!isPlaying && (
                 <span className="font-bold tracking-wider text-[10px] sm:text-[11px] text-amber-400">
                   PAUSED
@@ -635,13 +635,13 @@ export function App() {
           {isClassroomMode && (
             <button
               onClick={() => setIsClassroomModalOpen(true)}
-              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-750 border border-slate-700 text-xs font-mono text-indigo-300 transition-all cursor-pointer shrink-0"
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-750 border border-slate-700 text-xs font-mono text-sky-300 transition-all cursor-pointer shrink-0"
               title="Classroom invite code & participants"
             >
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
               <span className="hidden sm:inline">Room: {roomCode}</span>
               <span className="sm:hidden">{roomCode}</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-indigo-950 text-indigo-300 border border-indigo-800">
+              <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-950 text-sky-300 border border-blue-800">
                 {participants.length}
               </span>
             </button>
@@ -981,11 +981,11 @@ export function App() {
               <button
                 type="button"
                 onClick={handleInviteeLeaveWithSummary}
-                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-[#4f378b] to-[#6750a4] hover:from-[#5e42a6] hover:to-[#7965b2] text-white text-xs font-bold transition-all flex items-center justify-between cursor-pointer shadow-md shadow-[#4f378b]/30"
+                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white text-xs font-bold transition-all flex items-center justify-between cursor-pointer shadow-md shadow-blue-500/25"
               >
                 <div className="text-left">
                   <span className="block">Leave & View Study Summary</span>
-                  <span className="text-[10px] text-purple-200/80 font-normal">Review lecture notes, formulas, diagrams, and export PDF</span>
+                  <span className="text-[10px] text-sky-200/80 font-normal">Review lecture notes, formulas, diagrams, and export PDF</span>
                 </div>
                 <ArrowRight className="w-4 h-4 text-white shrink-0" />
               </button>

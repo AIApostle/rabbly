@@ -482,15 +482,15 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
             onClick={() => navigateToView('sprints')}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
               activeView === 'sprints'
-                ? 'bg-gradient-to-r from-amber-950/50 to-orange-950/50 text-amber-300 border border-amber-500/40 font-semibold shadow-sm'
+                ? 'bg-gradient-to-r from-blue-950/60 to-sky-950/40 text-sky-300 border border-blue-500/40 font-semibold shadow-sm'
                 : 'text-[#c4c6d0] hover:bg-[#212429] hover:text-white border border-transparent'
             }`}
           >
             <div className="flex items-center gap-3">
-              <Zap className="w-4 h-4 text-amber-400" />
+              <Zap className="w-4 h-4 text-sky-400" />
               <span>Sprints</span>
             </div>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono font-medium border border-amber-500/30">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-sky-300 font-mono font-medium border border-blue-500/30">
               Sprint
             </span>
           </button>
@@ -501,15 +501,15 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
             onClick={() => navigateToView('classrooms')}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
               activeView === 'classrooms'
-                ? 'bg-[#4f378b]/40 text-[#d0bcff] border border-[#d0bcff]/40 font-semibold shadow-sm'
+                ? 'bg-[#0842a0]/40 text-[#a8c7fa] border border-blue-500/40 font-semibold shadow-sm'
                 : 'text-[#c4c6d0] hover:bg-[#212429] hover:text-white border border-transparent'
             }`}
           >
             <div className="flex items-center gap-3">
-              <Users className="w-4 h-4 text-[#d0bcff]" />
+              <Users className="w-4 h-4 text-[#a8c7fa]" />
               <span>Classrooms</span>
             </div>
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#4f378b]/30 text-[#d0bcff] font-mono font-medium border border-[#d0bcff]/20">
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#0842a0]/30 text-[#a8c7fa] font-mono font-medium border border-blue-500/20">
               Rooms
             </span>
           </button>
@@ -539,15 +539,15 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
             onClick={() => navigateToView('library')}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
               activeView === 'library'
-                ? 'bg-gradient-to-r from-indigo-950/50 to-cyan-950/50 text-indigo-300 border border-indigo-500/40 font-semibold shadow-sm'
+                ? 'bg-gradient-to-r from-blue-950/60 to-sky-950/40 text-sky-300 border border-blue-500/40 font-semibold shadow-sm'
                 : 'text-[#c4c6d0] hover:bg-[#212429] hover:text-white border border-transparent'
             }`}
           >
             <div className="flex items-center gap-3">
-              <BookOpen className="w-4 h-4 text-indigo-400" />
+              <BookOpen className="w-4 h-4 text-sky-400" />
               <span>Curriculum Library</span>
             </div>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono font-medium border border-indigo-500/30">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-sky-300 font-mono font-medium border border-blue-500/30">
               Saved
             </span>
           </button>
@@ -1018,7 +1018,7 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
                     id="setup-enter-class-btn"
                     className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 rounded-full font-bold text-xs sm:text-sm transition-all duration-200 cursor-pointer shadow-md ${
                       isSubmitReady
-                        ? 'bg-gradient-to-r from-indigo-500 via-purple-600 to-emerald-400 text-white hover:scale-105 active:scale-95 shadow-indigo-500/30'
+                        ? 'bg-gradient-to-r from-blue-600 via-sky-500 to-emerald-400 text-white hover:scale-105 active:scale-95 shadow-blue-500/30'
                         : 'bg-[#282a2f] text-[#8e9099] cursor-not-allowed opacity-50'
                     }`}
                     title="Enter Class (Start analysis & lesson)"

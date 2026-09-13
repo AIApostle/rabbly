@@ -74,20 +74,20 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) =
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="w-full max-w-2xl rounded-3xl bg-[#14161a] border border-amber-500/40 shadow-2xl flex flex-col overflow-hidden relative">
+      <div className="w-full max-w-2xl rounded-3xl bg-[#14161a] border border-blue-500/40 shadow-2xl flex flex-col overflow-hidden relative">
         {/* Glow ambient background */}
-        <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-amber-500/10 via-purple-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-blue-500/15 via-sky-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
 
         {/* Modal Header */}
         <div className="p-6 border-b border-[#44474f]/30 flex items-center justify-between relative z-10 bg-[#191c20]/90">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center shadow-lg shadow-amber-500/30">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600 to-sky-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/30">
               <Crown className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-xl font-extrabold text-white font-['Outfit']">Rabbly Pro</h3>
-                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-mono font-bold">
+                <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-sky-300 border border-blue-500/40 text-[10px] font-mono font-bold">
                   UNLIMITED
                 </span>
               </div>
@@ -126,7 +126,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) =
                 onClick={() => setBillingCycle('annual')}
                 className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                   billingCycle === 'annual'
-                    ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
+                    ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-500/20'
                     : 'text-[#8e9099] hover:text-white'
                 }`}
               >
@@ -139,10 +139,10 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) =
           </div>
 
           {/* Pricing Highlight Card */}
-          <div className="p-5 rounded-3xl bg-gradient-to-b from-[#1d2024] to-[#17191e] border border-amber-500/40 space-y-3">
+          <div className="p-5 rounded-3xl bg-gradient-to-b from-[#1d2024] to-[#17191e] border border-blue-500/40 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-sky-400 font-bold">
                   All-Inclusive Plan
                 </span>
                 <div className="flex items-baseline gap-1 mt-0.5">
@@ -163,9 +163,9 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) =
                   type="button"
                   onClick={handleUpgrade}
                   disabled={isActivating}
-                  className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs shadow-lg shadow-amber-500/30 transition-all cursor-pointer flex items-center gap-2"
+                  className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-extrabold text-xs shadow-lg shadow-blue-500/30 transition-all cursor-pointer flex items-center gap-2"
                 >
-                  <Crown className="w-4 h-4 text-slate-950" />
+                  <Crown className="w-4 h-4 text-white" />
                   <span>{isActivating ? 'Upgrading...' : 'Activate Pro Now'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
@@ -191,7 +191,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) =
                     key={idx}
                     className="p-3.5 rounded-2xl bg-[#191c20] border border-[#44474f]/30 flex items-start gap-3.5"
                   >
-                    <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-sky-400 border border-blue-500/30 flex items-center justify-center shrink-0 mt-0.5">
                       <Icon className="w-4 h-4" />
                     </div>
                     <div>

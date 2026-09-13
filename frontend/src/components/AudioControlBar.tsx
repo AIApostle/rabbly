@@ -59,10 +59,10 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
     <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center">
       {/* Quick Questions Popup Menu */}
       {showQuestionsMenu && (
-        <div className="mb-3 w-[460px] max-w-[90vw] glass-dropdown rounded-2xl p-4 border border-indigo-500/30 shadow-2xl backdrop-blur-2xl bg-slate-900/95 animate-in fade-in slide-in-from-bottom-3 duration-200">
+        <div className="mb-3 w-[460px] max-w-[90vw] glass-dropdown rounded-2xl p-4 border border-blue-500/30 shadow-2xl backdrop-blur-2xl bg-slate-900/95 animate-in fade-in slide-in-from-bottom-3 duration-200">
           <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-800">
             <div className="flex items-center gap-2">
-              <HelpCircle className="w-4 h-4 text-indigo-400" />
+              <HelpCircle className="w-4 h-4 text-sky-400" />
               <span className="text-xs font-bold text-white uppercase tracking-wider">
                 Ask Rabbly a Question
               </span>
@@ -88,9 +88,9 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
                   onAskQuestion(q);
                   setShowQuestionsMenu(false);
                 }}
-                className="w-full text-left p-2 rounded-xl text-xs bg-slate-800/80 hover:bg-indigo-950/60 border border-slate-700/60 hover:border-indigo-500/40 text-slate-200 transition-all cursor-pointer flex items-start gap-2"
+                className="w-full text-left p-2 rounded-xl text-xs bg-slate-800/80 hover:bg-blue-950/60 border border-slate-700/60 hover:border-blue-500/40 text-slate-200 transition-all cursor-pointer flex items-start gap-2"
               >
-                <span className="text-indigo-400 font-bold">Q{idx + 1}:</span>
+                <span className="text-sky-400 font-bold">Q{idx + 1}:</span>
                 <span className="leading-snug">{q}</span>
               </button>
             ))}
@@ -103,11 +103,11 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
               placeholder="Ask anything about this concept..."
               value={customQuestion}
               onChange={(e) => setCustomQuestion(e.target.value)}
-              className="flex-1 bg-slate-800/90 border border-slate-700 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none"
+              className="flex-1 bg-slate-800/90 border border-slate-700 focus:border-blue-500 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none"
             />
             <button
               type="submit"
-              className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white transition-all cursor-pointer shadow-md"
+              className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white transition-all cursor-pointer shadow-md"
             >
               Ask
             </button>
@@ -170,11 +170,11 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
           onClick={() => setShowQuestionsMenu(!showQuestionsMenu)}
           className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
             showQuestionsMenu
-              ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30'
+              ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-600/30'
               : 'bg-slate-800/90 text-slate-200 border-slate-700 hover:bg-slate-750 hover:text-white'
           }`}
         >
-          <MessageSquarePlus className="w-3.5 h-3.5 text-indigo-400" />
+          <MessageSquarePlus className="w-3.5 h-3.5 text-sky-400" />
           <span>Ask Question</span>
         </button>
 
@@ -187,11 +187,11 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
             aria-label="Curriculum & Notes"
             className={`p-2.5 rounded-xl text-xs font-medium border transition-all cursor-pointer flex items-center justify-center ${
               isNotesOpen
-                ? 'bg-indigo-600/30 text-indigo-300 border-indigo-500/50'
+                ? 'bg-blue-600/30 text-sky-300 border-blue-500/50'
                 : 'bg-slate-800/90 text-slate-300 border-slate-700 hover:bg-slate-750 hover:text-white'
             }`}
           >
-            <BookOpen className="w-4 h-4 text-indigo-400" />
+            <BookOpen className="w-4 h-4 text-sky-400" />
           </button>
           <div className="absolute -top-9 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-md bg-slate-900 border border-slate-700 text-[11px] text-slate-200 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg font-medium">
             Curriculum & Notes
@@ -225,11 +225,11 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
               <button
                 onClick={onOpenClassroom}
                 aria-label="Classroom Members & Invite"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-gradient-to-r from-indigo-600/30 to-purple-600/30 hover:from-indigo-600/50 hover:to-purple-600/50 text-indigo-200 border border-indigo-500/40 hover:border-indigo-400 transition-all cursor-pointer shadow-sm"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-gradient-to-r from-blue-600/30 to-sky-600/30 hover:from-blue-600/50 hover:to-sky-600/50 text-sky-200 border border-blue-500/40 hover:border-blue-400 transition-all cursor-pointer shadow-sm"
               >
-                <Share2 className="w-3.5 h-3.5 text-indigo-300" />
+                <Share2 className="w-3.5 h-3.5 text-sky-300" />
                 <span>Classroom</span>
-                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-indigo-500/40 text-[10px] text-white font-bold">
+                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-blue-500/40 text-[10px] text-white font-bold">
                   {participantCount}
                 </span>
               </button>

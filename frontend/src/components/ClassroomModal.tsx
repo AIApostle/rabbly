@@ -33,7 +33,7 @@ export const ClassroomModal: React.FC<ClassroomModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-sky-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
               <Users className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -55,7 +55,7 @@ export const ClassroomModal: React.FC<ClassroomModalProps> = ({
           <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/70">
             <div>
               <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Room Code</span>
-              <p className="text-lg font-mono font-extrabold text-indigo-300 tracking-widest">{roomCode}</p>
+              <p className="text-lg font-mono font-extrabold text-sky-300 tracking-widest">{roomCode}</p>
             </div>
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
               <ShieldCheck className="w-3.5 h-3.5" />
@@ -78,7 +78,7 @@ export const ClassroomModal: React.FC<ClassroomModalProps> = ({
             </div>
             <button
               onClick={handleCopy}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-xs text-white transition-all shadow-md shadow-indigo-600/30 cursor-pointer active:scale-95"
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 font-semibold text-xs text-white transition-all shadow-md shadow-blue-600/30 cursor-pointer active:scale-95"
             >
               {copied ? (
                 <>
@@ -96,7 +96,7 @@ export const ClassroomModal: React.FC<ClassroomModalProps> = ({
         </div>
 
         {/* Information box */}
-        <div className="p-3.5 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 text-xs text-indigo-200 leading-relaxed">
+        <div className="p-3.5 rounded-2xl bg-blue-950/40 border border-blue-500/30 text-xs text-blue-200 leading-relaxed">
           💡 <strong className="text-white">How it works:</strong> Everyone in this study room sees the teacher's whiteboard illustrations update live and hears the lecture together. Your mic is muted by default so you can listen comfortably.
         </div>
 
@@ -122,7 +122,7 @@ export const ClassroomModal: React.FC<ClassroomModalProps> = ({
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs font-semibold text-white">{p.name}</span>
                       {p.isHost && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/30 text-indigo-300 border border-indigo-500/40">
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/30 text-sky-300 border border-blue-500/40">
                           HOST
                         </span>
                       )}

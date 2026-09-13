@@ -146,11 +146,14 @@ export async function createSprint(sprint: Partial<LearningSprint>): Promise<Lea
     });
     if (res.ok) {
       const created: BackendSprintPayload = await res.json();
-      return mapBackendToSprint(created);
+      const mapped = mapBackendToSprint(created);
+      saveLocalSprints([mapped, ...current.filter((s) => s.id !== mapped.id)]);
+      return mapped;
     }
   } catch {
     // Queued locally
   }
+  saveLocalSprints([localItem, ...current.filter((s) => s.id !== localItem.id)]);
   return localItem;
 }
 

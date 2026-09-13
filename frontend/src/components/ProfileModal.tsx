@@ -21,7 +21,7 @@ interface ProfileModalProps {
 
 const PRESET_AVATARS = [
   { id: 'robot', label: 'AI Researcher', emoji: '🤖', bg: 'from-blue-600 to-cyan-500' },
-  { id: 'rocket', label: 'Astro Pioneer', emoji: '🚀', bg: 'from-purple-600 to-indigo-500' },
+  { id: 'rocket', label: 'Astro Pioneer', emoji: '🚀', bg: 'from-blue-600 to-sky-500' },
   { id: 'atom', label: 'Quantum Physicist', emoji: '⚛️', bg: 'from-emerald-600 to-teal-500' },
   { id: 'brain', label: 'Neuro Sage', emoji: '🧠', bg: 'from-pink-600 to-rose-500' },
   { id: 'bolt', label: 'Cyber Architect', emoji: '⚡', bg: 'from-amber-600 to-orange-500' },
@@ -301,15 +301,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             </div>
             <div className="p-3 rounded-2xl bg-[#1d2024] border border-[#44474f]/30 text-center">
               <div className="text-[10px] text-[#8e9099] font-mono uppercase">Study Streak</div>
-              <div className="text-base sm:text-lg font-bold text-amber-400 font-['Outfit'] mt-0.5">5 Days</div>
+              <div className="text-base sm:text-lg font-bold text-sky-400 font-['Outfit'] mt-0.5">5 Days</div>
             </div>
           </div>
 
           {/* Pro Upgrade Banner if not Pro */}
           {!user?.isPro && onOpenUpgrade && (
-            <div className="p-4 rounded-3xl bg-gradient-to-r from-amber-950/40 via-purple-950/30 to-blue-950/40 border border-amber-500/40 flex items-center justify-between gap-4">
+            <div className="p-4 rounded-3xl bg-gradient-to-r from-blue-950/60 via-blue-900/30 to-sky-950/40 border border-blue-500/40 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-blue-500/20 text-sky-400 border border-blue-500/30 flex items-center justify-center shrink-0">
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
@@ -324,7 +324,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   onClose();
                   onOpenUpgrade();
                 }}
-                className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shrink-0 flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-amber-500/20"
+                className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shrink-0 flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-blue-500/25"
               >
                 <span>Upgrade</span>
                 <ArrowRight className="w-3.5 h-3.5" />

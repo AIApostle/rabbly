@@ -17,95 +17,28 @@ from src.services.sprints import (
     create_sprint,
     delete_sprint,
     get_sprint_by_id,
+    list_all_sprints,
     list_user_sprints,
     update_sprint,
 )
-from src.auth.client import get_supabase_client
+from src.auth.client import get_supabase_admin_client, get_supabase_client
 
 sprints_router = APIRouter(prefix="/sprints", tags=["Sprints Page"])
 
-# Initial in-memory sprints store (fallback for offline/development mode)
-_memory_sprints: Dict[str, dict] = {
-    "sprint-1": {
-        "id": "sprint-1",
-        "user_id": None,
-        "title": "Master Multivariable Calculus & Vector Fields in 3 Days",
-        "subject": "Mathematics & Calculus",
-        "timeframe": "3-Day Sprint",
-        "days_remaining": 1,
-        "total_days": 3,
-        "progress_percent": 66,
-        "milestones": [
-            {"id": "m1", "title": "1. Partial Derivatives & Gradient Direction Vectors", "status": "completed"},
-            {"id": "m2", "title": "2. Double & Triple Integrals over Bounded Regions", "status": "completed"},
-            {"id": "m3", "title": "3. Green's Theorem & Line Integrals in Vector Fields", "status": "in-progress"},
-            {"id": "m4", "title": "4. Divergence, Curl & Stokes' Theorem Final Review", "status": "upcoming"},
-        ],
-        "resources": [
-            {"id": "r1", "type": "file", "title": "Stewart_Calculus_Chapter14.pdf", "detail": "2.4 MB"},
-            {"id": "r2", "type": "youtube", "title": "3Blue1Brown - Essence of Calculus", "detail": "YouTube Video"},
-        ],
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-    },
-    "sprint-2": {
-        "id": "sprint-2",
-        "user_id": None,
-        "title": "Build a Production Transformer from Scratch in PyTorch",
-        "subject": "Deep Learning & LLMs",
-        "timeframe": "5-Day Sprint",
-        "days_remaining": 3,
-        "total_days": 5,
-        "progress_percent": 40,
-        "milestones": [
-            {"id": "m1", "title": "1. Query, Key, Value Dot-Product Math & Softmax Scaling", "status": "completed"},
-            {"id": "m2", "title": "2. Multi-Head Projection & Residual Connection Layers", "status": "completed"},
-            {"id": "m3", "title": "3. Sinusoidal & Rotary Positional Embeddings (RoPE)", "status": "in-progress"},
-            {"id": "m4", "title": "4. Causal Attention Masking & Cross-Entropy Optimization", "status": "upcoming"},
-            {"id": "m5", "title": "5. Inference Generation, Top-K & Temperature Sampling", "status": "upcoming"},
-        ],
-        "resources": [
-            {"id": "r3", "type": "file", "title": "Attention_Is_All_You_Need.pdf", "detail": "1.8 MB"},
-            {"id": "r4", "type": "link", "title": "NanoGPT Architecture Reference", "detail": "github.com"},
-        ],
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-    },
-    "sprint-3": {
-        "id": "sprint-3",
-        "user_id": None,
-        "title": "Distributed Systems & High-Throughput Rate Limiting",
-        "subject": "System Design",
-        "timeframe": "1-Week Sprint",
-        "days_remaining": 4,
-        "total_days": 7,
-        "progress_percent": 50,
-        "milestones": [
-            {"id": "m1", "title": "1. Token Bucket vs Leaky Bucket vs Sliding Window", "status": "completed"},
-            {"id": "m2", "title": "2. Atomic Redis Execution with Lua Scripting", "status": "completed"},
-            {"id": "m3", "title": "3. Distributed Caching & Cluster Sharding Strategies", "status": "in-progress"},
-            {"id": "m4", "title": "4. Handling Hot-Key Cascades & Graceful Degradation", "status": "upcoming"},
-        ],
-        "resources": [
-            {"id": "r5", "type": "file", "title": "Designing_Data_Intensive_Applications.pdf", "detail": "5.1 MB"},
-            {"id": "r6", "type": "youtube", "title": "Distributed Systems Lecture Series", "detail": "YouTube Tutorial"},
-        ],
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-    },
-}
+# In-memory store fallback strictly for offline/local testing (no hardcoded mock entries)
+_memory_sprints: Dict[str, dict] = {}
 
 
 def _is_supabase_ready() -> bool:
     """Checks if Supabase credentials are configured."""
-    return bool(os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_ANON_KEY"))
+    return bool(os.getenv("SUPABASE_URL") and (os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_ANON_KEY")))
 
 
 @sprints_router.get(
     "",
     response_model=List[SprintResponse],
     summary="List learning sprints",
-    description="Retrieves learning sprints. When authenticated, filters sprints for the active student.",
+    description="Retrieves learning sprints from Supabase database. Filters by student when authenticated.",
 )
 async def list_sprints(
     limit: int = Query(20, ge=1, le=100, description="Max sprints to return"),
@@ -114,19 +47,18 @@ async def list_sprints(
     """Returns sprints from Supabase or local memory store."""
     if _is_supabase_ready():
         try:
-            client = get_supabase_client()
+            client = get_supabase_admin_client()
             if user and user.id:
-                user_sprints = list_user_sprints(client, user.id, limit=limit)
-                if user_sprints:
-                    return user_sprints
-        except Exception:
+                return list_user_sprints(client, user.id, limit=limit)
+            else:
+                return list_all_sprints(client, limit=limit)
+        except Exception as err:
             pass
 
     sprints = list(_memory_sprints.values())
     if user and user.id:
         scoped = [s for s in sprints if s.get("user_id") == user.id]
-        if scoped:
-            return [SprintResponse(**s) for s in scoped[:limit]]
+        return [SprintResponse(**s) for s in scoped[:limit]]
 
     return [SprintResponse(**s) for s in sprints[:limit]]
 
@@ -156,7 +88,7 @@ async def create_new_sprint(
 
     if _is_supabase_ready():
         try:
-            client = get_supabase_client()
+            client = get_supabase_admin_client()
             return create_sprint(client, full_payload)
         except Exception:
             pass
@@ -190,7 +122,7 @@ async def get_sprint(sprint_id: str):
     """Retrieves sprint by ID."""
     if _is_supabase_ready():
         try:
-            client = get_supabase_client()
+            client = get_supabase_admin_client()
             found = get_sprint_by_id(client, sprint_id)
             if found:
                 return found
@@ -216,7 +148,7 @@ async def update_sprint_details(sprint_id: str, payload: SprintUpdate):
     """Updates sprint progress or milestone checklist."""
     if _is_supabase_ready():
         try:
-            client = get_supabase_client()
+            client = get_supabase_admin_client()
             updated = update_sprint(client, sprint_id, payload)
             if updated:
                 return updated
@@ -256,7 +188,7 @@ async def delete_sprint_record(sprint_id: str):
     deleted = False
     if _is_supabase_ready():
         try:
-            client = get_supabase_client()
+            client = get_supabase_admin_client()
             deleted = delete_sprint(client, sprint_id)
         except Exception:
             pass

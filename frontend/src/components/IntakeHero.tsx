@@ -84,20 +84,20 @@ export const IntakeHero: React.FC<IntakeHeroProps> = ({ onStartLesson }) => {
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden bg-[#0b0f19]">
       {/* Background glowing gradients */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[680px] h-[680px] bg-indigo-600/15 rounded-full blur-[140px] pointer-events-none -z-10"></div>
-      <div className="absolute top-1/3 left-1/4 w-[420px] h-[420px] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none -z-10"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-purple-600/15 rounded-full blur-[130px] pointer-events-none -z-10"></div>
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[680px] h-[680px] bg-blue-600/15 rounded-full blur-[140px] pointer-events-none -z-10"></div>
+      <div className="absolute top-1/3 left-1/4 w-[420px] h-[420px] bg-sky-500/10 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[130px] pointer-events-none -z-10"></div>
 
       {/* Nav Brand Header */}
       <div className="w-full max-w-5xl flex items-center justify-between mb-12">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center text-xl shadow-lg shadow-indigo-500/30">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-sky-500 flex items-center justify-center text-xl shadow-lg shadow-blue-500/30">
             🐰
           </div>
           <div>
             <h1 className="text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
               Rabbly
-              <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-blue-500/20 text-sky-300 border border-blue-500/30">
                 Agentic Tutor
               </span>
             </h1>
@@ -115,13 +115,13 @@ export const IntakeHero: React.FC<IntakeHeroProps> = ({ onStartLesson }) => {
 
       {/* Hero Headline */}
       <div className="text-center max-w-3xl mb-8 space-y-4">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-semibold mb-2">
-          <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-sky-300 text-xs font-semibold mb-2">
+          <Sparkles className="w-3.5 h-3.5 text-sky-400" />
           <span>Interactive Blackboard Teaching Experience</span>
         </div>
         <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
           Learn anything with an AI tutor that{' '}
-          <span className="bg-gradient-to-r from-indigo-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-blue-400 via-sky-400 to-emerald-400 bg-clip-text text-transparent">
             talks & draws live
           </span>
           .
@@ -145,12 +145,12 @@ export const IntakeHero: React.FC<IntakeHeroProps> = ({ onStartLesson }) => {
                 value={topicPrompt}
                 onChange={(e) => setTopicPrompt(e.target.value)}
                 placeholder="e.g., Explain Transformer Attention mechanisms from scratch..."
-                className="w-full bg-slate-800/90 border border-slate-700 focus:border-indigo-500 rounded-2xl px-5 py-4 text-base text-white placeholder-slate-500 shadow-inner focus:outline-none transition-all pr-12"
+                className="w-full bg-slate-800/90 border border-slate-700 focus:border-blue-500 rounded-2xl px-5 py-4 text-base text-white placeholder-slate-500 shadow-inner focus:outline-none transition-all pr-12"
               />
               <button
                 type="submit"
                 disabled={!topicPrompt.trim()}
-                className="absolute right-2.5 top-2.5 bottom-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-bold flex items-center justify-center transition-all disabled:opacity-40 disabled:pointer-events-none cursor-pointer shadow-lg shadow-indigo-600/30 active:scale-95"
+                className="absolute right-2.5 top-2.5 bottom-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-bold flex items-center justify-center transition-all disabled:opacity-40 disabled:pointer-events-none cursor-pointer shadow-lg shadow-blue-600/30 active:scale-95"
               >
                 <ArrowRight className="w-5 h-5" />
               </button>
@@ -170,10 +170,10 @@ export const IntakeHero: React.FC<IntakeHeroProps> = ({ onStartLesson }) => {
                   onClick={() => {
                     setTopicPrompt(preset.title);
                   }}
-                  className="p-3 rounded-xl bg-slate-800/60 hover:bg-indigo-950/40 border border-slate-700/60 hover:border-indigo-500/50 text-left transition-all cursor-pointer group"
+                  className="p-3 rounded-xl bg-slate-800/60 hover:bg-blue-950/40 border border-slate-700/60 hover:border-blue-500/50 text-left transition-all cursor-pointer group"
                 >
                   <div className="text-lg mb-1">{preset.icon}</div>
-                  <div className="text-xs font-bold text-slate-200 group-hover:text-indigo-300 transition-colors line-clamp-1">
+                  <div className="text-xs font-bold text-slate-200 group-hover:text-sky-300 transition-colors line-clamp-1">
                     {preset.title}
                   </div>
                   <div className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">
@@ -196,7 +196,7 @@ export const IntakeHero: React.FC<IntakeHeroProps> = ({ onStartLesson }) => {
               onClick={() => fileInputRef.current?.click()}
               className={`p-4 rounded-2xl border-2 border-dashed transition-all cursor-pointer text-center ${
                 isDragging
-                  ? 'border-indigo-400 bg-indigo-950/30'
+                  ? 'border-blue-400 bg-blue-950/30'
                   : uploadedFile
                   ? 'border-emerald-500/50 bg-emerald-950/20'
                   : 'border-slate-700 hover:border-slate-600 bg-slate-800/40 hover:bg-slate-800/60'
@@ -234,9 +234,9 @@ export const IntakeHero: React.FC<IntakeHeroProps> = ({ onStartLesson }) => {
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-1.5 py-2">
-                  <UploadCloud className="w-7 h-7 text-indigo-400" />
+                  <UploadCloud className="w-7 h-7 text-sky-400" />
                   <p className="text-xs text-slate-200 font-medium">
-                    Drag and drop your PDF or syllabus here, or <span className="text-indigo-400 underline">browse</span>
+                    Drag and drop your PDF or syllabus here, or <span className="text-sky-400 underline">browse</span>
                   </p>
                   <p className="text-[10px] text-slate-500">Supports PDF, Markdown, Text files</p>
                 </div>
@@ -252,7 +252,7 @@ export const IntakeHero: React.FC<IntakeHeroProps> = ({ onStartLesson }) => {
                 onClick={() => setIsClassroom(false)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                   !isClassroom
-                    ? 'bg-indigo-600 text-white shadow-md'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
                     : 'bg-slate-800 text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -264,7 +264,7 @@ export const IntakeHero: React.FC<IntakeHeroProps> = ({ onStartLesson }) => {
                 onClick={() => setIsClassroom(true)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                   isClassroom
-                    ? 'bg-indigo-600 text-white shadow-md'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
                     : 'bg-slate-800 text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -283,7 +283,7 @@ export const IntakeHero: React.FC<IntakeHeroProps> = ({ onStartLesson }) => {
       {/* Feature Highlights Footer */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mt-12 w-full">
         <div className="flex items-start gap-3 p-4 rounded-2xl bg-slate-900/50 border border-slate-800">
-          <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
+          <div className="p-2 rounded-xl bg-blue-500/20 text-sky-400">
             <Mic className="w-4 h-4" />
           </div>
           <div>
@@ -295,7 +295,7 @@ export const IntakeHero: React.FC<IntakeHeroProps> = ({ onStartLesson }) => {
         </div>
 
         <div className="flex items-start gap-3 p-4 rounded-2xl bg-slate-900/50 border border-slate-800">
-          <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400">
+          <div className="p-2 rounded-xl bg-sky-500/20 text-sky-400">
             <Layout className="w-4 h-4" />
           </div>
           <div>
@@ -307,7 +307,7 @@ export const IntakeHero: React.FC<IntakeHeroProps> = ({ onStartLesson }) => {
         </div>
 
         <div className="flex items-start gap-3 p-4 rounded-2xl bg-slate-900/50 border border-slate-800">
-          <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400">
+          <div className="p-2 rounded-xl bg-blue-500/20 text-sky-400">
             <Users className="w-4 h-4" />
           </div>
           <div>

@@ -100,7 +100,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center text-lg shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-sky-500 flex items-center justify-center text-lg shadow-sm">
               📚
             </div>
             <div>
@@ -120,7 +120,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1d2024] hover:bg-[#282a2f] border border-[#44474f]/40 text-xs text-[#c4c6d0] hover:text-white transition-all cursor-pointer font-medium"
           title="Refresh Library"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-indigo-400' : ''}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-sky-400' : ''}`} />
           <span className="hidden sm:inline">Sync Library</span>
         </button>
       </header>
@@ -130,7 +130,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
         {/* KPI Stats Banner */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="p-4 rounded-2xl bg-[#1d2024] border border-[#44474f]/40 flex items-center gap-3.5">
-            <div className="p-2.5 rounded-xl bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+            <div className="p-2.5 rounded-xl bg-blue-500/15 text-sky-300 border border-blue-500/30">
               <LibraryIcon className="w-5 h-5" />
             </div>
             <div>
@@ -158,7 +158,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
           </div>
 
           <div className="p-4 rounded-2xl bg-[#1d2024] border border-[#44474f]/40 flex items-center gap-3.5">
-            <div className="p-2.5 rounded-xl bg-purple-500/15 text-purple-300 border border-purple-500/30">
+            <div className="p-2.5 rounded-xl bg-sky-500/15 text-sky-300 border border-sky-500/30">
               <FileText className="w-5 h-5" />
             </div>
             <div>
@@ -195,7 +195,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by topic, keyword, or formulas..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#1d2024] border border-[#44474f]/40 text-xs text-white placeholder-[#8e9099] focus:outline-none focus:border-indigo-500/80 transition-colors"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#1d2024] border border-[#44474f]/40 text-xs text-white placeholder-[#8e9099] focus:outline-none focus:border-blue-500/80 transition-colors"
             />
             {searchQuery && (
               <button
@@ -216,7 +216,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                   onClick={() => setSelectedLevel(lvl)}
                   className={`px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                     selectedLevel === lvl
-                      ? 'bg-indigo-600 text-white shadow-sm'
+                      ? 'bg-blue-600 text-white shadow-sm'
                       : 'text-[#c4c6d0] hover:text-white'
                   }`}
                 >
@@ -230,7 +230,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
               <select
                 value={selectedSubject}
                 onChange={(e) => setSelectedSubject(e.target.value)}
-                className="px-3 py-2 rounded-xl bg-[#1d2024] border border-[#44474f]/40 text-xs text-[#c4c6d0] focus:outline-none focus:border-indigo-500 cursor-pointer"
+                className="px-3 py-2 rounded-xl bg-[#1d2024] border border-[#44474f]/40 text-xs text-[#c4c6d0] focus:outline-none focus:border-blue-500 cursor-pointer"
               >
                 {subjects.map((sub) => (
                   <option key={sub} value={sub}>
@@ -246,13 +246,13 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
         {isLoading ? (
           <div className="py-20 flex flex-col items-center justify-center gap-3 text-[#8e9099]">
             <div className="w-10 h-10 rounded-2xl bg-[#1d2024] border border-[#44474f]/40 flex items-center justify-center animate-spin">
-              <RefreshCw className="w-5 h-5 text-indigo-400" />
+              <RefreshCw className="w-5 h-5 text-sky-400" />
             </div>
             <span className="text-xs font-mono">Loading saved library from Supabase...</span>
           </div>
         ) : filteredCurricula.length === 0 ? (
           <div className="p-12 text-center rounded-3xl bg-[#1d2024]/60 border border-[#44474f]/30 space-y-4">
-            <div className="w-14 h-14 mx-auto rounded-3xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 flex items-center justify-center text-2xl">
+            <div className="w-14 h-14 mx-auto rounded-3xl bg-blue-500/10 border border-blue-500/20 text-sky-300 flex items-center justify-center text-2xl">
               📖
             </div>
             <div className="space-y-1">
@@ -267,7 +267,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
             </div>
             <button
               onClick={onBackToChat}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-500 text-white text-xs font-bold shadow-lg shadow-indigo-500/20 hover:scale-105 transition-all cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 text-white text-xs font-bold shadow-lg shadow-blue-500/20 hover:scale-105 transition-all cursor-pointer"
             >
               Start a New Lesson
             </button>
@@ -277,25 +277,25 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
             {filteredCurricula.map((plan) => (
               <div
                 key={plan.id}
-                className="p-5 rounded-2xl bg-[#1d2024] border border-[#44474f]/40 hover:border-indigo-500/50 transition-all flex flex-col justify-between group shadow-sm hover:shadow-xl hover:shadow-indigo-500/5"
+                className="p-5 rounded-2xl bg-[#1d2024] border border-[#44474f]/40 hover:border-blue-500/50 transition-all flex flex-col justify-between group shadow-sm hover:shadow-xl hover:shadow-blue-500/5"
               >
                 <div className="space-y-3">
                   {/* Card Header Badges */}
                   <div className="flex items-center justify-between gap-2">
-                    <span className="px-2.5 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800/60 font-mono text-[10px] font-bold uppercase tracking-wider">
+                    <span className="px-2.5 py-0.5 rounded-full bg-blue-950 text-sky-300 border border-blue-800/60 font-mono text-[10px] font-bold uppercase tracking-wider">
                       {plan.subject || 'General Study'}
                     </span>
                     <div className="flex items-center gap-1.5 text-[11px] text-[#8e9099] font-mono">
                       <Clock className="w-3 h-3 text-slate-500" />
                       <span>{plan.estimatedMinutes}m</span>
                       <span>•</span>
-                      <span className="text-indigo-300">{plan.level}</span>
+                      <span className="text-sky-300">{plan.level}</span>
                     </div>
                   </div>
 
                   {/* Title & Overview */}
                   <div>
-                    <h3 className="text-sm font-bold text-white font-['Outfit'] line-clamp-1 group-hover:text-indigo-300 transition-colors">
+                    <h3 className="text-sm font-bold text-white font-['Outfit'] line-clamp-1 group-hover:text-sky-300 transition-colors">
                       {plan.topic}
                     </h3>
                     <p className="text-xs text-[#c4c6d0] mt-1 line-clamp-2 leading-relaxed">
@@ -306,11 +306,11 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                   {/* Breakdown Badges */}
                   <div className="flex items-center gap-3 pt-2 text-[11px] text-[#8e9099] border-t border-[#44474f]/25">
                     <span className="flex items-center gap-1">
-                      <Layers className="w-3 h-3 text-indigo-400" />
+                      <Layers className="w-3 h-3 text-sky-400" />
                       <span>{plan.modules?.length || 0} Modules</span>
                     </span>
                     <span className="flex items-center gap-1">
-                      <FileText className="w-3 h-3 text-purple-400" />
+                      <FileText className="w-3 h-3 text-sky-400" />
                       <span>{plan.lectureNotes?.length || 0} Notes</span>
                     </span>
                     {plan.sourceMaterials && plan.sourceMaterials.length > 0 && (
@@ -331,13 +331,13 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                     }}
                     className="flex-1 py-2 px-3 rounded-xl bg-[#282a2f] hover:bg-[#31343a] text-xs font-semibold text-[#c4c6d0] hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                   >
-                    <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+                    <BookOpen className="w-3.5 h-3.5 text-sky-400" />
                     <span>View Notes</span>
                   </button>
 
                   <button
                     onClick={() => onStudyLesson(plan)}
-                    className="py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20"
+                    className="py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-md shadow-blue-600/20"
                     title="Open in Clean Whiteboard"
                   >
                     <span>Study</span>
@@ -357,8 +357,8 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
             {/* Modal Header */}
             <div className="p-5 border-b border-[#44474f]/40 flex items-start justify-between bg-[#191c20]">
               <div className="space-y-1 max-w-[85%]">
-                <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-indigo-300">
-                  <span className="px-2 py-0.5 rounded-full bg-indigo-950 border border-indigo-800">
+                <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-sky-300">
+                  <span className="px-2 py-0.5 rounded-full bg-blue-950 border border-blue-800">
                     {selectedPlan.subject}
                   </span>
                   <span>•</span>
@@ -388,7 +388,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                 onClick={() => setActiveDetailTab('modules')}
                 className={`pb-2.5 transition-all cursor-pointer border-b-2 flex items-center gap-1.5 ${
                   activeDetailTab === 'modules'
-                    ? 'border-indigo-500 text-indigo-300'
+                    ? 'border-blue-500 text-sky-300'
                     : 'border-transparent text-[#8e9099] hover:text-[#c4c6d0]'
                 }`}
               >
@@ -400,7 +400,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                 onClick={() => setActiveDetailTab('notes')}
                 className={`pb-2.5 transition-all cursor-pointer border-b-2 flex items-center gap-1.5 ${
                   activeDetailTab === 'notes'
-                    ? 'border-indigo-500 text-indigo-300'
+                    ? 'border-blue-500 text-sky-300'
                     : 'border-transparent text-[#8e9099] hover:text-[#c4c6d0]'
                 }`}
               >
@@ -412,7 +412,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                 onClick={() => setActiveDetailTab('sources')}
                 className={`pb-2.5 transition-all cursor-pointer border-b-2 flex items-center gap-1.5 ${
                   activeDetailTab === 'sources'
-                    ? 'border-indigo-500 text-indigo-300'
+                    ? 'border-blue-500 text-sky-300'
                     : 'border-transparent text-[#8e9099] hover:text-[#c4c6d0]'
                 }`}
               >
@@ -449,7 +449,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                         <div className="ml-6 space-y-1 pt-1 border-t border-[#44474f]/25">
                           {mod.keyTakeaways.map((takeaway, tIdx) => (
                             <div key={tIdx} className="flex items-start gap-1.5 text-[11px] text-slate-300">
-                              <ChevronRight className="w-3 h-3 text-indigo-400 shrink-0 mt-0.5" />
+                              <ChevronRight className="w-3 h-3 text-sky-400 shrink-0 mt-0.5" />
                               <span>{takeaway}</span>
                             </div>
                           ))}
@@ -463,8 +463,8 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
               {/* 2. Notes Tab */}
               {activeDetailTab === 'notes' && (
                 <div className="space-y-3">
-                  <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs flex items-center gap-2">
-                    <Lightbulb className="w-4 h-4 text-indigo-400 shrink-0" />
+                  <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sky-300 text-xs flex items-center gap-2">
+                    <Lightbulb className="w-4 h-4 text-sky-400 shrink-0" />
                     <span>Key mathematical definitions, architecture notes, and foundational invariants.</span>
                   </div>
 
@@ -473,7 +473,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                       key={nIdx}
                       className="p-3.5 rounded-2xl bg-[#1d2024] border border-[#44474f]/40 text-xs text-[#e2e2e9] leading-relaxed font-mono whitespace-pre-wrap"
                     >
-                      <span className="text-indigo-400 font-bold block mb-1">
+                      <span className="text-sky-400 font-bold block mb-1">
                         Key Note #{nIdx + 1}
                       </span>
                       {note}
@@ -500,7 +500,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                               href={source.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-mono hover:underline"
+                              className="text-xs text-sky-400 hover:text-sky-300 flex items-center gap-1 font-mono hover:underline"
                             >
                               <span>View Reference</span>
                               <ExternalLink className="w-3 h-3" />
@@ -545,7 +545,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                   onStudyLesson(selectedPlan);
                   setSelectedPlan(null);
                 }}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white text-xs font-bold transition-all cursor-pointer shadow-lg shadow-indigo-600/30 flex items-center gap-2"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white text-xs font-bold transition-all cursor-pointer shadow-lg shadow-blue-600/30 flex items-center gap-2"
               >
                 <span>Study in Whiteboard</span>
                 <ArrowRight className="w-3.5 h-3.5" />

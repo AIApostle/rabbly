@@ -129,8 +129,8 @@ export const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
         {/* Header */}
         <div className="p-6 pb-4 border-b border-slate-800/80 flex items-start justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white">
-              <Sparkles className="w-6 h-6 text-amber-300" />
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-sky-500 flex items-center justify-center shadow-lg shadow-blue-500/20 text-white">
+              <Sparkles className="w-6 h-6 text-sky-200" />
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -138,7 +138,7 @@ export const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
                   {isClassroom ? 'Classroom Concluded' : 'Lesson Completed'}
                 </span>
                 {isClassroom && roomCode && (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-950/60 border border-indigo-500/40 text-indigo-300">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950/60 border border-blue-500/40 text-sky-300">
                     Room: {roomCode}
                   </span>
                 )}
@@ -163,7 +163,7 @@ export const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
           <div className="grid grid-cols-3 gap-3">
             <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col">
               <span className="text-[11px] font-mono uppercase text-slate-400 font-bold mb-1 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                <Clock className="w-3.5 h-3.5 text-sky-400" />
                 Time Spent
               </span>
               <span className="text-xl sm:text-2xl font-black text-white font-['Outfit']">
@@ -183,7 +183,7 @@ export const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
 
             <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col">
               <span className="text-[11px] font-mono uppercase text-slate-400 font-bold mb-1 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <Sparkles className="w-3.5 h-3.5 text-sky-400" />
                 Progress
               </span>
               <span className="text-xl sm:text-2xl font-black text-emerald-400 font-['Outfit']">
@@ -196,7 +196,7 @@ export const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-indigo-400" />
+                <FileText className="w-4 h-4 text-sky-400" />
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
                   Synthesized Lecture Study Guide
                 </h3>
@@ -256,7 +256,7 @@ export const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
             {/* Scrollable Note Content Container */}
             <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 max-h-72 overflow-y-auto space-y-4 text-xs text-slate-300 leading-relaxed font-sans pr-2">
               {plan?.overview && (
-                <div className="p-3 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-indigo-200">
+                <div className="p-3 rounded-xl bg-blue-950/40 border border-blue-500/30 text-sky-200">
                   <strong className="text-white block mb-1">Executive Summary:</strong>
                   {plan.overview}
                 </div>
@@ -307,7 +307,7 @@ export const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
             <button
               type="button"
               onClick={onReturnToDashboard}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-500 hover:from-indigo-500 hover:to-emerald-400 text-white font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all cursor-pointer flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-bold text-xs shadow-lg shadow-blue-500/20 transition-all cursor-pointer flex items-center justify-center gap-2"
             >
               <span>Return to Dashboard</span>
               <ArrowRight className="w-3.5 h-3.5" />

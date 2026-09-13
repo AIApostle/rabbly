@@ -106,7 +106,7 @@ export const WhiteboardMcpDrawer: React.FC = () => {
                 type="button"
                 onClick={() => setActiveTab('tools')}
                 className={`px-2.5 py-1 rounded-lg font-mono transition-colors cursor-pointer ${
-                  activeTab === 'tools' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                  activeTab === 'tools' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 Tools ({tools.length})
@@ -115,7 +115,7 @@ export const WhiteboardMcpDrawer: React.FC = () => {
                 type="button"
                 onClick={() => setActiveTab('logs')}
                 className={`px-2.5 py-1 rounded-lg font-mono transition-colors cursor-pointer ${
-                  activeTab === 'logs' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                  activeTab === 'logs' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 JSON-RPC Logs ({logs.length})
@@ -145,7 +145,7 @@ export const WhiteboardMcpDrawer: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleTestTrigonometry}
-                    className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold flex items-center justify-between cursor-pointer shadow-md transition-all"
+                    className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-semibold flex items-center justify-between cursor-pointer shadow-md transition-all"
                   >
                     <span className="flex items-center gap-1.5">
                       <Play className="w-3.5 h-3.5" />
@@ -160,7 +160,7 @@ export const WhiteboardMcpDrawer: React.FC = () => {
                     className="w-full py-2 px-3 rounded-xl bg-[#282a2f] hover:bg-[#37393e] text-slate-200 font-semibold flex items-center justify-between cursor-pointer border border-[#44474f]/40 transition-all"
                   >
                     <span className="flex items-center gap-1.5">
-                      <Eye className="w-3.5 h-3.5 text-indigo-400" />
+                      <Eye className="w-3.5 h-3.5 text-sky-400" />
                       <span>Read Board State</span>
                     </span>
                     <span className="text-[10px] font-mono text-slate-400">get_board_state</span>
@@ -180,7 +180,7 @@ export const WhiteboardMcpDrawer: React.FC = () => {
                       className="p-2 rounded-xl bg-[#111318] border border-[#44474f]/30 space-y-1"
                     >
                       <div className="flex items-center justify-between font-mono">
-                        <span className="text-cyan-300 font-bold">{t.name}</span>
+                        <span className="text-sky-300 font-bold">{t.name}</span>
                         <span className="text-[9px] text-slate-500">tool</span>
                       </div>
                       <p className="text-[11px] text-slate-400 leading-snug">{t.description}</p>
@@ -195,8 +195,8 @@ export const WhiteboardMcpDrawer: React.FC = () => {
           {activeTab === 'logs' && (
             <div className="p-3 overflow-y-auto space-y-2 flex-1 font-mono text-[11px]">
               {stateViewerJson && (
-                <div className="p-2.5 rounded-xl bg-slate-950 border border-indigo-500/40 space-y-1.5 mb-2">
-                  <div className="flex items-center justify-between text-indigo-300 font-bold">
+                <div className="p-2.5 rounded-xl bg-slate-950 border border-blue-500/40 space-y-1.5 mb-2">
+                  <div className="flex items-center justify-between text-sky-300 font-bold">
                     <span>Latest Board State</span>
                     <button
                       type="button"

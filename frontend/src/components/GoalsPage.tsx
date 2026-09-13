@@ -284,7 +284,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
       {/* Top Header */}
       <div className="pb-4 border-b border-[#44474f]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-amber-400 mb-1">
+          <div className="flex items-center gap-2 text-xs font-semibold text-sky-400 mb-1">
             <Zap className="w-4 h-4" />
             <span>Fast-Track Subject Mastery</span>
           </div>
@@ -293,8 +293,8 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
           </h1>
           <p className="text-xs sm:text-sm text-[#c4c6d0] mt-0.5 max-w-2xl leading-relaxed">
             Set focused learning sprints to master subjects and concepts quickly (e.g.{' '}
-            <span className="text-amber-300 font-mono">Master Calculus in 3 Days</span> or{' '}
-            <span className="text-amber-300 font-mono">Build a Transformer in 5 Days</span>). Rabbly guides you through daily milestones using your attached study materials.
+            <span className="text-sky-300 font-mono">Master Calculus in 3 Days</span> or{' '}
+            <span className="text-sky-300 font-mono">Build a Transformer in 5 Days</span>). Rabbly guides you through daily milestones using your attached study materials.
           </p>
         </div>
 
@@ -311,7 +311,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="px-4 py-2 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow-lg shadow-amber-500/20 transition-all cursor-pointer flex items-center gap-2"
+            className="px-4 py-2 rounded-2xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-bold text-xs shadow-lg shadow-blue-500/25 transition-all cursor-pointer flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             <span>New Sprint</span>
@@ -338,7 +338,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
             onClick={() => setActiveFilter('active')}
             className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
               activeFilter === 'active'
-                ? 'bg-[#282a2f] text-amber-300 shadow-sm'
+                ? 'bg-blue-600/30 text-sky-300 border border-blue-500/30 shadow-sm'
                 : 'text-[#8e9099] hover:text-white'
             }`}
           >
@@ -372,7 +372,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
             : s.progressPercent === 100
         ).length === 0 ? (
           <div className="col-span-full p-12 text-center rounded-3xl bg-[#1d2024]/60 border border-[#44474f]/30 flex flex-col items-center justify-center space-y-3 shadow-lg">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-sky-400">
               <Zap className="w-6 h-6" />
             </div>
             <h3 className="text-base font-bold text-white font-['Outfit']">No Learning Sprints Found</h3>
@@ -382,9 +382,9 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(true)}
-              className="mt-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-2 cursor-pointer shadow-md transition-all"
+              className="mt-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-md transition-all"
             >
-              <Plus className="w-3.5 h-3.5 text-slate-950" />
+              <Plus className="w-3.5 h-3.5 text-white" />
               <span>Create Your First Sprint</span>
             </button>
           </div>
@@ -403,13 +403,13 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
             className={`rounded-3xl bg-[#1d2024] border p-6 shadow-xl flex flex-col justify-between space-y-5 transition-all group ${
               sprint.progressPercent === 100
                 ? 'border-emerald-500/50 shadow-emerald-950/20'
-                : 'border-[#44474f]/40 hover:border-amber-500/50'
+                : 'border-[#44474f]/40 hover:border-blue-500/50'
             }`}
           >
             <div className="space-y-3">
               {/* Header tags */}
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                <span className="text-[10px] font-mono uppercase tracking-wider px-2.5 py-1 rounded-full bg-blue-500/15 text-sky-300 border border-blue-500/30">
                   {sprint.subject}
                 </span>
 
@@ -429,7 +429,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
                 </div>
               </div>
 
-              <h2 className="text-base font-bold text-white font-['Outfit'] leading-snug group-hover:text-amber-200 transition-colors">
+              <h2 className="text-base font-bold text-white font-['Outfit'] leading-snug group-hover:text-sky-200 transition-colors">
                 {sprint.title}
               </h2>
 
@@ -445,7 +445,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
               <div className="space-y-1.5 pt-1">
                 <div className="flex justify-between text-xs">
                   <span className="text-[#c4c6d0]">Sprint Progress</span>
-                  <span className={`font-mono font-bold ${sprint.progressPercent === 100 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  <span className={`font-mono font-bold ${sprint.progressPercent === 100 ? 'text-emerald-400' : 'text-sky-400'}`}>
                     {sprint.progressPercent}%
                   </span>
                 </div>
@@ -454,7 +454,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
                     className={`h-full transition-all duration-500 rounded-full ${
                       sprint.progressPercent === 100
                         ? 'bg-emerald-400'
-                        : 'bg-gradient-to-r from-amber-500 via-orange-500 to-emerald-400'
+                        : 'bg-gradient-to-r from-blue-600 via-sky-400 to-emerald-400'
                     }`}
                     style={{ width: `${sprint.progressPercent}%` }}
                   />
@@ -496,7 +496,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
                         m.status === 'completed'
                           ? 'text-emerald-400'
                           : m.status === 'in-progress'
-                          ? 'text-amber-400 animate-pulse'
+                          ? 'text-sky-400 animate-pulse'
                           : 'text-slate-600 group-hover/item:text-slate-400'
                       }`}
                     />
@@ -516,7 +516,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
                   <button
                     type="button"
                     onClick={() => onStartSprintSession(`${sprint.title} - ${m.title}`, sprint.resources, 'Advanced')}
-                    className="opacity-0 group-hover/item:opacity-100 px-2 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[10px] font-mono font-semibold transition-all cursor-pointer shrink-0"
+                    className="opacity-0 group-hover/item:opacity-100 px-2 py-0.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-sky-300 border border-blue-500/30 text-[10px] font-mono font-semibold transition-all cursor-pointer shrink-0"
                     title="Start lesson specifically for this milestone"
                   >
                     Study ➔
@@ -537,12 +537,12 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
                       if (e.key === 'Enter') handleAddMilestoneInline(sprint.id);
                       if (e.key === 'Escape') setAddingMilestoneSprintId(null);
                     }}
-                    className="flex-1 bg-[#111318] border border-amber-500/50 rounded-xl px-2.5 py-1 text-xs text-white focus:outline-none"
+                    className="flex-1 bg-[#111318] border border-blue-500/50 rounded-xl px-2.5 py-1 text-xs text-white focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => handleAddMilestoneInline(sprint.id)}
-                    className="px-2.5 py-1 rounded-xl bg-amber-500 text-slate-950 text-xs font-bold cursor-pointer"
+                    className="px-2.5 py-1 rounded-xl bg-blue-600 text-white text-xs font-bold cursor-pointer hover:bg-blue-500"
                   >
                     Add
                   </button>
@@ -561,7 +561,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
                     setAddingMilestoneSprintId(sprint.id);
                     setNewMilestoneInput('');
                   }}
-                  className="w-full py-1 text-[11px] text-[#8e9099] hover:text-amber-300 transition-colors flex items-center justify-center gap-1 cursor-pointer border border-dashed border-[#44474f]/40 hover:border-amber-500/40 rounded-xl mt-1"
+                  className="w-full py-1 text-[11px] text-[#8e9099] hover:text-sky-300 transition-colors flex items-center justify-center gap-1 cursor-pointer border border-dashed border-[#44474f]/40 hover:border-blue-500/40 rounded-xl mt-1"
                 >
                   <Plus className="w-3 h-3" />
                   <span>Add Milestone</span>
@@ -573,7 +573,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
             {sprint.resources.length > 0 && (
               <div className="pt-2 border-t border-[#44474f]/20 flex flex-wrap items-center gap-2">
                 <span className="text-[11px] text-[#8e9099] font-mono flex items-center gap-1 mr-1">
-                  <Paperclip className="w-3.5 h-3.5 text-amber-400" />
+                  <Paperclip className="w-3.5 h-3.5 text-sky-400" />
                   <span>Sprint Materials:</span>
                 </span>
                 {sprint.resources.map((res) => (
@@ -586,7 +586,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
                     ) : res.type === 'link' ? (
                       <Link2 className="w-3 h-3 text-cyan-400" />
                     ) : (
-                      <FileText className="w-3 h-3 text-amber-400" />
+                      <FileText className="w-3 h-3 text-sky-400" />
                     )}
                     <span className="truncate max-w-[200px]">{res.title}</span>
                   </span>
@@ -598,9 +598,9 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
             <button
               type="button"
               onClick={() => onStartSprintSession(sprint.title, sprint.resources, 'Advanced')}
-              className="w-full py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md shadow-amber-500/20"
+              className="w-full py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md shadow-blue-500/20"
             >
-              <Sparkles className="w-4 h-4 text-slate-950" />
+              <Sparkles className="w-4 h-4 text-white" />
               <span>Launch Sprint Session</span>
               <ArrowRight className="w-4 h-4" />
             </button>
@@ -611,7 +611,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
 
       {/* Feature Explainer Banner */}
       <div className="p-6 rounded-3xl bg-[#17191e] border border-[#44474f]/30 space-y-3">
-        <div className="flex items-center gap-2 text-xs font-semibold text-amber-400">
+        <div className="flex items-center gap-2 text-xs font-semibold text-sky-400">
           <Zap className="w-4 h-4" />
           <span>How Learning Sprints Work</span>
         </div>
@@ -630,7 +630,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
             {/* Modal Header */}
             <div className="p-5 sm:p-6 border-b border-[#44474f]/30 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+                <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-sky-400 flex items-center justify-center border border-blue-500/30">
                   <Zap className="w-4 h-4" />
                 </div>
                 <div>
@@ -661,7 +661,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
                   placeholder="e.g. Master Calculus in 3 Days or Build a Transformer from Scratch"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-amber-400 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none"
+                  className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-blue-500 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none"
                 />
               </div>
 
@@ -675,7 +675,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
                     placeholder="e.g. Mathematics, Machine Learning, Systems"
                     value={newSubject}
                     onChange={(e) => setNewSubject(e.target.value)}
-                    className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-amber-400 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none"
+                    className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-blue-500 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none"
                   />
                 </div>
 
@@ -686,7 +686,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
                   <select
                     value={newTimeframe}
                     onChange={(e) => setNewTimeframe(e.target.value)}
-                    className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-amber-400 rounded-2xl px-3 py-2.5 text-xs text-white focus:outline-none cursor-pointer"
+                    className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-blue-500 rounded-2xl px-3 py-2.5 text-xs text-white focus:outline-none cursor-pointer"
                   >
                     <option value="3-Day Sprint">3-Day Sprint</option>
                     <option value="5-Day Sprint">5-Day Sprint</option>
@@ -706,7 +706,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
                   placeholder={"1. Foundational Concepts & Core Intuition\n2. Key Formulas & Worked Examples\n3. Advanced Synthesis & Practice"}
                   value={newMilestonesText}
                   onChange={(e) => setNewMilestonesText(e.target.value)}
-                  className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-amber-400 rounded-2xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none resize-none leading-relaxed"
+                  className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-blue-500 rounded-2xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none resize-none leading-relaxed"
                 />
               </div>
 
@@ -727,7 +727,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
                     <button
                       type="button"
                       onClick={() => setIsPlusMenuOpen(!isPlusMenuOpen)}
-                      className="px-3 py-1.5 rounded-xl bg-[#282a2f] hover:bg-[#33353a] text-xs font-semibold text-amber-300 hover:text-white border border-[#44474f]/40 flex items-center gap-1.5 cursor-pointer transition-colors"
+                      className="px-3 py-1.5 rounded-xl bg-[#282a2f] hover:bg-[#33353a] text-xs font-semibold text-sky-300 hover:text-white border border-[#44474f]/40 flex items-center gap-1.5 cursor-pointer transition-colors"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Attach Material</span>
@@ -780,7 +780,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
                           }}
                           className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-[#282a2f] text-xs font-medium text-white transition-colors text-left cursor-pointer"
                         >
-                          <div className="w-6 h-6 rounded-lg bg-[#005353]/40 text-[#78f8e7] flex items-center justify-center shrink-0">
+                          <div className="w-6 h-6 rounded-lg bg-[#004a77]/40 text-[#7dd3fc] flex items-center justify-center shrink-0">
                             <Globe className="w-3.5 h-3.5" />
                           </div>
                           <div>
@@ -799,14 +799,14 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
                     {newResources.map((res) => (
                       <span
                         key={res.id}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#111318] border border-amber-500/40 text-xs text-amber-300"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#111318] border border-blue-500/40 text-xs text-sky-300"
                       >
                         {res.type === 'youtube' ? (
                           <SquarePlay className="w-3 h-3 text-rose-400" />
                         ) : res.type === 'link' ? (
                           <Globe className="w-3 h-3 text-cyan-400" />
                         ) : (
-                          <FileText className="w-3 h-3 text-amber-400" />
+                          <FileText className="w-3 h-3 text-sky-400" />
                         )}
                         <span className="max-w-[180px] truncate">{res.title}</span>
                         <button
@@ -831,7 +831,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
                 <button
                   type="submit"
                   disabled={!newTitle.trim()}
-                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow-lg shadow-amber-500/30 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-bold text-xs shadow-lg shadow-blue-500/25 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Start Sprint & Initialize Roadmap
                 </button>
@@ -847,7 +847,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
           <div className="w-full max-w-md rounded-3xl bg-[#1d2024] border border-[#44474f]/60 shadow-2xl p-6 space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-[#44474f]/30">
               <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-[#78f8e7]" />
+                <Globe className="w-4 h-4 text-[#7dd3fc]" />
                 <h3 className="text-sm font-bold text-white font-['Outfit']">Attach Web Resource</h3>
               </div>
               <button
@@ -870,7 +870,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
                   placeholder="https://arxiv.org/abs/... or github.com"
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
-                  className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-amber-400 rounded-xl px-3 py-2 text-xs text-white placeholder-[#8e9099] focus:outline-none"
+                  className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-white placeholder-[#8e9099] focus:outline-none"
                 />
               </div>
 
@@ -883,7 +883,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
                   placeholder="e.g. Research Paper or Reference Notes"
                   value={urlTitleInput}
                   onChange={(e) => setUrlTitleInput(e.target.value)}
-                  className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-amber-400 rounded-xl px-3 py-2 text-xs text-white placeholder-[#8e9099] focus:outline-none"
+                  className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-white placeholder-[#8e9099] focus:outline-none"
                 />
               </div>
 
@@ -897,7 +897,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 transition-colors cursor-pointer shadow-md"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors cursor-pointer shadow-md shadow-blue-500/20"
                 >
                   Attach Resource
                 </button>

@@ -11,12 +11,23 @@ client = TestClient(app)
 
 
 def test_list_sprints():
-    """Verify GET /api/sprints returns list of sprints."""
+    """Verify GET /api/sprints returns list of sprints from database."""
+    # Create test sprint first so listing is guaranteed non-empty
+    client.post("/api/sprints", json={
+        "title": "Calculus Foundations",
+        "subject": "Mathematics",
+        "timeframe": "3-Day Sprint",
+        "days_remaining": 3,
+        "total_days": 3,
+        "progress_percent": 0,
+        "milestones": [{"id": "m1", "title": "Limits", "status": "upcoming"}],
+        "resources": [],
+    })
     response = client.get("/api/sprints")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
-    assert len(data) >= 3
+    assert len(data) >= 1
     first_sprint = data[0]
     assert "title" in first_sprint
     assert "subject" in first_sprint

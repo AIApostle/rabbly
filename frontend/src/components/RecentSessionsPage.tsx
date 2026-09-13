@@ -491,7 +491,7 @@ export const RecentSessionsPage: React.FC<RecentSessionsPageProps> = ({
         </div>
 
         <div className="p-3.5 rounded-2xl bg-[#191c20] border border-[#44474f]/30 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-sky-400">
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
