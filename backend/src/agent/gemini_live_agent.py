@@ -646,21 +646,80 @@ class GeminiLiveAgent:
     async def update_curriculum_context(self, curriculum_data: Dict[str, Any]) -> None:
         """
         Update the agent's teaching curriculum with new modules, notes, and topic details.
-        Sends realtime prompt update to live model so it seamlessly adapts its lesson plan.
+        Ensures strict tenant and topic isolation: if the topic has changed, re-establishes
+        a brand-new Gemini Live session with the new system prompt so former topics are
+        completely purged from the AI model's context.
 
         Args:
             curriculum_data: Dictionary containing topic, modules, notes, and questions.
         """
+        new_topic = (curriculum_data.get("topic") or "").strip()
+        old_topic = (self.curriculum_data.get("topic") or "").strip() if self.curriculum_data else ""
+        topic_changed = bool(old_topic and new_topic and old_topic.lower() != new_topic.lower())
+
         self.curriculum_data = curriculum_data
-        topic = curriculum_data.get("topic", "the selected topic")
+        topic = new_topic or "the selected topic"
         modules = curriculum_data.get("modules") or []
-        module_titles = ", ".join([m.get("title", "") for m in modules if isinstance(m, dict)])
-        notes = curriculum_data.get("lectureNotes") or []
-        notes_str = "; ".join(notes[:3]) if notes else ""
 
         logger.info(
-            f"[GeminiLiveAgent:{self.session_id}] Received curriculum context for topic: '{topic}' ({len(modules)} modules)"
+            f"[GeminiLiveAgent:{self.session_id}] Received curriculum context for topic: '{topic}' ({len(modules)} modules). Changed: {topic_changed}"
         )
+
+        # If topic changed while agent is active, tear down old session and connect clean isolated session
+        if topic_changed and self.is_active and self._client and self.api_key:
+            logger.info(
+                f"[GeminiLiveAgent:{self.session_id}] Purging former topic '{old_topic}' from AI context. Reconnecting isolated Gemini Live session for '{new_topic}'."
+            )
+            # Reset board history and interruption state
+            self.mcp_client.clear_history()
+            self._is_interrupted = False
+            self.is_paused = False
+
+            # Cancel old receive task
+            if self._receive_task and not self._receive_task.done():
+                self._receive_task.cancel()
+                try:
+                    await self._receive_task
+                except (asyncio.CancelledError, Exception):
+                    pass
+
+            # Close old Gemini Live context
+            if self._session_context:
+                try:
+                    await self._session_context.__aexit__(None, None, None)
+                except Exception:
+                    pass
+                self._session = None
+                self._session_context = None
+
+            try:
+                # Build fresh configuration with new topic prompt
+                config = self._build_live_config()
+                self._session_context = self._client.aio.live.connect(
+                    model=self.model_name, config=config
+                )
+                self._session = await self._session_context.__aenter__()
+                self._receive_task = asyncio.create_task(self._receive_loop())
+
+                greeting_text = build_initial_greeting_prompt(self.curriculum_data)
+                await self._session.send_client_content(
+                    turns=[
+                        genai_types.Content(
+                            role="user",
+                            parts=[genai_types.Part.from_text(text=greeting_text)],
+                        )
+                    ],
+                    turn_complete=True,
+                )
+                logger.info(
+                    f"[GeminiLiveAgent:{self.session_id}] Isolated session established for topic '{new_topic}'."
+                )
+                return
+            except Exception as reconnect_err:
+                logger.error(
+                    f"[GeminiLiveAgent:{self.session_id}] Failed to re-establish isolated session: {reconnect_err}",
+                    exc_info=True,
+                )
 
         if self.is_active and self._session:
             first_mod = (
@@ -670,7 +729,7 @@ class GeminiLiveAgent:
             )
             board = self.mcp_client.get_latest_board_state()
             prompt_update = (
-                f"Hi Rabbly! I am ready to transition to our next topic: '{topic}'. "
+                f"Hi Rabbly! I am ready to study our topic: '{topic}'. "
                 f"Current blackboard has {board.elementCount} elements. "
                 f"Please call clear_board to start with a fresh canvas, announce today's topic, "
                 f"write the title '{topic}' at (80, 50), and draw the opening concepts for {first_mod} on the blackboard now."

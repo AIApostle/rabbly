@@ -31,6 +31,7 @@ import { ClassroomHubPage } from './ClassroomHubPage';
 import { GoalsPage } from './GoalsPage';
 import { LibraryPage } from './LibraryPage';
 import { getLocalSessions, loadRecentSessions, persistNewSession, removeSession } from '../services/sessionService';
+import { inferSubjectFromTopic } from '../services/curriculumService';
 import { useAuth } from '../context/AuthContext';
 
 interface LessonSetupPageProps {
@@ -332,7 +333,7 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
     // Persist to backend and update local cache
     persistNewSession({
       topic: finalPrompt,
-      subject: 'General Study',
+      subject: inferSubjectFromTopic(finalPrompt),
       level,
       hasExternalResources: resources.length > 0,
       resourceName: resources[0]?.title,
@@ -400,7 +401,7 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
             Drop study materials anywhere
           </h2>
           <p className="text-sm text-[#c4c6d0] mt-1">
-            PDFs, Lecture Notes, Slides, or Markdown files will be attached as external context
+            Lecture notes, slides, or markdown documents will be attached as study context
           </p>
         </div>
       )}
@@ -914,7 +915,7 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
                           </div>
                           <div>
                             <span className="block font-semibold">Attach Document / Notes</span>
-                            <span className="text-[10px] text-[#8e9099]">PDF, TXT, DOCX, Markdown</span>
+                            <span className="text-[10px] text-[#8e9099]">Notes, TXT, DOCX, Markdown</span>
                           </div>
                         </button>
 

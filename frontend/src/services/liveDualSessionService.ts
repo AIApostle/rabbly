@@ -107,6 +107,8 @@ export class LiveDualSessionService {
 
   // Pedagogical Curriculum Plan
   private curriculumPlan: LessonPlan | null = null;
+  private clientUserInfo: ClientUserInfo | undefined;
+  private consecutiveSpeechFrames: number = 0;
 
   // Outbound message queue for Input channel (prevents dropped MCP responses)
   private inputQueue: string[] = [];
@@ -184,6 +186,7 @@ export class LiveDualSessionService {
     this.sessionId = sessionId;
     this.isPaused = false;
     this.hasSpokenInUtterance = false;
+    this.clientUserInfo = userInfo;
     if (initialPlan) {
       this.curriculumPlan = initialPlan;
     }
@@ -617,17 +620,31 @@ export class LiveDualSessionService {
         const rms = Math.sqrt(sum / inputData.length);
         this.callbacks.onAudioLevel?.(Math.min(rms * 5, 1));
 
-        // Barge-in: if student speaks while agent is playing speech or has active/queued buffers,
-        // instantly silence AI audio and notify backend
+        // Track sustained speech frames (>0.065 RMS filters speaker feedback / key clicks)
+        if (rms > 0.065) {
+          this.consecutiveSpeechFrames++;
+        } else {
+          this.consecutiveSpeechFrames = 0;
+        }
+
+        // Barge-in: only when:
+        // 1. Not in classroom mode OR student is the host teacher (in classroom, students raise hands)
+        // 2. Genuine sustained speech (>100ms / 3+ consecutive frames)
+        // 3. AI is currently speaking or has active audio scheduled
+        const isHostOr1on1 = !this.clientUserInfo?.isClassroom || Boolean(this.clientUserInfo?.isHost);
         if (
-          rms > 0.04 &&
+          isHostOr1on1 &&
+          this.consecutiveSpeechFrames >= 3 &&
           (this.status === 'speaking' || this.activeSources.length > 0 || this.audioQueue.length > 0)
         ) {
+          console.log('[AudioBridge] Student sustained barge-in detected. Halting playback.');
           this.clearAudioPlaybackQueue(true);
           this.sendToInput({
             type: 'student_interrupted',
             sessionId: this.sessionId,
+            userId: this.clientUserInfo?.userId,
           });
+          this.consecutiveSpeechFrames = 0;
         }
 
         // Track voice activity timing
@@ -857,7 +874,7 @@ export class LiveDualSessionService {
 
     const currentTime = this.playbackContext.currentTime;
     if (this.nextPlayTime < currentTime) {
-      this.nextPlayTime = currentTime + 0.04;
+      this.nextPlayTime = currentTime + 0.08;
     }
 
     while (this.audioQueue.length > 0) {

@@ -7,6 +7,7 @@
 import type { RecentSessionData } from '../types';
 import { getAuthHeaders } from './authService';
 import { getApiUrl } from './apiConfig';
+import { inferSubjectFromTopic } from './curriculumService';
 
 const STORAGE_KEY = 'rabbly_recent_sessions_v1';
 
@@ -62,7 +63,7 @@ export function mapBackendToSession(item: BackendSessionPayload): RecentSessionD
     id: item.id || `sess-${item.room_code || Date.now()}`,
     roomCode: item.room_code,
     topic: item.topic,
-    subject: item.subject || 'General Study',
+    subject: item.subject && item.subject.toLowerCase() !== 'general study' ? item.subject : inferSubjectFromTopic(item.topic),
     date: dateTag,
     timestamp: timeTag,
     lastCheckpoint: item.last_checkpoint || '1. Foundation & Intuition',
@@ -139,7 +140,7 @@ export async function persistNewSession(session: Partial<RecentSessionData>): Pr
     id: session.id || `sess-${Date.now()}`,
     roomCode,
     topic: session.topic || 'Untitled Study',
-    subject: session.subject || 'General Study',
+    subject: session.subject && session.subject.toLowerCase() !== 'general study' ? session.subject : inferSubjectFromTopic(session.topic || ''),
     date: 'Today',
     timestamp: `Today, ${now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`,
     lastCheckpoint: session.lastCheckpoint || '1. Foundation & Intuition',

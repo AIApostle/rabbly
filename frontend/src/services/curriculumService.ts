@@ -17,10 +17,25 @@ export interface GenerateCurriculumParams {
 }
 
 /**
+ * Intelligently infers academic subject category from topic keywords.
+ */
+export function inferSubjectFromTopic(topic: string): string {
+  const t = (topic || '').toLowerCase();
+  if (t.includes('math') || t.includes('calculus') || t.includes('algebra') || t.includes('geometry') || t.includes('vector') || t.includes('equation') || t.includes('differential') || t.includes('matrix')) return 'Mathematics';
+  if (t.includes('physic') || t.includes('quantum') || t.includes('mechanic') || t.includes('gravity') || t.includes('energy') || t.includes('wave') || t.includes('thermodynamic')) return 'Physics';
+  if (t.includes('code') || t.includes('program') || t.includes('python') || t.includes('react') || t.includes('algorithm') || t.includes('data structure') || t.includes('software') || t.includes('computer') || t.includes('ai') || t.includes('neural') || t.includes('database')) return 'Computer Science';
+  if (t.includes('bio') || t.includes('cell') || t.includes('gene') || t.includes('dna') || t.includes('organism') || t.includes('evolution')) return 'Biology';
+  if (t.includes('chem') || t.includes('atom') || t.includes('molecule') || t.includes('reaction') || t.includes('organic')) return 'Chemistry';
+  if (t.includes('history') || t.includes('war') || t.includes('empire') || t.includes('civilization')) return 'History';
+  if (t.includes('philosophy') || t.includes('ethics') || t.includes('logic')) return 'Philosophy';
+  return 'STEM';
+}
+
+/**
  * Generates an adaptive fallback curriculum plan when the backend is offline or unreachable.
  */
 function createFallbackPlan(topic: string, level: string): LessonPlan {
-  const cleanTopic = topic.trim() || 'General Study';
+  const cleanTopic = topic.trim() || 'Interactive Lesson';
   const modules: CurriculumModule[] = [
     {
       id: 'm1',
@@ -38,21 +53,21 @@ function createFallbackPlan(topic: string, level: string): LessonPlan {
       title: '2. Structural Architecture & Core Mechanics',
       duration: '5 min',
       status: 'upcoming',
-      description: 'Step-by-step deconstruction of the internal components and data flow.',
+      description: `Dissecting invariant models, formal constraints, and component dynamics of ${cleanTopic}.`,
       keyTakeaways: [
-        'Component interaction and invariant properties.',
-        'Formal definitions and mathematical transformations.',
+        'Component relationships and formal invariant constraints.',
+        'Practical mechanics and standard conventions.',
       ],
     },
     {
       id: 'm3',
-      title: '3. Concrete Implementation & Worked Walkthrough',
+      title: '3. Hands-On Worked Verification',
       duration: '5 min',
       status: 'upcoming',
-      description: 'Tracing a complete scenario end-to-end with real-world inputs.',
+      description: `Step-by-step trace and rigorous validation on the digital blackboard for ${cleanTopic}.`,
       keyTakeaways: [
-        'Practical step-by-step trace.',
-        'Common boundary pitfalls and optimization points.',
+        'Step-by-step verification methodology.',
+        'Common pitfalls and failure mode mitigation.',
       ],
     },
     {
@@ -72,7 +87,7 @@ function createFallbackPlan(topic: string, level: string): LessonPlan {
     id: `lesson-${Date.now()}`,
     topic: cleanTopic,
     overview: `A structured ${level.toLowerCase()}-level curriculum designed to build deep conceptual intuition and practical mechanics for ${cleanTopic}.`,
-    subject: 'General Study',
+    subject: inferSubjectFromTopic(cleanTopic),
     level: level as 'Beginner' | 'Intermediate' | 'Advanced',
     estimatedMinutes: 18,
     modules,
@@ -137,7 +152,7 @@ export async function generateCurriculum(params: GenerateCurriculumParams): Prom
       room_code: data.room_code,
       topic: data.topic || topic,
       overview: data.overview || `Curriculum for ${topic}`,
-      subject: data.subject || subject || 'General Study',
+      subject: data.subject && data.subject.toLowerCase() !== 'general study' ? data.subject : (subject || inferSubjectFromTopic(topic)),
       level: data.level || level,
       estimatedMinutes: data.estimatedMinutes || 16,
       modules: data.modules || [],

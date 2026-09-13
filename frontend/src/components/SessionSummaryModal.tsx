@@ -10,7 +10,6 @@ import {
   FileText,
   RotateCcw,
   X,
-  Printer,
 } from 'lucide-react';
 import type { LessonPlan } from '../types';
 
@@ -208,10 +207,10 @@ export const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
                     type="button"
                     onClick={onOpenFullNotes}
                     className="px-3 py-1.5 rounded-xl bg-[#0842a0]/60 hover:bg-[#0842a0] border border-[#a8c7fa]/40 text-xs font-semibold text-[#a8c7fa] hover:text-white transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
-                    title="View full-page notes and export PDF"
+                    title="View full-page synthesized lecture notes"
                   >
-                    <Printer className="w-3.5 h-3.5" />
-                    <span>Full Notes & PDF</span>
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Full Notes</span>
                   </button>
                 )}
 

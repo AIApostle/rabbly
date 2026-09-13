@@ -71,40 +71,48 @@ class LiveSessionContext:
 
     async def send_to_output(self, message: Dict[str, Any]) -> None:
         """
-        Transmit a JSON message to all connected students over their Output WebSocket channels.
-        Automatically prunes any dead or disconnected sockets.
+        Transmit a JSON message to all connected students over their Output WebSocket channels concurrently.
+        Automatically prunes any dead or disconnected sockets without head-of-line blocking.
 
         Args:
             message: Dictionary payload to send.
         """
         async with self._lock:
-            if not self.output_sockets:
-                msg_type = message.get("type", "unknown")
+            sockets = list(self.output_sockets)
+
+        if not sockets:
+            msg_type = message.get("type", "unknown")
+            if msg_type != "audio":
                 logger.warning(
                     f"[LiveSession:{self.session_id}] Dropping '{msg_type}' message: No Output WS connected."
                 )
-                return
+            return
 
-            dead_sockets = []
-            payload_str = json.dumps(message)
-            msg_type = message.get("type", "unknown")
+        payload_str = json.dumps(message)
+        msg_type = message.get("type", "unknown")
 
-            for ws in list(self.output_sockets):
-                try:
-                    await ws.send_text(payload_str)
-                except Exception as err:
-                    logger.debug(
-                        f"[LiveSession:{self.session_id}] Socket failed during send, marking dead: {err}"
-                    )
-                    dead_sockets.append(ws)
-
-            for ws in dead_sockets:
-                self.output_sockets.discard(ws)
-
-            if msg_type != "audio":
-                logger.info(
-                    f"[LiveSession:{self.session_id}] Sent '{msg_type}' message to {len(self.output_sockets)} Output WS client(s)."
+        async def _safe_send(ws: WebSocket) -> Optional[WebSocket]:
+            try:
+                await ws.send_text(payload_str)
+                return None
+            except Exception as err:
+                logger.debug(
+                    f"[LiveSession:{self.session_id}] Socket failed during send, marking dead: {err}"
                 )
+                return ws
+
+        results = await asyncio.gather(*[_safe_send(ws) for ws in sockets], return_exceptions=True)
+
+        dead = [r for r in results if isinstance(r, WebSocket)]
+        if dead:
+            async with self._lock:
+                for ws in dead:
+                    self.output_sockets.discard(ws)
+
+        if msg_type != "audio":
+            logger.info(
+                f"[LiveSession:{self.session_id}] Sent '{msg_type}' message to {len(sockets) - len(dead)} Output WS client(s)."
+            )
 
     async def broadcast_roster(self) -> None:
         """Broadcast updated classroom participant roster to all connected output clients."""
@@ -417,6 +425,16 @@ class LiveSessionManager:
 
         # 2d. Student Barge-in Interruption
         elif msg_type == "student_interrupted":
+            # In classroom mode, only allow the host to interrupt the lecture directly
+            if session.is_classroom:
+                user_id = data.get("userId")
+                participant = session.participants.get(user_id) if user_id else None
+                is_host = participant.get("isHost", False) if participant else False
+                if not is_host:
+                    logger.info(
+                        f"[LiveSessionManager:{session.session_id}] Ignored student barge-in from non-host '{user_id}' in classroom."
+                    )
+                    return
             logger.info(
                 f"[LiveSessionManager:{session.session_id}] Student barge-in interruption received."
             )

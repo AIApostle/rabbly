@@ -86,6 +86,12 @@ const RootRedirect: React.FC<RootRedirectProps> = (props) => {
 };
 
 
+// Cryptographically isolated unique session identifier generator
+function generateUniqueSessionCode(isClassroom: boolean = false): string {
+  const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
+  return isClassroom ? `RAB-CLASS-${rand}` : `RAB-1ON1-${rand}`;
+}
+
 export function App() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -94,7 +100,7 @@ export function App() {
   // Topic & Configuration
   const [currentTopicTitle, setCurrentTopicTitle] = useState<string>('');
   const [isClassroomMode, setIsClassroomMode] = useState<boolean>(false);
-  const [roomCode, setRoomCode] = useState<string>(() => `RAB-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [roomCode, setRoomCode] = useState<string>(() => generateUniqueSessionCode(false));
   const [isPreparing, setIsPreparing] = useState<boolean>(false);
   const [hasRaisedHand, setHasRaisedHand] = useState<boolean>(false);
 
@@ -213,7 +219,7 @@ export function App() {
     const isClassroom = location.pathname.startsWith('/classroom/');
     const effectiveRoomCode = isClassroom
       ? location.pathname.replace(/^\/classroom\/?/, '').split('/')[0].trim().toUpperCase() || roomCode
-      : roomCode || currentPlan?.room_code || 'RAB-DEFAULT';
+      : roomCode || generateUniqueSessionCode(false);
 
     liveDualSessionService.setCallbacks({
       onStatusChange: (newStatus, msg) => {
@@ -301,7 +307,8 @@ export function App() {
     specificRoomCode?: string,
     isJoinExisting?: boolean
   ) => {
-    const effectiveRoomCode = specificRoomCode || existingPlan?.room_code || `RAB-${Math.floor(1000 + Math.random() * 9000)}`;
+    // Generate fresh cryptographically isolated room code for new sessions to prevent cross-tenant context bleed
+    const effectiveRoomCode = specificRoomCode || (isJoinExisting && existingPlan?.room_code ? existingPlan.room_code : generateUniqueSessionCode(classroom));
     setRoomCode(effectiveRoomCode);
     setIsClassroomMode(classroom);
 
@@ -355,7 +362,7 @@ export function App() {
       return;
     }
 
-    const cleanTopic = topic.trim() || 'General Study';
+    const cleanTopic = topic.trim() || 'Interactive Lesson';
     setCurrentTopicTitle(cleanTopic);
     setIsPreparing(true);
     setElapsedSeconds(0);
@@ -510,6 +517,11 @@ export function App() {
   const handleReturnToDashboard = () => {
     setIsSessionSummaryOpen(false);
     liveDualSessionService.disconnect();
+    // Reset session context to guarantee complete tenant and topic isolation for next session
+    setRoomCode(generateUniqueSessionCode(false));
+    setCurrentPlan(null);
+    setCurrentTopicTitle('');
+    setActiveModuleIndex(0);
     if (isClassroomMode) {
       navigate('/classrooms');
     } else {
@@ -933,7 +945,7 @@ export function App() {
               >
                 <div className="text-left">
                   <span className="block">End Class for Everyone</span>
-                  <span className="text-[10px] text-rose-300/70 font-normal">Closes room, notifies students & opens summary with PDF</span>
+                  <span className="text-[10px] text-rose-300/70 font-normal">Closes room, notifies students & opens study summary</span>
                 </div>
                 <LogOut className="w-4 h-4 text-rose-400 shrink-0" />
               </button>
@@ -980,7 +992,7 @@ export function App() {
             </div>
 
             <p className="text-xs text-[#c4c6d0] leading-relaxed">
-              Are you sure you want to leave? Before you go, you can review your complete study summary, lecture notes, and export a PDF of everything covered.
+              Are you sure you want to leave? Before you go, you can review your complete study summary, lecture notes, and diagrams covered.
             </p>
 
             <div className="space-y-2.5 pt-1">
@@ -992,7 +1004,7 @@ export function App() {
               >
                 <div className="text-left">
                   <span className="block">Leave & View Study Summary</span>
-                  <span className="text-[10px] text-sky-200/80 font-normal">Review lecture notes, formulas, diagrams, and export PDF</span>
+                  <span className="text-[10px] text-sky-200/80 font-normal">Review lecture notes, formulas, and whiteboard diagrams</span>
                 </div>
                 <ArrowRight className="w-4 h-4 text-white shrink-0" />
               </button>

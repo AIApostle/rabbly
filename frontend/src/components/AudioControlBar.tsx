@@ -6,9 +6,9 @@ import {
   VolumeX,
   MessageSquarePlus,
   Share2,
-  BookOpen,
   HelpCircle,
   Hand,
+  Layers,
 } from 'lucide-react';
 
 interface AudioControlBarProps {
@@ -180,21 +180,21 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
 
         <div className="w-[1px] h-6 bg-slate-700/60 mx-0.5"></div>
 
-        {/* Lesson Notes & Curriculum Drawer Toggle - Icon with tooltip */}
+        {/* Lesson Modules Drawer Toggle - Icon with tooltip */}
         <div className="relative group">
           <button
             onClick={onToggleNotes}
-            aria-label="Curriculum & Notes"
+            aria-label="Lesson Modules"
             className={`p-2.5 rounded-xl text-xs font-medium border transition-all cursor-pointer flex items-center justify-center ${
               isNotesOpen
                 ? 'bg-blue-600/30 text-sky-300 border-blue-500/50'
                 : 'bg-slate-800/90 text-slate-300 border-slate-700 hover:bg-slate-750 hover:text-white'
             }`}
           >
-            <BookOpen className="w-4 h-4 text-sky-400" />
+            <Layers className="w-4 h-4 text-sky-400" />
           </button>
           <div className="absolute -top-9 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-md bg-slate-900 border border-slate-700 text-[11px] text-slate-200 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg font-medium">
-            Curriculum & Notes
+            Lesson Modules
           </div>
         </div>
 

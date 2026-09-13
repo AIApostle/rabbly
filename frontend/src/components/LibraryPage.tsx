@@ -320,7 +320,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                   {/* Subject & Level Badge */}
                   <div className="lg:col-span-2 flex flex-row lg:flex-col items-center lg:items-start gap-2">
                     <span className="px-2.5 py-0.5 rounded-md bg-blue-950/70 text-sky-300 border border-blue-800/40 text-[11px] font-medium font-mono">
-                      {plan.subject || 'General Study'}
+                      {plan.subject && plan.subject.toLowerCase() !== 'general study' ? plan.subject : 'STEM'}
                     </span>
                     <span className="text-[11px] text-[#7d8ba1] font-mono hidden lg:inline">
                       {plan.level || 'Standard'}
@@ -385,7 +385,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
               <div className="space-y-1.5 max-w-[85%]">
                 <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-sky-300">
                   <span className="px-2 py-0.5 rounded-md bg-blue-950 border border-blue-800/60">
-                    {selectedPlan.subject || 'General Study'}
+                    {selectedPlan.subject && selectedPlan.subject.toLowerCase() !== 'general study' ? selectedPlan.subject : 'STEM'}
                   </span>
                   <span>•</span>
                   <span>{selectedPlan.level}</span>
