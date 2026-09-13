@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { LandingPage } from './components/LandingPage';
@@ -18,7 +18,6 @@ import { AiTutorHud } from './components/AiTutorHud';
 import { AudioControlBar } from './components/AudioControlBar';
 import { LessonDrawer } from './components/LessonDrawer';
 import { ClassroomModal } from './components/ClassroomModal';
-import { LESSON_SCENARIOS, getScenarioResponse } from './services/simulationEngine';
 import { generateCurriculum } from './services/curriculumService';
 import { persistNewSession } from './services/sessionService';
 import { verifyRoomCode } from './services/classroomService';
@@ -88,15 +87,14 @@ export function App() {
   const { user } = useAuth();
 
   // Topic & Configuration
-  const [topicKey] = useState<string>('transformers');
   const [currentTopicTitle, setCurrentTopicTitle] = useState<string>('');
   const [isClassroomMode, setIsClassroomMode] = useState<boolean>(false);
   const [roomCode, setRoomCode] = useState<string>(() => `RAB-${Math.floor(1000 + Math.random() * 9000)}`);
   const [isPreparing, setIsPreparing] = useState<boolean>(false);
   const [hasRaisedHand, setHasRaisedHand] = useState<boolean>(false);
 
-  // Active Lesson Plan
-  const [currentPlan, setCurrentPlan] = useState<LessonPlan>(LESSON_SCENARIOS['transformers'].plan);
+  // Active Lesson Plan (loaded dynamically from curriculum generator or backend session)
+  const [currentPlan, setCurrentPlan] = useState<LessonPlan | null>(null);
   const [activeModuleIndex, setActiveModuleIndex] = useState<number>(0);
 
   // AI Tutor State (Idle and not auto-playing diagramming)
@@ -122,10 +120,6 @@ export function App() {
     { id: 'user-host', name: 'You (Host)', avatar: '🎓', isHost: true, isMuted: true, joinedAt: 'Just now' },
   ]);
 
-  // Simulation Timeline State
-  const [currentCueIndex, setCurrentCueIndex] = useState<number>(0);
-  const simulationTimerRef = useRef<number | null>(null);
-
   // Live Session Teaching Timer (records elapsed active teaching time)
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
 
@@ -136,7 +130,9 @@ export function App() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const isLiveScreen = location.pathname.startsWith('/learn') || location.pathname.startsWith('/classroom');
+  // Strictly only /learn or /classroom/:code are live whiteboard screens
+  const isLiveScreen = location.pathname === '/learn' || location.pathname.startsWith('/classroom/');
+  const isLiveActive = isLiveScreen && !isPreparing;
 
   // Synchronize classroom mode and room code from URL if navigating directly
   useEffect(() => {
@@ -147,8 +143,8 @@ export function App() {
         if (roomCode !== extractedCode) {
           setRoomCode(extractedCode);
         }
-        // If topic is unset or default, retrieve room details from backend
-        if (!currentTopicTitle || currentTopicTitle === 'Transformers & Self-Attention') {
+        // If topic is unset, retrieve room details from backend
+        if (!currentTopicTitle) {
           verifyRoomCode(extractedCode)
             .then((room) => {
               if (room) {
@@ -161,14 +157,14 @@ export function App() {
             .catch((e) => console.warn('Could not verify room code from server:', e));
         }
       }
-    } else if (location.pathname.startsWith('/learn')) {
+    } else if (location.pathname === '/learn') {
       setIsClassroomMode(false);
     }
   }, [location.pathname, roomCode, currentTopicTitle]);
 
   // Live Session Teaching Timer (records active teaching time)
   useEffect(() => {
-    if (!isLiveScreen || isPreparing || !isPlaying) return;
+    if (!isLiveActive || !isPlaying) return;
 
     const timer = window.setInterval(() => {
       setElapsedSeconds((prev) => prev + 1);
@@ -177,16 +173,16 @@ export function App() {
     return () => {
       clearInterval(timer);
     };
-  }, [isLiveScreen, isPreparing, isPlaying]);
+  }, [isLiveActive, isPlaying]);
 
-  // Connect Live Dual WebSocket Session when entering /learn or /classroom
+  // Connect Live Dual WebSocket Session when entering /learn or /classroom/:code (strictly when whiteboard is active)
   useEffect(() => {
-    if (!isLiveScreen) {
+    if (!isLiveActive) {
       liveDualSessionService.disconnect();
       return;
     }
 
-    const isClassroom = location.pathname.startsWith('/classroom');
+    const isClassroom = location.pathname.startsWith('/classroom/');
     const effectiveRoomCode = isClassroom
       ? location.pathname.replace(/^\/classroom\/?/, '').split('/')[0].trim().toUpperCase() || roomCode
       : roomCode || currentPlan?.room_code || 'RAB-DEFAULT';
@@ -229,7 +225,7 @@ export function App() {
     return () => {
       liveDualSessionService.disconnect();
     };
-  }, [isLiveScreen, roomCode, location.pathname, user?.id]);
+  }, [isLiveActive, roomCode, location.pathname, user?.id]);
 
   // Synchronize dynamic curriculum plan updates with the Live Agent
   useEffect(() => {
@@ -310,73 +306,15 @@ export function App() {
   // Transition into Whiteboard workspace
   const handlePrepReady = () => {
     setIsPreparing(false);
-    setIsPlaying(false); // No live diagramming simulation
+    setIsPlaying(true);
     setIncomingAction(null); // Keep whiteboard canvas clean
-    setCurrentCueIndex(0);
     setElapsedSeconds(0);
     setIsNotesOpen(true); // Open drawer showing generated modules and notes
 
-    // Add friend participants if in classroom mode
     if (isClassroomMode) {
-      setParticipants([
-        { id: 'user-host', name: 'You (Host)', avatar: '🎓', isHost: true, isMuted: true, joinedAt: 'Just now' },
-        { id: 'user-maya', name: 'Maya Chen', avatar: '👩🏻‍💻', isHost: false, isMuted: true, joinedAt: '1m ago' },
-        { id: 'user-jordan', name: 'Jordan Patel', avatar: '👨🏽‍🎓', isHost: false, isMuted: true, joinedAt: 'Just now' },
-      ]);
       confetti({ particleCount: 40, spread: 60, origin: { y: 0.85 } });
     }
   };
-
-  // Execute a specific cue
-  const executeCue = useCallback((cueIdx: number) => {
-    const scenario = LESSON_SCENARIOS[topicKey];
-    if (!scenario || cueIdx >= scenario.cues.length) return;
-
-    const cue = scenario.cues[cueIdx];
-    setAiStatus(cue.status);
-    setAiSpeechText(cue.aiSpeech);
-
-    // Advance active curriculum module according to cues
-    if (cueIdx === 1) setActiveModuleIndex(1);
-    if (cueIdx === 3) setActiveModuleIndex(2);
-
-    // Dispatch whiteboard actions sequentially
-    if (cue.whiteboardActions && cue.whiteboardActions.length > 0) {
-      cue.whiteboardActions.forEach((action, i) => {
-        setTimeout(() => {
-          setIncomingAction({ ...action });
-        }, i * 350);
-      });
-    }
-  }, [topicKey]);
-
-  // Simulation Runner Effect
-  useEffect(() => {
-    if (!isLiveScreen || isPreparing || !isPlaying) return;
-
-    const scenario = LESSON_SCENARIOS[topicKey];
-    if (!scenario) return;
-
-    // Initial cue trigger
-    executeCue(currentCueIndex);
-
-    // If there is a next cue, schedule it
-    if (currentCueIndex < scenario.cues.length - 1) {
-      const currentCue = scenario.cues[currentCueIndex];
-      const nextCue = scenario.cues[currentCueIndex + 1];
-      const delayMs = Math.max(2500, (nextCue.timeOffsetSec - currentCue.timeOffsetSec) * 1000);
-
-      simulationTimerRef.current = window.setTimeout(() => {
-        setCurrentCueIndex((prev) => prev + 1);
-      }, delayMs);
-    }
-
-    return () => {
-      if (simulationTimerRef.current) {
-        clearTimeout(simulationTimerRef.current);
-      }
-    };
-  }, [isLiveScreen, isPreparing, isPlaying, currentCueIndex, topicKey, executeCue]);
 
   // Toggle Lecture Play/Pause
   const handleTogglePlay = () => {
@@ -385,12 +323,7 @@ export function App() {
 
   // Restart Lecture
   const handleRestart = () => {
-    if (simulationTimerRef.current) {
-      clearTimeout(simulationTimerRef.current);
-    }
-    // Clear canvas
     setIncomingAction({ action: 'clear', id: 'reset' });
-    setCurrentCueIndex(0);
     setActiveModuleIndex(0);
     setElapsedSeconds(0);
     setIsPlaying(true);
@@ -454,22 +387,8 @@ export function App() {
     // 2. Transmit to Gemini Live agent over Input WebSocket
     liveDualSessionService.sendTextMessage(questionText);
 
-    // 3. Pause linear lecture
+    // 3. Pause
     setIsPlaying(false);
-
-    // 4. Fallback simulation response if backend is offline
-    setTimeout(() => {
-      if (aiStatus === 'thinking') {
-        const response = getScenarioResponse(topicKey, questionText);
-        setAiStatus('answering');
-        setAiSpeechText(response.speech);
-        setIncomingAction(response.action);
-        setIsMuted(true);
-      }
-      setParticipants((prev) =>
-        prev.map((p) => (p.isHost ? { ...p, isMuted: true } : p))
-      );
-    }, 1500);
   };
 
   // Classroom & Whiteboard Workspace
@@ -559,7 +478,7 @@ export function App() {
           onToggleSpeaker={handleToggleSpeaker}
           audioLevel={studentAudioLevel}
           onAskQuestion={handleAskQuestion}
-          suggestedQuestions={currentPlan.suggestedQuestions}
+          suggestedQuestions={currentPlan?.suggestedQuestions || []}
           onOpenClassroom={() => setIsClassroomModalOpen(true)}
           onToggleNotes={() => setIsNotesOpen(!isNotesOpen)}
           isNotesOpen={isNotesOpen}

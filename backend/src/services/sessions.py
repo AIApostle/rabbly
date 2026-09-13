@@ -65,10 +65,23 @@ def get_session_by_code(client: Client, room_code: str) -> Optional[SessionRespo
     return SessionResponse(**_hydrate_session_record(record))
 
 
+import uuid
+
+
+def _is_uuid(val: str) -> bool:
+    try:
+        uuid.UUID(str(val))
+        return True
+    except (ValueError, TypeError, AttributeError):
+        return False
+
+
 def get_session_by_id(client: Client, session_id: str) -> Optional[SessionResponse]:
     """
-    Fetches a session by primary UUID.
+    Fetches a session by primary UUID. If not a valid UUID, returns None safely.
     """
+    if not _is_uuid(session_id):
+        return None
     record = select_one(client, SESSIONS_TABLE, "id", session_id)
     if not record:
         return None

@@ -257,6 +257,11 @@ export class LiveDualSessionService {
    * Process incoming messages from the Output channel.
    */
   private async handleOutputMessage(data: Record<string, unknown>) {
+    // Drop all incoming messages if service is disconnected or idle
+    if (this.status === 'idle' || !this.outputSocket) {
+      return;
+    }
+
     const type = data.type as string;
 
     // 1. Agent Status Update
@@ -598,6 +603,10 @@ export class LiveDualSessionService {
    * Queue raw 24kHz 1-channel PCM audio chunk from Gemini for smooth playback.
    */
   private queueAudioChunk(base64Data: string): void {
+    if (this.status === 'idle' || this.isSpeakerMuted) {
+      return;
+    }
+
     if (!this.playbackContext) {
       this.initPlaybackContext();
     }
@@ -695,25 +704,38 @@ export class LiveDualSessionService {
    */
   public disconnect(): void {
     console.log('[DualWS] Disconnecting session...');
+    this.status = 'idle';
     this.stopAudioCapture();
     this.clearAudioPlaybackQueue();
 
     if (this.inputSocket) {
-      this.inputSocket.close();
+      this.inputSocket.onclose = null;
+      this.inputSocket.onerror = null;
+      this.inputSocket.onmessage = null;
+      try {
+        this.inputSocket.close();
+      } catch {}
       this.inputSocket = null;
     }
     if (this.outputSocket) {
-      this.outputSocket.close();
+      this.outputSocket.onclose = null;
+      this.outputSocket.onerror = null;
+      this.outputSocket.onmessage = null;
+      try {
+        this.outputSocket.close();
+      } catch {}
       this.outputSocket = null;
     }
 
     if (this.playbackContext && this.playbackContext.state !== 'closed') {
-      this.playbackContext.close();
+      try {
+        this.playbackContext.close();
+      } catch {}
       this.playbackContext = null;
       this.gainNode = null;
     }
 
-    this.updateStatus('idle', 'Disconnected');
+    this.callbacks.onStatusChange?.('idle', 'Disconnected');
     console.log('[DualWS] Disconnected.');
   }
 }

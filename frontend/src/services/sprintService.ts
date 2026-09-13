@@ -44,70 +44,6 @@ interface BackendSprintPayload {
 
 const STORAGE_KEY = 'rabbly_learning_sprints_v1';
 
-const DEFAULT_SPRINTS: LearningSprint[] = [
-  {
-    id: 'sprint-1',
-    title: 'Master Multivariable Calculus & Vector Fields in 3 Days',
-    subject: 'Mathematics & Calculus',
-    timeframe: '3-Day Sprint',
-    daysRemaining: 1,
-    totalDays: 3,
-    progressPercent: 66,
-    milestones: [
-      { id: 'm1', title: '1. Partial Derivatives & Gradient Direction Vectors', status: 'completed' },
-      { id: 'm2', title: '2. Double & Triple Integrals over Bounded Regions', status: 'completed' },
-      { id: 'm3', title: "3. Green's Theorem & Line Integrals in Vector Fields", status: 'in-progress' },
-      { id: 'm4', title: "4. Divergence, Curl & Stokes' Theorem Final Review", status: 'upcoming' },
-    ],
-    resources: [
-      { id: 'r1', type: 'file', title: 'Stewart_Calculus_Chapter14.pdf', detail: '2.4 MB' },
-      { id: 'r2', type: 'youtube', title: '3Blue1Brown - Essence of Calculus', detail: 'YouTube Video' },
-    ],
-    createdAt: '2 days ago',
-  },
-  {
-    id: 'sprint-2',
-    title: 'Build a Production Transformer from Scratch in PyTorch',
-    subject: 'Deep Learning & LLMs',
-    timeframe: '5-Day Sprint',
-    daysRemaining: 3,
-    totalDays: 5,
-    progressPercent: 40,
-    milestones: [
-      { id: 'm1', title: '1. Query, Key, Value Dot-Product Math & Softmax Scaling', status: 'completed' },
-      { id: 'm2', title: '2. Multi-Head Projection & Residual Connection Layers', status: 'completed' },
-      { id: 'm3', title: '3. Sinusoidal & Rotary Positional Embeddings (RoPE)', status: 'in-progress' },
-      { id: 'm4', title: '4. Causal Attention Masking & Cross-Entropy Optimization', status: 'upcoming' },
-      { id: 'm5', title: '5. Inference Generation, Top-K & Temperature Sampling', status: 'upcoming' },
-    ],
-    resources: [
-      { id: 'r3', type: 'file', title: 'Attention_Is_All_You_Need.pdf', detail: '1.8 MB' },
-      { id: 'r4', type: 'link', title: 'NanoGPT Architecture Reference', detail: 'github.com' },
-    ],
-    createdAt: '3 days ago',
-  },
-  {
-    id: 'sprint-3',
-    title: 'Distributed Systems & High-Throughput Rate Limiting',
-    subject: 'System Design',
-    timeframe: '1-Week Sprint',
-    daysRemaining: 4,
-    totalDays: 7,
-    progressPercent: 50,
-    milestones: [
-      { id: 'm1', title: '1. Token Bucket vs Leaky Bucket vs Sliding Window', status: 'completed' },
-      { id: 'm2', title: '2. Atomic Redis Execution with Lua Scripting', status: 'completed' },
-      { id: 'm3', title: '3. Distributed Caching & Cluster Sharding Strategies', status: 'in-progress' },
-      { id: 'm4', title: '4. Handling Hot-Key Cascades & Graceful Degradation', status: 'upcoming' },
-    ],
-    resources: [
-      { id: 'r5', type: 'file', title: 'Designing_Data_Intensive_Applications.pdf', detail: '5.1 MB' },
-      { id: 'r6', type: 'youtube', title: 'Distributed Systems Lecture Series', detail: 'YouTube Tutorial' },
-    ],
-    createdAt: '4 days ago',
-  },
-];
-
 function mapBackendToSprint(b: BackendSprintPayload): LearningSprint {
   return {
     id: b.id,
@@ -129,12 +65,15 @@ export function getLocalSprints(): LearningSprint[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) {
+        // Filter out any stale mock sprint seeds
+        return parsed.filter((s) => !['sprint-1', 'sprint-2', 'sprint-3'].includes(s.id));
+      }
     }
   } catch (err) {
     console.warn('Failed reading sprints from localStorage', err);
   }
-  return DEFAULT_SPRINTS;
+  return [];
 }
 
 export function saveLocalSprints(sprints: LearningSprint[]): void {
@@ -152,15 +91,16 @@ export async function loadSprints(): Promise<LearningSprint[]> {
     });
     if (res.ok) {
       const data: BackendSprintPayload[] = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         const mapped = data.map(mapBackendToSprint);
         saveLocalSprints(mapped);
         return mapped;
       }
     }
   } catch {
-    // Offline fallback
+    // Backend offline fallback
   }
+
   return getLocalSprints();
 }
 

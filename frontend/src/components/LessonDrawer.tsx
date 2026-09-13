@@ -5,7 +5,7 @@ import type { LessonPlan } from '../types';
 interface LessonDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  plan: LessonPlan;
+  plan: LessonPlan | null;
   activeModuleIndex: number;
 }
 
@@ -18,6 +18,27 @@ export const LessonDrawer: React.FC<LessonDrawerProps> = ({
   const [activeTab, setActiveTab] = useState<'modules' | 'notes' | 'source'>('modules');
 
   if (!isOpen) return null;
+
+  if (!plan) {
+    return (
+      <aside className="fixed inset-y-0 right-0 z-30 w-96 max-w-[90vw] glass-dropdown border-l border-slate-700/80 bg-slate-900/95 shadow-2xl flex flex-col backdrop-blur-2xl animate-in slide-in-from-right duration-300">
+        <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+          <h2 className="text-sm font-bold text-white">Lesson Curriculum</h2>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-400">
+          <BookOpen className="w-10 h-10 text-slate-600 mb-3" />
+          <p className="text-sm font-medium text-slate-300">No active curriculum yet.</p>
+          <p className="text-xs text-slate-500 mt-1">Start a lesson to generate modules and notes.</p>
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside className="fixed inset-y-0 right-0 z-30 w-96 max-w-[90vw] glass-dropdown border-l border-slate-700/80 bg-slate-900/95 shadow-2xl flex flex-col backdrop-blur-2xl animate-in slide-in-from-right duration-300">

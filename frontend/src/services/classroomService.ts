@@ -9,50 +9,6 @@ import { getAuthHeaders } from './authService';
 
 const CLASSROOMS_STORAGE_KEY = 'rabbly_classrooms_cache';
 
-const INITIAL_FALLBACK_CLASSROOMS: ClassroomRoom[] = [
-  {
-    id: 'room-1',
-    roomCode: 'RAB-9412',
-    topic: 'Distributed Token Bucket Rate Limiting with Redis & Lua',
-    level: 'Advanced',
-    subject: 'System Architecture',
-    status: 'active',
-    hostId: 'user-alex',
-    hostName: 'Alex Rivera',
-    participantCount: 3,
-    participants: [
-      { id: 'p-1', name: 'Alex Rivera (Host)', avatar: '🎓', isHost: true, isMuted: true, joinedAt: 'Just now' },
-      { id: 'p-2', name: 'Maya Chen', avatar: '👩🏻‍💻', isHost: false, isMuted: true, joinedAt: '2m ago' },
-      { id: 'p-3', name: 'Jordan Patel', avatar: '👨🏽‍🎓', isHost: false, isMuted: true, joinedAt: 'Just now' },
-    ],
-    hasExternalResources: true,
-    resources: [
-      { id: 'r-1', type: 'link', title: 'System Design Primer - Rate Limiter', detail: 'github.com' },
-    ],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'room-2',
-    roomCode: 'RAB-3820',
-    topic: 'Quantum Superposition & Bell State Entanglement',
-    level: 'Beginner',
-    subject: 'Quantum Physics',
-    status: 'active',
-    hostId: 'user-elena',
-    hostName: 'Elena Rostova',
-    participantCount: 2,
-    participants: [
-      { id: 'p-4', name: 'Elena Rostova (Host)', avatar: '⚛️', isHost: true, isMuted: true, joinedAt: '5m ago' },
-      { id: 'p-5', name: 'Marcus Vance', avatar: '👨🏼‍🔬', isHost: false, isMuted: true, joinedAt: '1m ago' },
-    ],
-    hasExternalResources: false,
-    resources: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
 /**
  * Retrieve cached classrooms from localStorage.
  */
@@ -60,12 +16,16 @@ export function getLocalClassrooms(): ClassroomRoom[] {
   try {
     const raw = localStorage.getItem(CLASSROOMS_STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(CLASSROOMS_STORAGE_KEY, JSON.stringify(INITIAL_FALLBACK_CLASSROOMS));
-      return INITIAL_FALLBACK_CLASSROOMS;
+      return [];
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      // Filter out any stale mock seeds
+      return parsed.filter((c) => !['room-1', 'room-2'].includes(c.id));
+    }
+    return [];
   } catch {
-    return INITIAL_FALLBACK_CLASSROOMS;
+    return [];
   }
 }
 
