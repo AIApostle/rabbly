@@ -21,6 +21,9 @@ import {
   Zap,
   LogOut,
   BookOpen,
+  Crown,
+  Settings,
+  User,
 } from 'lucide-react';
 import type { ExternalResource, RecentSessionData, LessonPlan } from '../types';
 import { RecentSessionsPage } from './RecentSessionsPage';
@@ -34,8 +37,8 @@ interface LessonSetupPageProps {
   onBack: () => void;
   onStartLesson: (
     topic: string,
-    isClassroom: boolean,
-    level: string,
+    classroom: boolean,
+    level?: string,
     file?: File | null,
     resources?: ExternalResource[],
     existingPlan?: LessonPlan | null,
@@ -43,12 +46,18 @@ interface LessonSetupPageProps {
     isJoinExisting?: boolean
   ) => void;
   initialTopic?: string;
+  onOpenProfile?: () => void;
+  onOpenSettings?: () => void;
+  onOpenUpgrade?: () => void;
 }
 
 export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
   onBack,
   onStartLesson,
   initialTopic = '',
+  onOpenProfile,
+  onOpenSettings,
+  onOpenUpgrade,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -613,42 +622,127 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
           </button>
         </div>
 
+        {/* Upgrade to Pro Banner if not pro */}
+        {!currentUser?.isPro && onOpenUpgrade && (
+          <div className="px-3.5 pb-2">
+            <button
+              type="button"
+              onClick={onOpenUpgrade}
+              className="w-full p-2.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-purple-500/15 to-blue-500/15 hover:from-amber-500/25 hover:via-purple-500/25 hover:to-blue-500/25 border border-amber-500/40 text-left transition-all cursor-pointer group shadow-sm"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] font-bold text-amber-300 font-mono flex items-center gap-1.5">
+                  <Crown className="w-3.5 h-3.5 text-amber-400" />
+                  <span>RABBLY PRO</span>
+                </span>
+                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-950 font-mono">
+                  UPGRADE
+                </span>
+              </div>
+              <p className="text-[10px] text-[#c4c6d0] leading-snug">
+                Unlimited Gemini 2.0 Live audio & PDF study guides
+              </p>
+            </button>
+          </div>
+        )}
+
         {/* Sidebar Footer: Dynamic User Profile & Back to Home */}
         <div ref={profileMenuRef} className="p-3.5 border-t border-[#44474f]/25 shrink-0 bg-[#14161a] relative">
           {/* Profile Dropdown Popover */}
           {isProfileMenuOpen && (
-            <div className="absolute left-3.5 right-3.5 bottom-16 rounded-2xl bg-[#1d2024] border border-[#44474f]/60 shadow-2xl p-3 z-40 flex flex-col gap-2.5 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-150">
+            <div className="absolute left-3.5 right-3.5 bottom-16 rounded-2xl bg-[#1d2024] border border-[#44474f]/60 shadow-2xl p-3 z-40 flex flex-col gap-1.5 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-150">
               <div className="flex items-center gap-2.5 pb-2 border-b border-[#44474f]/30">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#0842a0] to-[#4f378b] flex items-center justify-center text-xs font-bold text-white shadow-sm shrink-0 border border-white/10">
-                  {currentUser?.fullName
-                    ? currentUser.fullName
-                        .split(' ')
-                        .map((n) => n[0])
-                        .join('')
-                        .slice(0, 2)
-                        .toUpperCase()
-                    : currentUser?.email
-                      ? currentUser.email.slice(0, 2).toUpperCase()
-                      : 'ST'}
+                <div className="w-9 h-9 rounded-full overflow-hidden bg-gradient-to-tr from-[#0842a0] to-[#4f378b] flex items-center justify-center text-xs font-bold text-white shadow-sm shrink-0 border border-white/10">
+                  {currentUser?.avatarUrl?.startsWith('preset:') ? (
+                    <span className="text-sm">{currentUser.avatarUrl.replace('preset:', '')}</span>
+                  ) : currentUser?.avatarUrl ? (
+                    <img src={currentUser.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <span>
+                      {currentUser?.fullName
+                        ? currentUser.fullName
+                            .split(' ')
+                            .map((n) => n[0])
+                            .join('')
+                            .slice(0, 2)
+                            .toUpperCase()
+                        : currentUser?.email
+                          ? currentUser.email.slice(0, 2).toUpperCase()
+                          : 'ST'}
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-xs font-semibold text-white truncate">
-                    {currentUser?.fullName || (currentUser?.email ? currentUser.email.split('@')[0] : 'Student')}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-white truncate">
+                      {currentUser?.fullName || (currentUser?.email ? currentUser.email.split('@')[0] : 'Student')}
+                    </span>
+                    {currentUser?.isPro && (
+                      <span className="text-[9px] font-bold font-mono px-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        PRO
+                      </span>
+                    )}
+                  </div>
                   <span className="text-[10px] text-[#8e9099] truncate font-mono">
-                    {currentUser?.email || ''}
+                    {currentUser?.username || currentUser?.email || ''}
                   </span>
                 </div>
               </div>
 
+              {/* Profile Action */}
               <button
                 type="button"
-                onClick={handleSignOut}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-medium transition-colors cursor-pointer"
+                onClick={() => {
+                  setIsProfileMenuOpen(false);
+                  onOpenProfile?.();
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-[#282a2f] text-xs font-medium text-white transition-colors cursor-pointer"
               >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Sign Out</span>
+                <User className="w-3.5 h-3.5 text-[#a8c7fa]" />
+                <span>My Profile & Avatars</span>
               </button>
+
+              {/* Settings Action */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsProfileMenuOpen(false);
+                  onOpenSettings?.();
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-[#282a2f] text-xs font-medium text-white transition-colors cursor-pointer"
+              >
+                <Settings className="w-3.5 h-3.5 text-[#d0bcff]" />
+                <span>System Settings</span>
+              </button>
+
+              {/* Upgrade Action */}
+              {!currentUser?.isPro && onOpenUpgrade && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    onOpenUpgrade();
+                  }}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-xs font-bold text-amber-300 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <Crown className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Upgrade to Pro</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-amber-400">Save 21%</span>
+                </button>
+              )}
+
+              <div className="pt-1 border-t border-[#44474f]/25">
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-medium transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
             </div>
           )}
 
@@ -658,24 +752,37 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
               className="flex items-center gap-3 min-w-0 cursor-pointer group"
               title="Click to manage profile"
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#0842a0] to-[#4f378b] group-hover:ring-2 group-hover:ring-[#a8c7fa] flex items-center justify-center text-xs font-bold text-white shadow-sm shrink-0 border border-white/10 transition-all">
-                {currentUser?.fullName
-                  ? currentUser.fullName
-                      .split(' ')
-                      .map((n) => n[0])
-                      .join('')
-                      .slice(0, 2)
-                      .toUpperCase()
-                  : currentUser?.email
-                    ? currentUser.email.slice(0, 2).toUpperCase()
-                    : 'ST'}
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-tr from-[#0842a0] to-[#4f378b] group-hover:ring-2 group-hover:ring-[#a8c7fa] flex items-center justify-center text-xs font-bold text-white shadow-sm shrink-0 border border-white/10 transition-all">
+                {currentUser?.avatarUrl?.startsWith('preset:') ? (
+                  <span className="text-sm">{currentUser.avatarUrl.replace('preset:', '')}</span>
+                ) : currentUser?.avatarUrl ? (
+                  <img src={currentUser.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <span>
+                    {currentUser?.fullName
+                      ? currentUser.fullName
+                          .split(' ')
+                          .map((n) => n[0])
+                          .join('')
+                          .slice(0, 2)
+                          .toUpperCase()
+                      : currentUser?.email
+                        ? currentUser.email.slice(0, 2).toUpperCase()
+                        : 'ST'}
+                  </span>
+                )}
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-xs font-semibold text-white truncate group-hover:text-[#a8c7fa] transition-colors">
-                  {currentUser?.fullName || (currentUser?.email ? currentUser.email.split('@')[0] : 'Student')}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold text-white truncate group-hover:text-[#a8c7fa] transition-colors">
+                    {currentUser?.fullName || (currentUser?.email ? currentUser.email.split('@')[0] : 'Student')}
+                  </span>
+                  {currentUser?.isPro && (
+                    <Crown className="w-3 h-3 text-amber-400 shrink-0" />
+                  )}
+                </div>
                 <span className="text-[10px] text-[#a8c7fa] font-mono">
-                  {currentUser?.preferredLevel || 'Student'}
+                  {currentUser?.isPro ? 'Pro Member' : currentUser?.preferredLevel || 'Student'}
                 </span>
               </div>
             </div>

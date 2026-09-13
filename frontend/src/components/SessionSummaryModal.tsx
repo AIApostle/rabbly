@@ -10,6 +10,7 @@ import {
   FileText,
   RotateCcw,
   X,
+  Printer,
 } from 'lucide-react';
 import type { LessonPlan } from '../types';
 
@@ -18,6 +19,7 @@ interface SessionSummaryModalProps {
   onClose: () => void;
   onReturnToDashboard: () => void;
   onRestartSession?: () => void;
+  onOpenFullNotes?: () => void;
   topic: string;
   plan?: LessonPlan | null;
   elapsedSeconds: number;
@@ -32,6 +34,7 @@ export const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
   onClose,
   onReturnToDashboard,
   onRestartSession,
+  onOpenFullNotes,
   topic,
   plan,
   elapsedSeconds,
@@ -200,10 +203,22 @@ export const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
               </div>
 
               <div className="flex items-center gap-2">
+                {onOpenFullNotes && (
+                  <button
+                    type="button"
+                    onClick={onOpenFullNotes}
+                    className="px-3 py-1.5 rounded-xl bg-[#0842a0]/60 hover:bg-[#0842a0] border border-[#a8c7fa]/40 text-xs font-semibold text-[#a8c7fa] hover:text-white transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                    title="View full-page notes and export PDF"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Full Notes & PDF</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 hover:text-white transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                  className="px-3 py-1.5 rounded-xl bg-[#282a2f] hover:bg-[#33353a] border border-[#44474f]/40 text-xs font-semibold text-[#c4c6d0] hover:text-white transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
                 >
                   {copied ? (
                     <>
@@ -212,7 +227,7 @@ export const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
                     </>
                   ) : (
                     <>
-                      <Copy className="w-3.5 h-3.5 text-slate-400" />
+                      <Copy className="w-3.5 h-3.5 text-[#8e9099]" />
                       <span>Copy MD</span>
                     </>
                   )}
@@ -221,7 +236,7 @@ export const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
                 <button
                   type="button"
                   onClick={handleDownload}
-                  className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white transition-all cursor-pointer flex items-center gap-1.5 shadow-md shadow-indigo-600/30"
+                  className="px-3 py-1.5 rounded-xl bg-[#0842a0] hover:bg-[#0a4ec0] text-xs font-semibold text-white transition-all cursor-pointer flex items-center gap-1.5 shadow-md shadow-[#0842a0]/30"
                 >
                   {downloaded ? (
                     <>

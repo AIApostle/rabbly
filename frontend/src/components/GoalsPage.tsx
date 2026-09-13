@@ -69,6 +69,33 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
   }, []);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [addingMilestoneSprintId, setAddingMilestoneSprintId] = useState<string | null>(null);
+  const [newMilestoneInput, setNewMilestoneInput] = useState('');
+
+  const handleAddMilestoneInline = (sprintId: string) => {
+    if (!newMilestoneInput.trim()) {
+      setAddingMilestoneSprintId(null);
+      return;
+    }
+    const newM = {
+      id: `m-${Date.now()}`,
+      title: newMilestoneInput.trim(),
+      status: 'upcoming' as const,
+    };
+    setSprints((prev) =>
+      prev.map((s) => {
+        if (s.id !== sprintId) return s;
+        const updated = [...s.milestones, newM];
+        const completedCount = updated.filter((m) => m.status === 'completed').length;
+        const pct = Math.round((completedCount / updated.length) * 100);
+        updateSprintMilestones(sprintId, updated, pct);
+        return { ...s, milestones: updated, progressPercent: pct };
+      })
+    );
+    setNewMilestoneInput('');
+    setAddingMilestoneSprintId(null);
+  };
   const [newTitle, setNewTitle] = useState('');
   const [newSubject, setNewSubject] = useState('');
   const [newTimeframe, setNewTimeframe] = useState('3-Day Sprint');
@@ -292,12 +319,67 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
         </div>
       </div>
 
+      {/* Filter Tabs */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex rounded-xl bg-[#191c20] p-1 border border-[#44474f]/40">
+          <button
+            type="button"
+            onClick={() => setActiveFilter('all')}
+            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+              activeFilter === 'all'
+                ? 'bg-[#282a2f] text-white shadow-sm'
+                : 'text-[#8e9099] hover:text-white'
+            }`}
+          >
+            All Sprints ({sprints.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveFilter('active')}
+            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+              activeFilter === 'active'
+                ? 'bg-[#282a2f] text-amber-300 shadow-sm'
+                : 'text-[#8e9099] hover:text-white'
+            }`}
+          >
+            In Progress ({sprints.filter((s) => s.progressPercent < 100).length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveFilter('completed')}
+            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+              activeFilter === 'completed'
+                ? 'bg-[#282a2f] text-emerald-400 shadow-sm'
+                : 'text-[#8e9099] hover:text-white'
+            }`}
+          >
+            Mastered ({sprints.filter((s) => s.progressPercent === 100).length})
+          </button>
+        </div>
+
+        <span className="text-xs text-[#8e9099] font-mono">
+          Showing {sprints.filter((s) => activeFilter === 'all' || (activeFilter === 'active' ? s.progressPercent < 100 : s.progressPercent === 100)).length} sprint(s)
+        </span>
+      </div>
+
       {/* Sprint Cards Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {sprints.map((sprint) => (
+        {sprints
+          .filter((s) =>
+            activeFilter === 'all'
+              ? true
+              : activeFilter === 'active'
+              ? s.progressPercent < 100
+              : s.progressPercent === 100
+          )
+          .map((sprint) => (
           <div
             key={sprint.id}
-            className="rounded-3xl bg-[#1d2024] border border-[#44474f]/40 hover:border-amber-500/50 p-6 shadow-xl flex flex-col justify-between space-y-5 transition-all group"
+            className={`rounded-3xl bg-[#1d2024] border p-6 shadow-xl flex flex-col justify-between space-y-5 transition-all group ${
+              sprint.progressPercent === 100
+                ? 'border-emerald-500/50 shadow-emerald-950/20'
+                : 'border-[#44474f]/40 hover:border-amber-500/50'
+            }`}
           >
             <div className="space-y-3">
               {/* Header tags */}
@@ -338,15 +420,33 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
               <div className="space-y-1.5 pt-1">
                 <div className="flex justify-between text-xs">
                   <span className="text-[#c4c6d0]">Sprint Progress</span>
-                  <span className="font-mono font-bold text-amber-400">{sprint.progressPercent}%</span>
+                  <span className={`font-mono font-bold ${sprint.progressPercent === 100 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {sprint.progressPercent}%
+                  </span>
                 </div>
                 <div className="w-full h-2 rounded-full bg-[#111318] overflow-hidden border border-[#44474f]/30">
                   <div
-                    className="h-full bg-gradient-to-r from-amber-500 via-orange-500 to-emerald-400 transition-all duration-500 rounded-full"
+                    className={`h-full transition-all duration-500 rounded-full ${
+                      sprint.progressPercent === 100
+                        ? 'bg-emerald-400'
+                        : 'bg-gradient-to-r from-amber-500 via-orange-500 to-emerald-400'
+                    }`}
                     style={{ width: `${sprint.progressPercent}%` }}
                   />
                 </div>
               </div>
+
+              {sprint.progressPercent === 100 && (
+                <div className="p-2.5 rounded-2xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 flex items-center justify-between text-xs animate-in fade-in">
+                  <span className="font-bold flex items-center gap-1.5 font-['Outfit']">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Sprint Fully Mastered!</span>
+                  </span>
+                  <span className="text-[10px] font-mono font-bold bg-emerald-500/20 px-2 py-0.5 rounded-full">
+                    100%
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Milestones Roadmap */}
@@ -398,6 +498,50 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
                   </button>
                 </div>
               ))}
+
+              {/* Inline Add Milestone Button / Input */}
+              {addingMilestoneSprintId === sprint.id ? (
+                <div className="flex items-center gap-1.5 pt-1.5">
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="Milestone title..."
+                    value={newMilestoneInput}
+                    onChange={(e) => setNewMilestoneInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleAddMilestoneInline(sprint.id);
+                      if (e.key === 'Escape') setAddingMilestoneSprintId(null);
+                    }}
+                    className="flex-1 bg-[#111318] border border-amber-500/50 rounded-xl px-2.5 py-1 text-xs text-white focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleAddMilestoneInline(sprint.id)}
+                    className="px-2.5 py-1 rounded-xl bg-amber-500 text-slate-950 text-xs font-bold cursor-pointer"
+                  >
+                    Add
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAddingMilestoneSprintId(null)}
+                    className="p-1 text-[#8e9099] hover:text-white cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAddingMilestoneSprintId(sprint.id);
+                    setNewMilestoneInput('');
+                  }}
+                  className="w-full py-1 text-[11px] text-[#8e9099] hover:text-amber-300 transition-colors flex items-center justify-center gap-1 cursor-pointer border border-dashed border-[#44474f]/40 hover:border-amber-500/40 rounded-xl mt-1"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>Add Milestone</span>
+                </button>
+              )}
             </div>
 
             {/* Attached Sources */}

@@ -21,6 +21,7 @@ interface LessonDrawerProps {
   onClose: () => void;
   plan: LessonPlan | null;
   activeModuleIndex: number;
+  onOpenFullNotes?: () => void;
 }
 
 export const LessonDrawer: React.FC<LessonDrawerProps> = ({
@@ -28,6 +29,7 @@ export const LessonDrawer: React.FC<LessonDrawerProps> = ({
   onClose,
   plan,
   activeModuleIndex,
+  onOpenFullNotes,
 }) => {
   const [activeTab, setActiveTab] = useState<'modules' | 'notes' | 'source'>('modules');
   const [copiedAll, setCopiedAll] = useState(false);
@@ -260,6 +262,18 @@ export const LessonDrawer: React.FC<LessonDrawerProps> = ({
               </span>
 
               <div className="flex items-center gap-1.5">
+                {onOpenFullNotes && (
+                  <button
+                    type="button"
+                    onClick={onOpenFullNotes}
+                    className="px-2.5 py-1 rounded-lg bg-[#0842a0]/60 hover:bg-[#0842a0] text-[11px] font-semibold text-[#a8c7fa] hover:text-white border border-[#a8c7fa]/40 flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+                    title="Open full-page reader with PDF export"
+                  >
+                    <FileText className="w-3 h-3" />
+                    <span>Full & PDF</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={handleCopyAllNotes}
@@ -273,7 +287,7 @@ export const LessonDrawer: React.FC<LessonDrawerProps> = ({
                 <button
                   type="button"
                   onClick={handleDownloadNotes}
-                  className="px-2.5 py-1 rounded-lg bg-[#0842a0]/40 hover:bg-[#0842a0]/60 text-[11px] font-semibold text-[#a8c7fa] hover:text-white border border-[#a8c7fa]/30 flex items-center gap-1 transition-all cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg bg-[#282a2f] hover:bg-[#33353a] text-[11px] font-semibold text-[#a8c7fa] hover:text-white border border-[#44474f]/40 flex items-center gap-1 transition-all cursor-pointer"
                   title="Download .md file"
                 >
                   <Download className="w-3 h-3" />

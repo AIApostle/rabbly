@@ -19,6 +19,10 @@ import { AudioControlBar } from './components/AudioControlBar';
 import { LessonDrawer } from './components/LessonDrawer';
 import { ClassroomModal } from './components/ClassroomModal';
 import { SessionSummaryModal } from './components/SessionSummaryModal';
+import { LectureNotesModal } from './components/LectureNotesModal';
+import { ProfileModal } from './components/ProfileModal';
+import { SettingsModal } from './components/SettingsModal';
+import { UpgradeModal } from './components/UpgradeModal';
 import { generateCurriculum } from './services/curriculumService';
 import { persistNewSession } from './services/sessionService';
 import { verifyRoomCode } from './services/classroomService';
@@ -30,7 +34,7 @@ import type {
   ClassroomParticipant,
   ExternalResource,
 } from './types';
-import { ArrowLeft, Loader2, Clock, LogOut } from 'lucide-react';
+import { ArrowLeft, Loader2, Clock, LogOut, FileText, Crown } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 
 // ---------------------------------------------------------------------------
@@ -114,6 +118,10 @@ export function App() {
 
   // Modals & Panels
   const [isNotesOpen, setIsNotesOpen] = useState<boolean>(false);
+  const [isLectureNotesOpen, setIsLectureNotesOpen] = useState<boolean>(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState<boolean>(false);
   const [isClassroomModalOpen, setIsClassroomModalOpen] = useState<boolean>(false);
   const [isSessionSummaryOpen, setIsSessionSummaryOpen] = useState<boolean>(false);
 
@@ -578,6 +586,35 @@ export function App() {
             </button>
           )}
 
+          {/* Notes & PDF Action Button */}
+          <button
+            type="button"
+            onClick={() => setIsLectureNotesOpen(true)}
+            className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 hover:text-white border border-indigo-500/40 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 shadow-sm"
+            title="Read full-page lecture notes and export PDF"
+          >
+            <FileText className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="hidden sm:inline">Notes & PDF</span>
+          </button>
+
+          {/* Pro Status or Upgrade Button */}
+          {!user?.isPro ? (
+            <button
+              type="button"
+              onClick={() => setIsUpgradeModalOpen(true)}
+              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 shadow-sm"
+              title="Unlock Rabbly Pro"
+            >
+              <Crown className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden md:inline">Upgrade</span>
+            </button>
+          ) : (
+            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-500/15 text-amber-300 border border-amber-500/30 text-xs font-mono font-bold">
+              <Crown className="w-3 h-3 text-amber-400" />
+              <span>PRO</span>
+            </span>
+          )}
+
           {/* End Session / Leave Room Button */}
           <button
             onClick={handleEndSession}
@@ -631,6 +668,7 @@ export function App() {
           onClose={() => setIsNotesOpen(false)}
           plan={currentPlan}
           activeModuleIndex={activeModuleIndex}
+          onOpenFullNotes={() => setIsLectureNotesOpen(true)}
         />
 
         {/* Classroom Multiplayer Invite Modal */}
@@ -647,6 +685,7 @@ export function App() {
           onClose={() => setIsSessionSummaryOpen(false)}
           onReturnToDashboard={handleReturnToDashboard}
           onRestartSession={handleRestart}
+          onOpenFullNotes={() => setIsLectureNotesOpen(true)}
           topic={currentTopicTitle}
           plan={currentPlan}
           elapsedSeconds={elapsedSeconds}
@@ -657,6 +696,16 @@ export function App() {
         />
       </main>
     </div>
+  );
+
+  const renderSetupPage = () => (
+    <LessonSetupPage
+      onBack={() => navigate('/')}
+      onStartLesson={handleStartLesson}
+      onOpenProfile={() => setIsProfileModalOpen(true)}
+      onOpenSettings={() => setIsSettingsModalOpen(true)}
+      onOpenUpgrade={() => setIsUpgradeModalOpen(true)}
+    />
   );
 
   return (
@@ -722,83 +771,13 @@ export function App() {
         <Route path="/auth" element={<Navigate to="/login" replace />} />
 
         {/* Dedicated App Screens (Protected: Requires Authenticated Session) */}
-        <Route
-          path="/session"
-          element={
-            <ProtectedRoute>
-              <LessonSetupPage
-                onBack={() => navigate('/')}
-                onStartLesson={handleStartLesson}
-              />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/classrooms"
-          element={
-            <ProtectedRoute>
-              <LessonSetupPage
-                onBack={() => navigate('/')}
-                onStartLesson={handleStartLesson}
-              />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/recent"
-          element={
-            <ProtectedRoute>
-              <LessonSetupPage
-                onBack={() => navigate('/')}
-                onStartLesson={handleStartLesson}
-              />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/sprints"
-          element={
-            <ProtectedRoute>
-              <LessonSetupPage
-                onBack={() => navigate('/')}
-                onStartLesson={handleStartLesson}
-              />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/goals"
-          element={
-            <ProtectedRoute>
-              <LessonSetupPage
-                onBack={() => navigate('/')}
-                onStartLesson={handleStartLesson}
-              />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/projects"
-          element={
-            <ProtectedRoute>
-              <LessonSetupPage
-                onBack={() => navigate('/')}
-                onStartLesson={handleStartLesson}
-              />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/library"
-          element={
-            <ProtectedRoute>
-              <LessonSetupPage
-                onBack={() => navigate('/')}
-                onStartLesson={handleStartLesson}
-              />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/session" element={<ProtectedRoute>{renderSetupPage()}</ProtectedRoute>} />
+        <Route path="/classrooms" element={<ProtectedRoute>{renderSetupPage()}</ProtectedRoute>} />
+        <Route path="/recent" element={<ProtectedRoute>{renderSetupPage()}</ProtectedRoute>} />
+        <Route path="/sprints" element={<ProtectedRoute>{renderSetupPage()}</ProtectedRoute>} />
+        <Route path="/goals" element={<ProtectedRoute>{renderSetupPage()}</ProtectedRoute>} />
+        <Route path="/projects" element={<ProtectedRoute>{renderSetupPage()}</ProtectedRoute>} />
+        <Route path="/library" element={<ProtectedRoute>{renderSetupPage()}</ProtectedRoute>} />
         <Route path="/app" element={<Navigate to="/session" replace />} />
 
         {/* Live Workspace (Protected: Requires Authenticated Session) */}
@@ -843,6 +822,30 @@ export function App() {
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {/* Global Modals rendered at root so they work across all routes */}
+      <LectureNotesModal
+        isOpen={isLectureNotesOpen}
+        onClose={() => setIsLectureNotesOpen(false)}
+        plan={currentPlan}
+      />
+
+      <ProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        onOpenUpgrade={() => setIsUpgradeModalOpen(true)}
+      />
+
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        onOpenUpgrade={() => setIsUpgradeModalOpen(true)}
+      />
+
+      <UpgradeModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+      />
     </div>
   );
 }

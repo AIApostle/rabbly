@@ -13,6 +13,11 @@ export interface AuthUser {
   role?: string;
   preferredLevel?: string;
   preferred_level?: string;
+  username?: string;
+  bio?: string;
+  studyField?: string;
+  isPro?: boolean;
+  aiVoice?: string;
 }
 
 export interface SignInPayload {
@@ -73,6 +78,11 @@ export function normalizeUser(raw: any): AuthUser {
       raw.preferredLevel ||
       raw.user_metadata?.preferred_level ||
       'Beginner',
+    username: raw.username || raw.user_metadata?.username || (raw.email ? `@${raw.email.split('@')[0]}` : '@student'),
+    bio: raw.bio || raw.user_metadata?.bio || 'Mastering STEM, deep derivations, and interactive concepts on Rabbly AI.',
+    studyField: raw.studyField || raw.user_metadata?.studyField || 'Computer Science & AI',
+    isPro: raw.isPro ?? raw.user_metadata?.isPro ?? false,
+    aiVoice: raw.aiVoice || raw.user_metadata?.aiVoice || 'Aoede',
   };
 }
 
