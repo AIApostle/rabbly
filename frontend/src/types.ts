@@ -143,6 +143,7 @@ export interface ClassroomParticipant {
   avatar: string;
   isHost: boolean;
   isMuted: boolean;
+  hasRaisedHand?: boolean;
   joinedAt: string;
 }
 

@@ -27,6 +27,7 @@ async def websocket_input_endpoint(websocket: WebSocket, session_id: str):
         - Raw PCM audio chunks ('audio') from the student's microphone.
         - Text messages ('text') from the student chat input.
         - MCP tool results ('mcp_response') executed by the frontend tldraw MCP server.
+        - Classroom interaction events ('join_classroom', 'raise_hand', 'mute_toggle').
 
     Args:
         websocket: The connecting client WebSocket.
@@ -37,12 +38,27 @@ async def websocket_input_endpoint(websocket: WebSocket, session_id: str):
         f"[WS:Input] Connection ACCEPTED for session '{session_id}' from client {websocket.client}"
     )
 
-    session = await session_manager.attach_input_socket(session_id, websocket)
+    user_id = websocket.query_params.get("user_id")
+    name = websocket.query_params.get("name")
+    is_host = websocket.query_params.get("is_host") == "true"
+    is_classroom = websocket.query_params.get("is_classroom") == "true"
+    user_info = {
+        "user_id": user_id,
+        "name": name,
+        "is_host": is_host,
+        "is_classroom": is_classroom,
+    } if user_id else None
+
+    session = await session_manager.attach_input_socket(
+        session_id, websocket, user_info=user_info
+    )
 
     try:
         while True:
             raw_text = await websocket.receive_text()
-            await session_manager.process_input_message(session, raw_text)
+            await session_manager.process_input_message(
+                session, raw_text, sender_ws=websocket
+            )
     except WebSocketDisconnect:
         logger.info(
             f"[WS:Input] Client disconnected from input channel for session '{session_id}'"
@@ -53,7 +69,7 @@ async def websocket_input_endpoint(websocket: WebSocket, session_id: str):
             exc_info=True,
         )
     finally:
-        await session_manager.detach_input_socket(session_id)
+        await session_manager.detach_input_socket(session_id, websocket)
 
 
 @connection_router.websocket("/ws/live/{session_id}/output")
@@ -66,6 +82,8 @@ async def websocket_output_endpoint(websocket: WebSocket, session_id: str):
         - Live spoken subtitles and speech transcripts ('transcript').
         - Tutor operational status updates ('agent_status': 'listening', 'thinking', 'speaking', 'interrupted').
         - MCP JSON-RPC tool requests ('mcp_request') dispatched to the frontend tldraw blackboard.
+        - Classroom roster and participant presence updates ('roster_update').
+        - Snapshot catch-up for joining students ('board_sync').
 
     Args:
         websocket: The connecting client WebSocket.
@@ -76,7 +94,22 @@ async def websocket_output_endpoint(websocket: WebSocket, session_id: str):
         f"[WS:Output] Connection ACCEPTED for session '{session_id}' from client {websocket.client}"
     )
 
-    await session_manager.attach_output_socket(session_id, websocket)
+    user_id = websocket.query_params.get("user_id")
+    name = websocket.query_params.get("name")
+    avatar = websocket.query_params.get("avatar")
+    is_host = websocket.query_params.get("is_host") == "true"
+    is_classroom = websocket.query_params.get("is_classroom") == "true"
+    user_info = {
+        "user_id": user_id,
+        "name": name,
+        "avatar": avatar,
+        "is_host": is_host,
+        "is_classroom": is_classroom,
+    } if user_id else None
+
+    await session_manager.attach_output_socket(
+        session_id, websocket, user_info=user_info
+    )
 
     try:
         # Keep connection open and await client heartbeats or disconnect
@@ -95,4 +128,6 @@ async def websocket_output_endpoint(websocket: WebSocket, session_id: str):
             exc_info=True,
         )
     finally:
-        await session_manager.detach_output_socket(session_id)
+        await session_manager.detach_output_socket(
+            session_id, websocket, user_id=user_id
+        )

@@ -126,6 +126,11 @@ export const ClassroomModal: React.FC<ClassroomModalProps> = ({
                           HOST
                         </span>
                       )}
+                      {p.hasRaisedHand && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-300 border border-amber-500/40 animate-pulse flex items-center gap-1">
+                          <span>✋</span> HAND RAISED
+                        </span>
+                      )}
                     </div>
                     <span className="text-[10px] text-slate-400">Joined {p.joinedAt}</span>
                   </div>

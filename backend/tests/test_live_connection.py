@@ -93,3 +93,41 @@ def test_mcp_client_tool_registration():
     genai_tools = mcp.get_genai_tools()
     assert len(genai_tools) == 1
     assert len(genai_tools[0].function_declarations) == len(expected_tools)
+
+
+def test_classroom_multi_client_broadcast(client: TestClient):
+    """Verify that multiple students can connect to the same classroom and receive roster updates."""
+    room_code = "RAB-COLLAB-TEST"
+
+    def read_until_type(ws, target_type: str, max_tries: int = 5):
+        for _ in range(max_tries):
+            msg = json.loads(ws.receive_text())
+            if msg.get("type") == target_type:
+                return msg
+        raise AssertionError(f"Did not receive message of type '{target_type}'")
+
+    # Student 1 (Host) connects
+    with client.websocket_connect(
+        f"/ws/live/{room_code}/output?user_id=u1&name=Host+Student&is_host=true&is_classroom=true"
+    ) as out_s1:
+        s1_welcome = read_until_type(out_s1, "roster_update")
+        assert s1_welcome["type"] == "roster_update"
+        assert s1_welcome["count"] == 1
+        assert s1_welcome["participants"][0]["name"] == "Host Student"
+        assert s1_welcome["participants"][0]["isHost"] is True
+
+        # Student 2 (Peer) connects to same room
+        with client.websocket_connect(
+            f"/ws/live/{room_code}/output?user_id=u2&name=Maya+Chen&is_host=false&is_classroom=true"
+        ) as out_s2:
+            # Student 1 receives roster update broadcast with 2 students
+            s1_update = read_until_type(out_s1, "roster_update")
+            assert s1_update["type"] == "roster_update"
+            assert s1_update["count"] == 2
+
+            # Student 2 also receives roster with both students
+            s2_welcome = read_until_type(out_s2, "roster_update")
+            assert s2_welcome["type"] == "roster_update"
+            assert s2_welcome["count"] == 2
+
+

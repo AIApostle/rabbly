@@ -21,6 +21,7 @@ import { ClassroomModal } from './components/ClassroomModal';
 import { LESSON_SCENARIOS, getScenarioResponse } from './services/simulationEngine';
 import { generateCurriculum } from './services/curriculumService';
 import { persistNewSession } from './services/sessionService';
+import { verifyRoomCode } from './services/classroomService';
 import { liveDualSessionService } from './services/liveDualSessionService';
 import type {
   LessonPlan,
@@ -84,6 +85,7 @@ const RootRedirect: React.FC<RootRedirectProps> = (props) => {
 export function App() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
   // Topic & Configuration
   const [topicKey] = useState<string>('transformers');
@@ -91,6 +93,7 @@ export function App() {
   const [isClassroomMode, setIsClassroomMode] = useState<boolean>(false);
   const [roomCode, setRoomCode] = useState<string>(() => `RAB-${Math.floor(1000 + Math.random() * 9000)}`);
   const [isPreparing, setIsPreparing] = useState<boolean>(false);
+  const [hasRaisedHand, setHasRaisedHand] = useState<boolean>(false);
 
   // Active Lesson Plan
   const [currentPlan, setCurrentPlan] = useState<LessonPlan>(LESSON_SCENARIOS['transformers'].plan);
@@ -135,6 +138,34 @@ export function App() {
 
   const isLiveScreen = location.pathname.startsWith('/learn') || location.pathname.startsWith('/classroom');
 
+  // Synchronize classroom mode and room code from URL if navigating directly
+  useEffect(() => {
+    if (location.pathname.startsWith('/classroom/')) {
+      const extractedCode = location.pathname.replace(/^\/classroom\/?/, '').split('/')[0].trim().toUpperCase();
+      if (extractedCode) {
+        setIsClassroomMode(true);
+        if (roomCode !== extractedCode) {
+          setRoomCode(extractedCode);
+        }
+        // If topic is unset or default, retrieve room details from backend
+        if (!currentTopicTitle || currentTopicTitle === 'Transformers & Self-Attention') {
+          verifyRoomCode(extractedCode)
+            .then((room) => {
+              if (room) {
+                if (room.topic) setCurrentTopicTitle(room.topic);
+                if (room.participants && room.participants.length > 0) {
+                  setParticipants(room.participants);
+                }
+              }
+            })
+            .catch((e) => console.warn('Could not verify room code from server:', e));
+        }
+      }
+    } else if (location.pathname.startsWith('/learn')) {
+      setIsClassroomMode(false);
+    }
+  }, [location.pathname, roomCode, currentTopicTitle]);
+
   // Live Session Teaching Timer (records active teaching time)
   useEffect(() => {
     if (!isLiveScreen || isPreparing || !isPlaying) return;
@@ -155,7 +186,10 @@ export function App() {
       return;
     }
 
-    const currentSessionId = roomCode || currentPlan?.room_code || 'RAB-DEFAULT';
+    const isClassroom = location.pathname.startsWith('/classroom');
+    const effectiveRoomCode = isClassroom
+      ? location.pathname.replace(/^\/classroom\/?/, '').split('/')[0].trim().toUpperCase() || roomCode
+      : roomCode || currentPlan?.room_code || 'RAB-DEFAULT';
 
     liveDualSessionService.setCallbacks({
       onStatusChange: (newStatus, msg) => {
@@ -174,14 +208,28 @@ export function App() {
       onAudioLevel: (level) => {
         setStudentAudioLevel(level);
       },
+      onRosterUpdate: (roster) => {
+        setParticipants(roster);
+      },
+      onBoardSync: (snapshot) => {
+        console.log('[App] Classroom whiteboard catch-up sync received:', snapshot);
+      },
     });
 
-    liveDualSessionService.connect(currentSessionId, undefined, currentPlan);
+    const clientUserInfo = {
+      userId: user?.id || `user-${Math.random().toString(36).substring(2, 9)}`,
+      name: user?.fullName || user?.full_name || (user?.email ? user.email.split('@')[0] : (isClassroom ? 'Classroom Student' : 'Host Student')),
+      avatar: user?.avatarUrl || user?.avatar_url || '🎓',
+      isHost: !isClassroom || participants.find((p) => p.id === user?.id)?.isHost || false,
+      isClassroom: isClassroom,
+    };
+
+    liveDualSessionService.connect(effectiveRoomCode, undefined, currentPlan, clientUserInfo);
 
     return () => {
       liveDualSessionService.disconnect();
     };
-  }, [isLiveScreen, roomCode]);
+  }, [isLiveScreen, roomCode, location.pathname, user?.id]);
 
   // Synchronize dynamic curriculum plan updates with the Live Agent
   useEffect(() => {
@@ -356,6 +404,12 @@ export function App() {
     // Update real microphone capture and streaming to Gemini Live
     liveDualSessionService.setMicMuted(nextMuted);
 
+    // Broadcast mute state update to classroom peers
+    if (isClassroomMode) {
+      const currentUserId = user?.id || 'user-host';
+      liveDualSessionService.toggleMute(currentUserId, nextMuted);
+    }
+
     // Update host participant mute status
     setParticipants((prev) =>
       prev.map((p) => (p.isHost ? { ...p, isMuted: nextMuted } : p))
@@ -374,6 +428,14 @@ export function App() {
         setIsPlaying(true);
       }
     }
+  };
+
+  // Student Hand Raise Toggle (Classroom Mode)
+  const handleToggleRaiseHand = () => {
+    const nextRaised = !hasRaisedHand;
+    setHasRaisedHand(nextRaised);
+    const currentUserId = user?.id || 'user-host';
+    liveDualSessionService.raiseHand(currentUserId, nextRaised);
   };
 
   // Audio Speaker Output Toggle (AI Voice)
@@ -503,6 +565,8 @@ export function App() {
           isNotesOpen={isNotesOpen}
           participantCount={participants.length}
           isClassroomMode={isClassroomMode}
+          hasRaisedHand={hasRaisedHand}
+          onToggleRaiseHand={handleToggleRaiseHand}
         />
 
         {/* Collapsible Curriculum & Notes Drawer */}

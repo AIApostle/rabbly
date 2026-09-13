@@ -13,14 +13,24 @@
  */
 
 import { whiteboardMcpServer, type McpJsonRpcRequest } from '../mcp/whiteboardMcpServer';
-import type { BoardStatePayload, LessonPlan } from '../types';
+import type { BoardStatePayload, LessonPlan, ClassroomParticipant } from '../types';
 
 export type AgentLiveStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking' | 'interrupted' | 'error';
+
+export interface ClientUserInfo {
+  userId?: string;
+  name?: string;
+  avatar?: string;
+  isHost?: boolean;
+  isClassroom?: boolean;
+}
 
 export interface LiveSessionCallbacks {
   onStatusChange?: (status: AgentLiveStatus, message?: string) => void;
   onTranscript?: (text: string) => void;
   onAudioLevel?: (level: number) => void;
+  onRosterUpdate?: (participants: ClassroomParticipant[], count: number) => void;
+  onBoardSync?: (boardState: BoardStatePayload) => void;
 }
 
 /**
@@ -114,9 +124,14 @@ export class LiveDualSessionService {
   }
 
   /**
-   * Connect to both /input and /output WebSocket endpoints for the given session.
+   * Connect to both /input and /output WebSocket endpoints for the given session or classroom.
    */
-  public async connect(sessionId: string, baseWsUrl?: string, initialPlan?: LessonPlan | null): Promise<void> {
+  public async connect(
+    sessionId: string,
+    baseWsUrl?: string,
+    initialPlan?: LessonPlan | null,
+    userInfo?: ClientUserInfo
+  ): Promise<void> {
     this.sessionId = sessionId;
     if (initialPlan) {
       this.curriculumPlan = initialPlan;
@@ -125,8 +140,16 @@ export class LiveDualSessionService {
 
     const host = baseWsUrl || (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + (window.location.hostname === 'localhost' ? 'localhost:8000' : window.location.host);
 
-    const inputUrl = `${host}/ws/live/${sessionId}/input`;
-    const outputUrl = `${host}/ws/live/${sessionId}/output`;
+    const queryParts: string[] = [];
+    if (userInfo?.userId) queryParts.push(`user_id=${encodeURIComponent(userInfo.userId)}`);
+    if (userInfo?.name) queryParts.push(`name=${encodeURIComponent(userInfo.name)}`);
+    if (userInfo?.avatar) queryParts.push(`avatar=${encodeURIComponent(userInfo.avatar)}`);
+    if (userInfo?.isHost !== undefined) queryParts.push(`is_host=${userInfo.isHost}`);
+    if (userInfo?.isClassroom) queryParts.push(`is_classroom=true`);
+    const queryStr = queryParts.length > 0 ? `?${queryParts.join('&')}` : '';
+
+    const inputUrl = `${host}/ws/live/${sessionId}/input${queryStr}`;
+    const outputUrl = `${host}/ws/live/${sessionId}/output${queryStr}`;
 
     console.log(`[DualWS] Connecting to channels for session '${sessionId}':`);
     console.log(`[DualWS:Input] URL: ${inputUrl}`);
@@ -298,6 +321,56 @@ export class LiveDualSessionService {
         });
       }
     }
+
+    // 5. Classroom Roster & Participant Presence
+    else if (type === 'roster_update') {
+      const participants = (data.participants as ClassroomParticipant[]) || [];
+      const count = typeof data.count === 'number' ? data.count : participants.length;
+      console.log(`[DualWS:Output] Roster update: ${count} participant(s).`);
+      this.callbacks.onRosterUpdate?.(participants, count);
+    }
+
+    // 6. Blackboard State Catch-Up Sync (for joining students)
+    else if (type === 'board_sync') {
+      const payload = data.payload as BoardStatePayload;
+      console.log(`[DualWS:Output] Board sync snapshot received:`, payload);
+      this.callbacks.onBoardSync?.(payload);
+    }
+  }
+
+  /**
+   * Raise or lower hand in the classroom.
+   */
+  public raiseHand(userId: string, raised: boolean = true): void {
+    this.sendToInput({
+      type: 'raise_hand',
+      sessionId: this.sessionId,
+      userId,
+      raised,
+    });
+  }
+
+  /**
+   * Broadcast microphone mute status toggle.
+   */
+  public toggleMute(userId: string, isMuted: boolean): void {
+    this.sendToInput({
+      type: 'mute_toggle',
+      sessionId: this.sessionId,
+      userId,
+      isMuted,
+    });
+  }
+
+  /**
+   * Broadcast participant metadata when entering classroom.
+   */
+  public joinClassroom(participant: ClassroomParticipant): void {
+    this.sendToInput({
+      type: 'join_classroom',
+      sessionId: this.sessionId,
+      participant,
+    });
   }
 
   /**

@@ -8,6 +8,7 @@ import {
   Share2,
   BookOpen,
   HelpCircle,
+  Hand,
 } from 'lucide-react';
 
 interface AudioControlBarProps {
@@ -23,6 +24,8 @@ interface AudioControlBarProps {
   isNotesOpen: boolean;
   participantCount: number;
   isClassroomMode?: boolean;
+  hasRaisedHand?: boolean;
+  onToggleRaiseHand?: () => void;
 }
 
 export const AudioControlBar: React.FC<AudioControlBarProps> = ({
@@ -38,6 +41,8 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
   isNotesOpen,
   participantCount,
   isClassroomMode = false,
+  hasRaisedHand = false,
+  onToggleRaiseHand,
 }) => {
   const [showQuestionsMenu, setShowQuestionsMenu] = useState(false);
   const [customQuestion, setCustomQuestion] = useState('');
@@ -193,10 +198,29 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
           </div>
         </div>
 
-        {/* Classroom Collaboration Button - ONLY Rendered in Classroom Mode */}
+        {/* Classroom Collaboration & Hand Raise Buttons - ONLY Rendered in Classroom Mode */}
         {isClassroomMode && (
           <>
             <div className="w-[1px] h-6 bg-slate-700/60 mx-0.5"></div>
+            {/* Raise Hand Button */}
+            <div className="relative group">
+              <button
+                onClick={onToggleRaiseHand}
+                aria-label={hasRaisedHand ? 'Lower Hand' : 'Raise Hand'}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-all cursor-pointer shadow-sm ${
+                  hasRaisedHand
+                    ? 'bg-amber-500/30 text-amber-200 border-amber-400/60 shadow-amber-500/20 animate-pulse'
+                    : 'bg-slate-800/90 text-slate-300 border-slate-700 hover:bg-slate-750 hover:text-white'
+                }`}
+              >
+                <Hand className={`w-3.5 h-3.5 ${hasRaisedHand ? 'text-amber-300' : 'text-slate-400'}`} />
+                <span>{hasRaisedHand ? 'Hand Raised' : 'Raise Hand'}</span>
+              </button>
+              <div className="absolute -top-9 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-md bg-slate-900 border border-slate-700 text-[11px] text-slate-200 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg font-medium">
+                {hasRaisedHand ? 'Click to Lower Hand' : 'Raise Hand to Ask Rabbly'}
+              </div>
+            </div>
+
             <div className="relative group">
               <button
                 onClick={onOpenClassroom}
