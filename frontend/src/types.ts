@@ -160,6 +160,9 @@ export interface ClassroomRoom {
   participants: ClassroomParticipant[];
   hasExternalResources: boolean;
   resources: ExternalResource[];
+  curriculumPlan?: LessonPlan | null;
+  boardState?: BoardStatePayload | null;
+  toolHistory?: Array<Record<string, unknown>> | null;
   createdAt: string;
   updatedAt: string;
 }

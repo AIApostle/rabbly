@@ -140,27 +140,31 @@ export function App() {
       const extractedCode = location.pathname.replace(/^\/classroom\/?/, '').split('/')[0].trim().toUpperCase();
       if (extractedCode) {
         setIsClassroomMode(true);
+        setIsPreparing(false);
+        setIsPlaying(true);
         if (roomCode !== extractedCode) {
           setRoomCode(extractedCode);
         }
-        // If topic is unset, retrieve room details from backend
-        if (!currentTopicTitle) {
-          verifyRoomCode(extractedCode)
-            .then((room) => {
-              if (room) {
-                if (room.topic) setCurrentTopicTitle(room.topic);
-                if (room.participants && room.participants.length > 0) {
-                  setParticipants(room.participants);
-                }
+        // Retrieve existing room details and curriculum from backend
+        verifyRoomCode(extractedCode)
+          .then((room) => {
+            if (room) {
+              if (room.topic) setCurrentTopicTitle(room.topic);
+              if (room.participants && room.participants.length > 0) {
+                setParticipants(room.participants);
               }
-            })
-            .catch((e) => console.warn('Could not verify room code from server:', e));
-        }
+              if (room.curriculumPlan) {
+                setCurrentPlan(room.curriculumPlan);
+                liveDualSessionService.setCurriculumPlan(room.curriculumPlan);
+              }
+            }
+          })
+          .catch((e) => console.warn('Could not verify room code from server:', e));
       }
     } else if (location.pathname === '/learn') {
       setIsClassroomMode(false);
     }
-  }, [location.pathname, roomCode, currentTopicTitle]);
+  }, [location.pathname, roomCode]);
 
   // Live Session Teaching Timer (records active teaching time)
   useEffect(() => {
@@ -210,6 +214,15 @@ export function App() {
       onBoardSync: (snapshot) => {
         console.log('[App] Classroom whiteboard catch-up sync received:', snapshot);
       },
+      onCurriculumSync: (syncedPlan) => {
+        console.log('[App] Received curriculum sync for active lecture:', syncedPlan?.topic);
+        if (syncedPlan) {
+          setCurrentPlan(syncedPlan);
+          if (syncedPlan.topic) setCurrentTopicTitle(syncedPlan.topic);
+          setIsPreparing(false);
+          setIsPlaying(true);
+        }
+      },
     });
 
     const clientUserInfo = {
@@ -242,30 +255,64 @@ export function App() {
     _file?: File | null,
     resources?: ExternalResource[],
     existingPlan?: LessonPlan | null,
-    specificRoomCode?: string
+    specificRoomCode?: string,
+    isJoinExisting?: boolean
   ) => {
-    const cleanTopic = topic.trim() || 'General Study';
-    setCurrentTopicTitle(cleanTopic);
-    setIsClassroomMode(classroom);
-    setIsPreparing(true);
-    setElapsedSeconds(0);
-    setIsPlaying(false);
-    setIncomingAction(null);
-
     const effectiveRoomCode = specificRoomCode || existingPlan?.room_code || `RAB-${Math.floor(1000 + Math.random() * 9000)}`;
     setRoomCode(effectiveRoomCode);
+    setIsClassroomMode(classroom);
 
-    if (classroom) {
+    // If joining an existing classroom room, seamlessly enter without restarting from scratch
+    if (classroom && (isJoinExisting || (specificRoomCode && (!resources || resources.length === 0)))) {
+      setIsPreparing(false);
+      setIsPlaying(true);
+      setElapsedSeconds(0);
+      setIncomingAction(null);
       navigate(`/classroom/${effectiveRoomCode}`);
-    } else {
-      navigate('/learn');
+
+      try {
+        const room = await verifyRoomCode(effectiveRoomCode);
+        if (room) {
+          if (room.topic) setCurrentTopicTitle(room.topic);
+          if (room.participants && room.participants.length > 0) {
+            setParticipants(room.participants);
+          }
+          if (room.curriculumPlan) {
+            setCurrentPlan(room.curriculumPlan);
+            liveDualSessionService.setCurriculumPlan(room.curriculumPlan);
+          }
+        }
+      } catch (e) {
+        console.warn('Could not verify room on join:', e);
+      }
+      return;
     }
 
     if (existingPlan) {
       setCurrentPlan(existingPlan);
       setCurrentTopicTitle(existingPlan.topic);
       setIsGeneratingCurriculum(false);
+      setIsPreparing(false);
+      setIsPlaying(true);
+      if (classroom) {
+        navigate(`/classroom/${effectiveRoomCode}`);
+      } else {
+        navigate('/learn');
+      }
       return;
+    }
+
+    const cleanTopic = topic.trim() || 'General Study';
+    setCurrentTopicTitle(cleanTopic);
+    setIsPreparing(true);
+    setElapsedSeconds(0);
+    setIsPlaying(false);
+    setIncomingAction(null);
+
+    if (classroom) {
+      navigate(`/classroom/${effectiveRoomCode}`);
+    } else {
+      navigate('/learn');
     }
 
     setIsGeneratingCurriculum(true);

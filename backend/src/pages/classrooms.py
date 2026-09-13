@@ -52,6 +52,9 @@ class ClassroomDetailsResponse(BaseModel):
     participants: List[Dict[str, Any]] = Field(default_factory=list)
     has_external_resources: bool = False
     resources: List[Dict[str, Any]] = Field(default_factory=list)
+    curriculum_plan: Optional[Dict[str, Any]] = None
+    board_state: Optional[Dict[str, Any]] = None
+    tool_history: Optional[List[Dict[str, Any]]] = None
     created_at: str
     updated_at: str
 
@@ -227,18 +230,28 @@ async def get_classroom(room_code: str):
 
     clean_code = room_code.strip().upper()
 
+    from src.connection.manager import session_manager
+
+    active_live = session_manager._sessions.get(clean_code)
+    live_curriculum = getattr(active_live.agent, "curriculum_data", None) if active_live and hasattr(active_live, "agent") else None
+    live_tool_history = getattr(active_live.mcp_client, "tool_history", None) if active_live and hasattr(active_live, "mcp_client") else None
+    live_participants = list(active_live.participants.values()) if active_live and active_live.participants else None
+
     if _is_supabase_ready():
         try:
             client = get_supabase_admin_client()
             session = get_session_by_code(client, clean_code)
             if session:
                 board_state = session.board_state or {}
-                participants = board_state.get("participants", [])
+                participants = live_participants or board_state.get("participants", [])
                 resources = board_state.get("resources", [])
+                curr_plan = live_curriculum or board_state.get("curriculum_plan")
+                history = live_tool_history or board_state.get("tool_history")
+                topic = (curr_plan.get("topic") if isinstance(curr_plan, dict) and curr_plan.get("topic") else None) or session.topic
                 return ClassroomDetailsResponse(
                     id=session.id,
                     room_code=session.room_code,
-                    topic=session.topic,
+                    topic=topic,
                     level=session.level,
                     subject=session.subject or "Collaborative Study",
                     status=session.status,
@@ -248,6 +261,9 @@ async def get_classroom(room_code: str):
                     participants=participants,
                     has_external_resources=bool(resources),
                     resources=resources,
+                    curriculum_plan=curr_plan,
+                    board_state=board_state,
+                    tool_history=history,
                     created_at=session.created_at or datetime.now(timezone.utc).isoformat(),
                     updated_at=session.updated_at or datetime.now(timezone.utc).isoformat(),
                 )
@@ -255,32 +271,49 @@ async def get_classroom(room_code: str):
             pass
 
     if clean_code in _memory_classrooms:
-        return ClassroomDetailsResponse(**_memory_classrooms[clean_code])
+        mem_room = dict(_memory_classrooms[clean_code])
+        curr_plan = live_curriculum or mem_room.get("curriculum_plan")
+        if curr_plan:
+            mem_room["curriculum_plan"] = curr_plan
+            if isinstance(curr_plan, dict) and curr_plan.get("topic"):
+                mem_room["topic"] = curr_plan["topic"]
+        if live_tool_history:
+            mem_room["tool_history"] = live_tool_history
+        if live_participants:
+            mem_room["participants"] = live_participants
+            mem_room["participant_count"] = len(live_participants)
+        return ClassroomDetailsResponse(**mem_room)
 
     # Allow instant join for standard Rabbly room code patterns (e.g. RAB-3764)
     if re.match(r"^RAB-\d{4}$", clean_code):
         now_iso = datetime.now(timezone.utc).isoformat()
+        curr_plan = live_curriculum
+        topic = (curr_plan.get("topic") if isinstance(curr_plan, dict) and curr_plan.get("topic") else None) or f"Classroom Session ({clean_code})"
+        participants = live_participants or [
+            {
+                "id": f"p-{uuid.uuid4().hex[:6]}",
+                "name": "Host Student",
+                "avatar": "🎓",
+                "is_host": True,
+                "joined_at": "Just now",
+            }
+        ]
         room_record = {
             "id": f"room-{clean_code.lower()}",
             "room_code": clean_code,
-            "topic": f"Classroom Session ({clean_code})",
+            "topic": topic,
             "level": "Intermediate",
             "subject": "Collaborative Study",
             "status": "active",
             "host_id": None,
             "host_name": "Host Student",
-            "participant_count": 1,
-            "participants": [
-                {
-                    "id": f"p-{uuid.uuid4().hex[:6]}",
-                    "name": "Host Student",
-                    "avatar": "🎓",
-                    "is_host": True,
-                    "joined_at": "Just now",
-                }
-            ],
+            "participant_count": len(participants),
+            "participants": participants,
             "has_external_resources": False,
             "resources": [],
+            "curriculum_plan": curr_plan,
+            "board_state": None,
+            "tool_history": live_tool_history,
             "created_at": now_iso,
             "updated_at": now_iso,
         }

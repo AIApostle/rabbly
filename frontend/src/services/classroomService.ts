@@ -199,6 +199,9 @@ export async function verifyRoomCode(roomCode: string): Promise<ClassroomRoom> {
         })),
         hasExternalResources: Boolean(d.has_external_resources ?? d.hasExternalResources),
         resources: d.resources || [],
+        curriculumPlan: d.curriculum_plan || d.curriculumPlan || null,
+        boardState: d.board_state || d.boardState || null,
+        toolHistory: d.tool_history || d.toolHistory || null,
         createdAt: d.created_at || d.createdAt || new Date().toISOString(),
         updatedAt: d.updated_at || d.updatedAt || new Date().toISOString(),
       };
@@ -227,6 +230,9 @@ export async function verifyRoomCode(roomCode: string): Promise<ClassroomRoom> {
       ],
       hasExternalResources: false,
       resources: [],
+      curriculumPlan: null,
+      boardState: null,
+      toolHistory: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -270,6 +276,9 @@ export async function joinClassroom(roomCode: string, participantName?: string):
         })),
         hasExternalResources: Boolean(d.has_external_resources ?? d.hasExternalResources),
         resources: d.resources || [],
+        curriculumPlan: d.curriculum_plan || d.curriculumPlan || null,
+        boardState: d.board_state || d.boardState || null,
+        toolHistory: d.tool_history || d.toolHistory || null,
         createdAt: d.created_at || d.createdAt || new Date().toISOString(),
         updatedAt: d.updated_at || d.updatedAt || new Date().toISOString(),
       };

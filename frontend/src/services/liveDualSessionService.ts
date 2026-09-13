@@ -31,6 +31,7 @@ export interface LiveSessionCallbacks {
   onAudioLevel?: (level: number) => void;
   onRosterUpdate?: (participants: ClassroomParticipant[], count: number) => void;
   onBoardSync?: (boardState: BoardStatePayload) => void;
+  onCurriculumSync?: (curriculum: LessonPlan) => void;
 }
 
 /**
@@ -340,6 +341,40 @@ export class LiveDualSessionService {
       const payload = data.payload as BoardStatePayload;
       console.log(`[DualWS:Output] Board sync snapshot received:`, payload);
       this.callbacks.onBoardSync?.(payload);
+    }
+
+    // 7. Blackboard Draw History Replay (for joining students)
+    else if (type === 'board_history') {
+      const history = (data.history as Array<Record<string, unknown>>) || [];
+      console.log(`[DualWS:Output] Replaying ${history.length} board action(s) for joining student.`);
+      (async () => {
+        for (const item of history) {
+          const toolName = (item.name || item.tool) as string;
+          const toolArgs = (item.arguments || item.args || {}) as Record<string, unknown>;
+          if (toolName) {
+            try {
+              await whiteboardMcpServer.callTool(toolName, toolArgs);
+            } catch (err) {
+              console.warn(`[DualWS:Output] Error replaying board tool '${toolName}':`, err);
+            }
+          }
+        }
+        try {
+          await whiteboardMcpServer.callTool('adjust_view', { mode: 'zoom_to_fit' });
+        } catch {
+          // Ignore zoom adjustment if canvas is empty
+        }
+      })();
+    }
+
+    // 8. Pedagogical Curriculum Sync (for joining students)
+    else if (type === 'curriculum_sync') {
+      const payload = data.payload as LessonPlan;
+      console.log(`[DualWS:Output] Curriculum sync received for classroom:`, payload?.topic);
+      if (payload) {
+        this.curriculumPlan = payload;
+        this.callbacks.onCurriculumSync?.(payload);
+      }
     }
   }
 

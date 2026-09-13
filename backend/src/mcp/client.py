@@ -54,6 +54,7 @@ class TldrawMcpClient:
         self.send_rpc_fn = send_rpc_fn
         self.latest_board_state: BoardStatePayload = BoardStatePayload()
         self.pending_requests: Dict[str, asyncio.Future] = {}
+        self.tool_history: List[Dict[str, Any]] = []
         self._lock = asyncio.Lock()
 
         logger.info(
@@ -548,6 +549,11 @@ class TldrawMcpClient:
             logger.info(
                 f"[TldrawMcpClient:{self.session_id}] Sending MCP request {req_id} ({tool_name}) via Output WS."
             )
+            # Record drawing tool for room history replay
+            if tool_name == "clear_board":
+                self.tool_history.clear()
+            else:
+                self.tool_history.append({"name": tool_name, "arguments": arguments})
             await self.send_rpc_fn(envelope)
 
             # Await response from frontend

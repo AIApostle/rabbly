@@ -190,7 +190,34 @@ class LiveSessionManager:
             )
             await session.agent.start()
 
-        # If whiteboard state exists, sync snapshot to newly joined client
+        # If whiteboard draw history exists, replay to newly joined client
+        if session.mcp_client.tool_history:
+            logger.info(
+                f"[LiveSessionManager:{session_id}] Sending {len(session.mcp_client.tool_history)} historical draw action(s) to new output client."
+            )
+            try:
+                await websocket.send_text(
+                    json.dumps({
+                        "type": "board_history",
+                        "history": session.mcp_client.tool_history,
+                    })
+                )
+            except Exception as e:
+                logger.debug(f"Failed to send initial board history: {e}")
+
+        # If curriculum plan exists for this session, sync to newly joined client
+        if session.agent.curriculum_data:
+            try:
+                await websocket.send_text(
+                    json.dumps({
+                        "type": "curriculum_sync",
+                        "payload": session.agent.curriculum_data,
+                    })
+                )
+            except Exception as e:
+                logger.debug(f"Failed to send initial curriculum sync: {e}")
+
+        # If whiteboard state summary exists, sync snapshot to newly joined client
         if session.mcp_client.latest_board_state.elementCount > 0:
             try:
                 await websocket.send_text(
@@ -385,6 +412,11 @@ class LiveSessionManager:
                     f"[LiveSessionManager:{session.session_id}] Received curriculum context: '{payload.get('topic')}'"
                 )
                 await session.agent.update_curriculum_context(payload)
+                await session.broadcast_output({
+                    "type": "curriculum_sync",
+                    "sessionId": session.session_id,
+                    "payload": payload,
+                })
 
         # 6. Classroom Presence & Interaction Events
         elif msg_type == "join_classroom":
