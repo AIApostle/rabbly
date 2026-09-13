@@ -12,6 +12,12 @@ client = TestClient(app)
 
 def test_list_sessions():
     """Verify GET /api/sessions returns a list of sessions."""
+    # Seed a session dynamically
+    client.post("/api/sessions", json={
+        "topic": "Dynamic Test Session",
+        "subject": "General Study",
+        "level": "Intermediate",
+    })
     response = client.get("/api/sessions")
     assert response.status_code == 200
     data = response.json()

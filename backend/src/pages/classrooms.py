@@ -19,7 +19,7 @@ from src.services.sessions import (
     get_session_by_code,
     list_user_sessions,
 )
-from src.auth.client import get_supabase_client
+from src.auth.client import get_supabase_admin_client, get_supabase_client
 
 classrooms_router = APIRouter(prefix="/classrooms", tags=["Classrooms Page"])
 
@@ -80,7 +80,7 @@ async def list_classrooms(
     """
     if _is_supabase_ready():
         try:
-            client = get_supabase_client()
+            client = get_supabase_admin_client()
             from src.db.general import select_all
             records = select_all(
                 client,
@@ -157,7 +157,7 @@ async def create_classroom(
 
     if _is_supabase_ready():
         try:
-            client = get_supabase_client()
+            client = get_supabase_admin_client()
             db_payload = SessionCreate(
                 topic=payload.topic,
                 level=payload.level,
@@ -223,13 +223,15 @@ async def get_classroom(room_code: str):
     """
     Looks up a classroom room by room code (e.g. 'RAB-9412').
     """
+    import re
+
     clean_code = room_code.strip().upper()
 
     if _is_supabase_ready():
         try:
-            client = get_supabase_client()
+            client = get_supabase_admin_client()
             session = get_session_by_code(client, clean_code)
-            if session and session.is_classroom:
+            if session:
                 board_state = session.board_state or {}
                 participants = board_state.get("participants", [])
                 resources = board_state.get("resources", [])
@@ -254,6 +256,55 @@ async def get_classroom(room_code: str):
 
     if clean_code in _memory_classrooms:
         return ClassroomDetailsResponse(**_memory_classrooms[clean_code])
+
+    # Allow instant join for standard Rabbly room code patterns (e.g. RAB-3764)
+    if re.match(r"^RAB-\d{4}$", clean_code):
+        now_iso = datetime.now(timezone.utc).isoformat()
+        room_record = {
+            "id": f"room-{clean_code.lower()}",
+            "room_code": clean_code,
+            "topic": f"Classroom Session ({clean_code})",
+            "level": "Intermediate",
+            "subject": "Collaborative Study",
+            "status": "active",
+            "host_id": None,
+            "host_name": "Host Student",
+            "participant_count": 1,
+            "participants": [
+                {
+                    "id": f"p-{uuid.uuid4().hex[:6]}",
+                    "name": "Host Student",
+                    "avatar": "🎓",
+                    "is_host": True,
+                    "joined_at": "Just now",
+                }
+            ],
+            "has_external_resources": False,
+            "resources": [],
+            "created_at": now_iso,
+            "updated_at": now_iso,
+        }
+        _memory_classrooms[clean_code] = room_record
+
+        if _is_supabase_ready():
+            try:
+                client = get_supabase_admin_client()
+                db_payload = SessionCreate(
+                    topic=room_record["topic"],
+                    level=room_record["level"],
+                    is_classroom=True,
+                    subject=room_record["subject"],
+                    last_checkpoint="1. Foundation & Intuition",
+                    completed_modules=0,
+                    total_modules=4,
+                    progress_percent=0,
+                    room_code=clean_code,
+                )
+                create_session(client, db_payload)
+            except Exception:
+                pass
+
+        return ClassroomDetailsResponse(**room_record)
 
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
@@ -302,9 +353,9 @@ async def join_classroom(
     # Check database
     if _is_supabase_ready():
         try:
-            client = get_supabase_client()
+            client = get_supabase_admin_client()
             session = get_session_by_code(client, clean_code)
-            if session and session.is_classroom:
+            if session:
                 return ClassroomDetailsResponse(
                     id=session.id,
                     room_code=session.room_code,

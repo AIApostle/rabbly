@@ -202,14 +202,9 @@ export async function verifyRoomCode(roomCode: string): Promise<ClassroomRoom> {
         createdAt: d.created_at || d.createdAt || new Date().toISOString(),
         updatedAt: d.updated_at || d.updatedAt || new Date().toISOString(),
       };
-    } else if (res.status === 404) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || `Classroom with code '${cleanCode}' was not found.`);
     }
   } catch (err: any) {
-    if (err.message && err.message.includes('not found')) {
-      throw err;
-    }
+    console.warn('Backend classroom verification error:', err);
   }
 
   // Check local cache
@@ -217,18 +212,18 @@ export async function verifyRoomCode(roomCode: string): Promise<ClassroomRoom> {
   if (local) return local;
 
   // If looks like valid RAB-XXXX pattern, allow entering
-  if (/^RAB-\d{4}$/.test(cleanCode)) {
+  if (/^RAB-[A-Z0-9]{4,}$/.test(cleanCode)) {
     return {
       id: `room-${cleanCode}`,
       roomCode: cleanCode,
-      topic: `Classroom Session ${cleanCode}`,
+      topic: `Classroom Session (${cleanCode})`,
       level: 'Intermediate',
       subject: 'Collaborative Study',
       status: 'active',
-      hostName: 'Study Peer',
+      hostName: 'Host Student',
       participantCount: 1,
       participants: [
-        { id: 'peer-1', name: 'Study Peer', avatar: '👩🏻‍💻', isHost: true, isMuted: true, joinedAt: '5m ago' },
+        { id: 'peer-host', name: 'Host Student', avatar: '🎓', isHost: true, isMuted: true, joinedAt: 'Just now' },
       ],
       hasExternalResources: false,
       resources: [],
@@ -237,7 +232,7 @@ export async function verifyRoomCode(roomCode: string): Promise<ClassroomRoom> {
     };
   }
 
-  throw new Error(`Classroom with code '${cleanCode}' does not exist. Please check the code and try again.`);
+  throw new Error(`Classroom code '${cleanCode}' was not found. Please check the link or code.`);
 }
 
 /**
