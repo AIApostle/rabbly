@@ -113,6 +113,38 @@ class TldrawMcpClient:
         """
         return self.latest_board_state
 
+    def restore_from_saved_state(self, saved_board_state: Any) -> None:
+        """
+        Restores historical drawing actions and element summaries from a persisted session record.
+        Enables the AI tutor to remember previous whiteboard formulas and diagrams across sessions.
+        """
+        if not isinstance(saved_board_state, dict):
+            return
+
+        history = saved_board_state.get("tool_history") or saved_board_state.get("history")
+        if history and isinstance(history, list):
+            self.tool_history = list(history)
+            logger.info(
+                f"[TldrawMcpClient:{self.session_id}] Restored {len(self.tool_history)} historical draw actions from database."
+            )
+
+        shapes = saved_board_state.get("shapes") or saved_board_state.get("elements") or []
+        if shapes and isinstance(shapes, list):
+            count = len(shapes)
+            self.latest_board_state = BoardStatePayload(
+                elementCount=count,
+                spatialSummary=f"Restored blackboard with {count} previously drawn formulas and shapes",
+                elements=[
+                    {"id": s.get("id", ""), "type": s.get("type", "shape")}
+                    for s in shapes
+                    if isinstance(s, dict)
+                ],
+            )
+            logger.info(
+                f"[TldrawMcpClient:{self.session_id}] Restored blackboard spatial state with {count} elements."
+            )
+
+
     def get_tool_definitions(self) -> List[McpToolDefinition]:
         """
         Return the standardized list of MCP tools exposed to the AI agent.

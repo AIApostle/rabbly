@@ -22,6 +22,7 @@ from src.prompt.tutor_prompt import (
     SYSTEM_TUTOR_PROMPT,
     build_curriculum_instructions,
     build_initial_greeting_prompt,
+    get_system_prompt,
 )
 from src.services.curriculum import get_curriculum_plan_for_session
 
@@ -165,6 +166,8 @@ class GeminiLiveAgent:
         """Constructs the LiveConnectConfig for Gemini Live session."""
         tools = self.mcp_client.get_genai_tools()
 
+        system_prompt = get_system_prompt(self.curriculum_data)
+
         return genai_types.LiveConnectConfig(
             response_modalities=[genai_types.Modality.AUDIO],
             speech_config=genai_types.SpeechConfig(
@@ -175,7 +178,7 @@ class GeminiLiveAgent:
                 )
             ),
             system_instruction=genai_types.Content(
-                parts=[genai_types.Part.from_text(text=SYSTEM_TUTOR_PROMPT)]
+                parts=[genai_types.Part.from_text(text=system_prompt)]
             ),
             tools=tools,
             output_audio_transcription=genai_types.AudioTranscriptionConfig(),
@@ -299,7 +302,7 @@ class GeminiLiveAgent:
             )
             self._client = genai.Client(api_key=self.api_key)
 
-            # Pre-load curriculum plan for this session if not provided
+            # Pre-load curriculum plan and restore board memory for this session if not provided
             if not self.curriculum_data:
                 try:
                     self.curriculum_data = get_curriculum_plan_for_session(self.session_id)
@@ -307,10 +310,14 @@ class GeminiLiveAgent:
                         logger.info(
                             f"[GeminiLiveAgent:{self.session_id}] Pre-loaded curriculum plan for topic: '{self.curriculum_data.get('topic')}'"
                         )
+                        if self.curriculum_data.get("board_state"):
+                            self.mcp_client.restore_from_saved_state(self.curriculum_data["board_state"])
                 except Exception as plan_err:
                     logger.warning(
                         f"[GeminiLiveAgent:{self.session_id}] Could not pre-fetch curriculum plan: {plan_err}"
                     )
+            elif self.curriculum_data.get("board_state"):
+                self.mcp_client.restore_from_saved_state(self.curriculum_data["board_state"])
 
             config = self._build_live_config()
 
@@ -338,9 +345,14 @@ class GeminiLiveAgent:
                 }
             )
 
-            # Proactively prompt the live teacher to greet the student with the curriculum topic
+            # Proactively prompt the live teacher to greet the student with the curriculum topic or memory checkpoint
             try:
                 greeting_text = build_initial_greeting_prompt(self.curriculum_data)
+                board = self.mcp_client.get_latest_board_state()
+                if board and board.elementCount > 0:
+                    greeting_text += (
+                        f" (Whiteboard currently has {board.elementCount} elements on it: {board.spatialSummary}.)"
+                    )
                 if self._session:
                     await self._session.send_client_content(
                         turns=[
@@ -683,11 +695,47 @@ class GeminiLiveAgent:
             }
         )
 
+        # Pre-load curriculum plan and restore board memory in simulation mode
+        if not self.curriculum_data:
+            try:
+                self.curriculum_data = get_curriculum_plan_for_session(self.session_id)
+                if self.curriculum_data and self.curriculum_data.get("board_state"):
+                    self.mcp_client.restore_from_saved_state(self.curriculum_data["board_state"])
+            except Exception as plan_err:
+                logger.debug(f"[GeminiLiveAgent:{self.session_id}] Simulation curriculum fetch: {plan_err}")
+        elif self.curriculum_data.get("board_state"):
+            self.mcp_client.restore_from_saved_state(self.curriculum_data["board_state"])
+
+        completed = 0
+        active_idx = 0
+        topic = "STEM & Mathematics"
+        if self.curriculum_data and isinstance(self.curriculum_data, dict):
+            topic = self.curriculum_data.get("topic") or topic
+            completed = self.curriculum_data.get("completed_modules") or self.curriculum_data.get("completedModules") or 0
+            active_idx = self.curriculum_data.get("active_module_index") or self.curriculum_data.get("activeModuleIndex") or completed
+
+        if completed > 0 or active_idx > 0:
+            modules = self.curriculum_data.get("modules") or []
+            target_title = (
+                modules[active_idx].get("title", f"Module {active_idx + 1}")
+                if active_idx < len(modules) and isinstance(modules[active_idx], dict)
+                else f"Module {active_idx + 1}"
+            )
+            sim_greeting = (
+                f"Welcome back! I remember where we stopped in our lesson on {topic}. "
+                f"We previously mastered {completed} module(s). Let's pick right back up at {target_title} on the blackboard!"
+            )
+        else:
+            sim_greeting = (
+                f"Hello! I am Rabbly, your AI Tutor. I can see the digital blackboard and illustrate concepts in real time. "
+                f"Today we're exploring {topic}. Ask me anything or tell me what to draw!"
+            )
+
         await self.emit_to_frontend(
             {
                 "type": "transcript",
                 "sessionId": self.session_id,
-                "text": "Hello! I am Rabbly, your AI Tutor. I can see the digital blackboard and illustrate concepts in real time. Ask me anything or tell me what to draw!",
+                "text": sim_greeting,
             }
         )
 

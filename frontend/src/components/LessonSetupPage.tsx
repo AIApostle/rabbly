@@ -351,76 +351,7 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
     }
   };
 
-  // Curated ChatGPT-Style Prompt Starters
-  const starterPrompts = [
-    {
-      icon: '🧠',
-      title: 'Transformers & Self-Attention',
-      desc: 'Query, Key, Value matrix mechanics and attention weights',
-      category: 'AI / LLMs',
-      level: 'Intermediate' as const,
-      topic: 'Explain Transformer architecture and how Query, Key, and Value matrices compute self-attention with visual diagrams.',
-      resource: {
-        id: 'starter-1',
-        type: 'link' as const,
-        title: 'Attention Is All You Need (Vaswani et al.)',
-        detail: 'arxiv.org/abs/1706.03762',
-        url: 'https://arxiv.org/abs/1706.03762',
-      },
-    },
-    {
-      icon: '⚡',
-      title: 'Distributed Rate Limiter',
-      desc: 'Token bucket algorithm with Redis cluster and Lua scripts',
-      category: 'System Design',
-      level: 'Advanced' as const,
-      topic: 'Design a distributed rate limiter for high-scale API gateways using Token Bucket and Redis Lua scripts.',
-      resource: {
-        id: 'starter-2',
-        type: 'link' as const,
-        title: 'System Design Blueprint: Rate Limiter',
-        detail: 'system-design.primer',
-        url: 'https://github.com/donnemartin/system-design-primer',
-      },
-    },
-    {
-      icon: '⚛️',
-      title: 'Quantum Superposition & Qubits',
-      desc: 'Bloch sphere geometry, Hadamard gates, and Bell states',
-      category: 'Physics',
-      level: 'Beginner' as const,
-      topic: 'Explain Quantum Superposition, the Bloch sphere, and how Bell states entangle qubits visually.',
-      resource: {
-        id: 'starter-3',
-        type: 'note' as const,
-        title: 'Quantum Mechanics Foundations',
-        detail: 'Hilbert space & State vectors',
-        content: '|ψ⟩ = α|0⟩ + β|1⟩, |α|² + |β|² = 1',
-      },
-    },
-    {
-      icon: '🎬',
-      title: 'Neural Networks: 3Blue1Brown Tutorial',
-      desc: 'Gradient descent, backpropagation & weights animation',
-      category: 'Deep Learning',
-      level: 'Beginner' as const,
-      topic: 'Walk me through the 3Blue1Brown Neural Network video tutorial on gradient descent and weight updates with interactive whiteboard steps.',
-      resource: {
-        id: 'starter-yt-1',
-        type: 'youtube' as const,
-        title: '3Blue1Brown: But what is a neural network?',
-        detail: 'youtube.com/watch?v=aircAruvnKk',
-        url: 'https://www.youtube.com/watch?v=aircAruvnKk',
-        videoId: 'aircAruvnKk',
-      },
-    },
-  ];
-
-  const handleSelectStarter = (starter: typeof starterPrompts[0]) => {
-    setPrompt(starter.topic);
-    setLevel(starter.level);
-    setResources([starter.resource]);
-  };
+  // Real session selection handled via handleContinueSession from database
 
   const toggleVoiceInput = () => {
     if (!isVoiceActive) {
@@ -622,29 +553,7 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
           </button>
         </div>
 
-        {/* Upgrade to Pro Banner if not pro */}
-        {!currentUser?.isPro && onOpenUpgrade && (
-          <div className="px-3.5 pb-2">
-            <button
-              type="button"
-              onClick={onOpenUpgrade}
-              className="w-full p-2.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-purple-500/15 to-blue-500/15 hover:from-amber-500/25 hover:via-purple-500/25 hover:to-blue-500/25 border border-amber-500/40 text-left transition-all cursor-pointer group shadow-sm"
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-bold text-amber-300 font-mono flex items-center gap-1.5">
-                  <Crown className="w-3.5 h-3.5 text-amber-400" />
-                  <span>RABBLY PRO</span>
-                </span>
-                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-950 font-mono">
-                  UPGRADE
-                </span>
-              </div>
-              <p className="text-[10px] text-[#c4c6d0] leading-snug">
-                Unlimited Gemini 2.0 Live audio & PDF study guides
-              </p>
-            </button>
-          </div>
-        )}
+
 
         {/* Sidebar Footer: Dynamic User Profile & Back to Home */}
         <div ref={profileMenuRef} className="p-3.5 border-t border-[#44474f]/25 shrink-0 bg-[#14161a] relative">
@@ -787,17 +696,31 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                onBack();
-                navigate('/');
-              }}
-              className="p-2 rounded-lg hover:bg-[#282a2f] text-[#8e9099] hover:text-white transition-colors cursor-pointer"
-              title="Return to Landing Page"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {!currentUser?.isPro && onOpenUpgrade && (
+                <button
+                  type="button"
+                  onClick={onOpenUpgrade}
+                  className="px-2 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 hover:text-amber-200 transition-colors cursor-pointer group flex items-center gap-1 shadow-sm"
+                  title="Upgrade to Rabbly Pro"
+                >
+                  <Crown className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+                  <span className="text-[10px] font-bold font-mono">PRO</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  onBack();
+                  navigate('/');
+                }}
+                className="p-2 rounded-lg hover:bg-[#282a2f] text-[#8e9099] hover:text-white transition-colors cursor-pointer"
+                title="Return to Landing Page"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </aside>
@@ -1114,57 +1037,57 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
               <span>Shift + ↵ for new line</span>
             </div>
 
-            {/* Curated Prompt Starters */}
-            <div className="w-full max-w-3xl mt-10">
-              <div className="flex items-center justify-between mb-3 px-1">
-                <span className="text-xs uppercase font-bold tracking-widest text-[#8e9099] font-mono">
-                  Suggested Breakthrough Topics
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {starterPrompts.map((starter) => (
-                  <div
-                    key={starter.title}
-                    onClick={() => handleSelectStarter(starter)}
-                    className="group p-4 rounded-2xl bg-[#191c20] hover:bg-[#1d2024] border border-[#44474f]/30 hover:border-[#a8c7fa]/50 transition-all duration-200 cursor-pointer shadow-md flex flex-col justify-between"
+            {/* Real Database Recent Study Sessions */}
+            {recentSessions.length > 0 && (
+              <div className="w-full max-w-3xl mt-10">
+                <div className="flex items-center justify-between mb-3 px-1">
+                  <span className="text-xs uppercase font-bold tracking-widest text-[#8e9099] font-mono">
+                    Recent Study Sessions
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => navigateToView('recent')}
+                    className="text-xs text-[#a8c7fa] hover:text-white font-mono hover:underline cursor-pointer"
                   >
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">{starter.icon}</span>
-                          <h3 className="text-sm font-bold text-white font-['Outfit'] group-hover:text-[#a8c7fa] transition-colors">
-                            {starter.title}
-                          </h3>
+                    View All ({recentSessions.length}) →
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {recentSessions.slice(0, 4).map((sess) => (
+                    <div
+                      key={sess.id}
+                      onClick={() => handleContinueSession(sess)}
+                      className="group p-4 rounded-2xl bg-[#191c20] hover:bg-[#1d2024] border border-[#44474f]/30 hover:border-[#a8c7fa]/50 transition-all duration-200 cursor-pointer shadow-md flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-[#111318] border border-[#44474f]/40 text-[#a8c7fa] font-bold">
+                            {sess.subject || 'General'}
+                          </span>
+                          <span className="text-[10px] text-[#8e9099] font-mono">
+                            {sess.timestamp || sess.date}
+                          </span>
                         </div>
-                        <span className="text-[10px] text-[#8e9099] px-2 py-0.5 rounded-full bg-[#111318] border border-[#44474f]/30 font-mono">
-                          {starter.category}
+                        <h3 className="text-sm font-bold text-white font-['Outfit'] group-hover:text-[#a8c7fa] transition-colors line-clamp-1">
+                          {sess.topic}
+                        </h3>
+                        <p className="text-xs text-[#c4c6d0] mt-1 line-clamp-1">
+                          Checkpoint: {sess.lastCheckpoint}
+                        </p>
+                      </div>
+
+                      <div className="mt-3 pt-2.5 border-t border-[#44474f]/20 flex items-center justify-between text-[11px] text-[#8e9099]">
+                        <span>{sess.progressPercent}% completed</span>
+                        <span className="group-hover:translate-x-1 transition-transform text-[#a8c7fa]">
+                          Resume →
                         </span>
                       </div>
-                      <p className="text-xs text-[#c4c6d0] leading-relaxed">
-                        {starter.desc}
-                      </p>
                     </div>
-
-                    <div className="mt-3 pt-2.5 border-t border-[#44474f]/20 flex items-center justify-between text-[11px] text-[#8e9099]">
-                      <span className="flex items-center gap-1.5 font-mono truncate max-w-[220px]">
-                        {starter.resource.type === 'youtube' ? (
-                          <SquarePlay className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                        ) : starter.resource.type === 'link' ? (
-                          <Globe className="w-3.5 h-3.5 text-[#78f8e7] shrink-0" />
-                        ) : (
-                          <Paperclip className="w-3.5 h-3.5 text-[#a8c7fa] shrink-0" />
-                        )}
-                        <span className="truncate">{starter.resource.title}</span>
-                      </span>
-                      <span className="group-hover:translate-x-1 transition-transform text-[#a8c7fa]">
-                        →
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </main>
         )}
         </div>

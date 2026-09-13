@@ -145,12 +145,26 @@ export const LessonDrawer: React.FC<LessonDrawerProps> = ({
           </div>
         </div>
 
-        <button
-          onClick={onClose}
-          className="p-1.5 rounded-lg bg-[#282a2f] hover:bg-[#33353a] text-[#8e9099] hover:text-white transition-all cursor-pointer"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1.5">
+          {onOpenFullNotes && (
+            <button
+              type="button"
+              onClick={onOpenFullNotes}
+              className="px-2.5 py-1 rounded-lg bg-[#0842a0]/60 hover:bg-[#0842a0] text-[11px] font-semibold text-[#a8c7fa] hover:text-white border border-[#a8c7fa]/40 flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+              title="Open full-page lecture notes and export PDF"
+            >
+              <FileText className="w-3 h-3" />
+              <span>Full & PDF</span>
+            </button>
+          )}
+
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg bg-[#282a2f] hover:bg-[#33353a] text-[#8e9099] hover:text-white transition-all cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}

@@ -61,11 +61,28 @@ def build_curriculum_instructions(curriculum_data: Optional[dict]) -> str:
     # Resume context & memory awareness
     completed_modules = curriculum_data.get("completedModules") or curriculum_data.get("completed_modules") or 0
     active_idx = curriculum_data.get("activeModuleIndex") or curriculum_data.get("active_module_index") or completed_modules
+    last_checkpoint = curriculum_data.get("last_checkpoint")
     if completed_modules > 0 or active_idx > 0:
+        completed_titles = []
+        for idx in range(min(completed_modules, len(modules))):
+            if isinstance(modules[idx], dict):
+                completed_titles.append(modules[idx].get("title", f"Module {idx + 1}"))
+        completed_summary = ", ".join(completed_titles) if completed_titles else f"Modules 1-{completed_modules}"
+
+        target_title = (
+            modules[active_idx].get("title", f"Module {active_idx + 1}")
+            if active_idx < len(modules) and isinstance(modules[active_idx], dict)
+            else f"Module {active_idx + 1}"
+        )
+
         lines.append(
-            f"\nSESSION MEMORY / RESUME CONTEXT: The student is returning to an ongoing session! "
-            f"Modules 1 to {completed_modules} were previously completed. Current target is Module {active_idx + 1}. "
-            f"Acknowledge what was taught earlier, call get_board_state to verify existing drawings, and seamlessly continue without starting over."
+            f"\nSESSION MEMORY / RESUMED TEACHING CONTEXT:\n"
+            f"- This is an ONGOING lesson being resumed from memory! Do NOT start from scratch or re-introduce the topic.\n"
+            f"- Already completed: {completed_summary}.\n"
+            f"- Last saved checkpoint: {last_checkpoint or 'Intermediate Checkpoint'}.\n"
+            f"- Current target to teach: {target_title}.\n"
+            f"- Instruction: Greet the student welcoming them back, mention where you left off, call get_board_state to inspect "
+            f"existing blackboard formulas/drawings, and proceed directly to teaching {target_title} on the board."
         )
 
     # Lecture Notes & Formulas
@@ -97,6 +114,7 @@ def build_initial_greeting_prompt(curriculum_data: Optional[dict] = None) -> str
     modules = curriculum_data.get("modules") or []
     completed_modules = curriculum_data.get("completedModules") or curriculum_data.get("completed_modules") or 0
     active_idx = curriculum_data.get("activeModuleIndex") or curriculum_data.get("active_module_index") or completed_modules
+    last_checkpoint = curriculum_data.get("last_checkpoint")
 
     # If resuming an ongoing lesson
     if completed_modules > 0 or active_idx > 0:
@@ -105,10 +123,11 @@ def build_initial_greeting_prompt(curriculum_data: Optional[dict] = None) -> str
             if active_idx < len(modules) and isinstance(modules[active_idx], dict)
             else f"Module {active_idx + 1}"
         )
+        checkpoint_mention = f" at '{last_checkpoint}'" if last_checkpoint else ""
         return (
             f"Hi Rabbly! I am returning to continue our lesson on {topic}. "
-            f"We previously covered {completed_modules} module(s). "
-            f"Please call get_board_state to inspect our existing blackboard illustrations, "
+            f"We previously covered {completed_modules} module(s) and paused{checkpoint_mention}. "
+            f"Please call get_board_state to inspect our existing blackboard diagrams, "
             f"welcome me back warmly, and let's seamlessly pick up right where we left off at {target_mod}!"
         )
 

@@ -559,9 +559,70 @@ def list_user_library(user: Optional[UserProfile] = None, limit: int = 50) -> Li
     return library[:limit]
 
 
+def _enrich_plan_with_session_memory(plan: dict, session_record: Any) -> dict:
+    """Attaches module progress, checkpoints, and saved board state to curriculum plan for memory continuity."""
+    if not isinstance(plan, dict):
+        return plan
+    enriched = dict(plan)
+
+    board_state = (
+        getattr(session_record, "board_state", None)
+        if not isinstance(session_record, dict)
+        else session_record.get("board_state", {})
+    ) or {}
+    metadata = board_state.get("metadata", {}) if isinstance(board_state, dict) else {}
+
+    completed = (
+        getattr(session_record, "completed_modules", None)
+        if not isinstance(session_record, dict)
+        else session_record.get("completed_modules")
+    )
+    if completed is None:
+        completed = metadata.get("completed_modules", 0)
+
+    last_checkpoint = (
+        getattr(session_record, "last_checkpoint", None)
+        if not isinstance(session_record, dict)
+        else session_record.get("last_checkpoint")
+    )
+    if not last_checkpoint:
+        last_checkpoint = metadata.get("last_checkpoint")
+
+    progress_percent = (
+        getattr(session_record, "progress_percent", None)
+        if not isinstance(session_record, dict)
+        else session_record.get("progress_percent")
+    )
+    if progress_percent is None:
+        progress_percent = metadata.get("progress_percent", 0)
+
+    enriched["completed_modules"] = completed or 0
+    enriched["completedModules"] = completed or 0
+    enriched["active_module_index"] = completed or 0
+    enriched["activeModuleIndex"] = completed or 0
+    enriched["last_checkpoint"] = last_checkpoint
+    enriched["progress_percent"] = progress_percent or 0
+    enriched["board_state"] = board_state
+
+    # Update individual module completion status for UI and agent
+    modules = enriched.get("modules") or []
+    if isinstance(modules, list):
+        for idx, mod in enumerate(modules):
+            if isinstance(mod, dict):
+                if idx < (completed or 0):
+                    mod["status"] = "completed"
+                elif idx == (completed or 0):
+                    mod["status"] = "in-progress"
+                else:
+                    mod["status"] = "upcoming"
+
+    return enriched
+
+
 def get_curriculum_plan_for_session(session_id: str) -> Optional[dict]:
     """
-    Retrieve the full curriculum plan dictionary for a given session ID or room code.
+    Retrieve the full curriculum plan dictionary for a given session ID or room code,
+    enriched with teaching progress, completed module checkpoints, and board state memory.
     Checks memory session store first, then Supabase database.
     """
     if not session_id:
@@ -569,17 +630,18 @@ def get_curriculum_plan_for_session(session_id: str) -> Optional[dict]:
 
     # 1. Check in-memory store by room_code or session ID
     if session_id in _memory_sessions:
-        board_state = _memory_sessions[session_id].get("board_state", {})
+        s = _memory_sessions[session_id]
+        board_state = s.get("board_state", {})
         plan = board_state.get("curriculum_plan")
         if plan and isinstance(plan, dict):
-            return plan
+            return _enrich_plan_with_session_memory(plan, s)
 
     for s in _memory_sessions.values():
         if s.get("id") == session_id or s.get("room_code") == session_id:
             board_state = s.get("board_state", {})
             plan = board_state.get("curriculum_plan")
             if plan and isinstance(plan, dict):
-                return plan
+                return _enrich_plan_with_session_memory(plan, s)
 
     # 2. Check Supabase
     if _is_supabase_ready():
@@ -595,7 +657,7 @@ def get_curriculum_plan_for_session(session_id: str) -> Optional[dict]:
                 board_state = getattr(db_session, "board_state", None) or {}
                 plan = board_state.get("curriculum_plan")
                 if plan and isinstance(plan, dict):
-                    return plan
+                    return _enrich_plan_with_session_memory(plan, db_session)
         except Exception as err:
             print(f"[CurriculumService] Error fetching curriculum plan for session {session_id}: {err}")
 

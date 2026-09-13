@@ -6,14 +6,14 @@ import {
   Volume2,
   Palette,
   Bell,
-  Trash2,
   Check,
   Crown,
   Sparkles,
   Sliders,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import confetti from 'canvas-confetti';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -44,6 +44,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const { user, updateProfile } = useAuth();
 
   // Local settings state with localStorage persistence
+  const [themeMode, setThemeMode] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('rabbly_theme_mode') as 'dark' | 'light') || 'dark';
+  });
   const [selectedVoice, setSelectedVoice] = useState(() => localStorage.getItem('rabbly_setting_voice') || user?.aiVoice || 'Aoede');
   const [vadEnabled, setVadEnabled] = useState(() => localStorage.getItem('rabbly_setting_vad') !== 'false');
   const [interruptionSensitivity, setInterruptionSensitivity] = useState(() => localStorage.getItem('rabbly_setting_interruption') || 'balanced');
@@ -61,9 +64,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   if (!isOpen) return null;
 
+  const applyThemeMode = (mode: 'dark' | 'light') => {
+    setThemeMode(mode);
+    localStorage.setItem('rabbly_theme_mode', mode);
+    if (mode === 'light') {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    }
+  };
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
 
+    applyThemeMode(themeMode);
     localStorage.setItem('rabbly_setting_voice', selectedVoice);
     localStorage.setItem('rabbly_setting_vad', String(vadEnabled));
     localStorage.setItem('rabbly_setting_interruption', interruptionSensitivity);
@@ -78,14 +94,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setSavedSuccess(false);
       onClose();
     }, 700);
-  };
-
-  const handleClearCache = () => {
-    if (confirm('Clear local learning cache and temporary files? Your saved sessions in the database will remain safe.')) {
-      sessionStorage.clear();
-      confetti({ particleCount: 20, spread: 40 });
-      alert('Local cache refreshed successfully.');
-    }
   };
 
   return (
@@ -210,7 +218,51 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
-          {/* Section 3: Whiteboard Canvas Theme */}
+          {/* Section 3: System Appearance (Dark / Light Mode) */}
+          <div className="p-4 rounded-3xl bg-[#1d2024] border border-[#44474f]/40 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {themeMode === 'dark' ? (
+                  <Moon className="w-4 h-4 text-[#a8c7fa]" />
+                ) : (
+                  <Sun className="w-4 h-4 text-amber-400" />
+                )}
+                <div>
+                  <h4 className="text-xs font-bold text-white">System Appearance</h4>
+                  <p className="text-[11px] text-[#8e9099]">Switch between Dark and Light interface themes.</p>
+                </div>
+              </div>
+
+              <div className="flex items-center bg-[#111318] p-1 rounded-2xl border border-[#44474f]/40 gap-1">
+                <button
+                  type="button"
+                  onClick={() => applyThemeMode('dark')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    themeMode === 'dark'
+                      ? 'bg-[#282a2f] text-white shadow-sm border border-[#44474f]/50'
+                      : 'text-[#8e9099] hover:text-white'
+                  }`}
+                >
+                  <Moon className="w-3.5 h-3.5 text-[#a8c7fa]" />
+                  <span>Dark</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyThemeMode('light')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    themeMode === 'light'
+                      ? 'bg-white text-slate-950 shadow-sm font-bold'
+                      : 'text-[#8e9099] hover:text-white'
+                  }`}
+                >
+                  <Sun className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Light</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 4: Whiteboard Canvas Theme */}
           <div className="space-y-2.5">
             <div className="flex items-center gap-2 text-xs font-bold text-[#a8c7fa] font-mono uppercase tracking-wider">
               <Palette className="w-4 h-4" />
@@ -242,7 +294,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
-          {/* Section 4: Notifications & Confetti */}
+          {/* Section 5: Notifications & Confetti */}
           <div className="p-4 rounded-3xl bg-[#1d2024] border border-[#44474f]/40 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -285,34 +337,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
-          {/* Section 5: Cache & Maintenance */}
-          <div className="pt-2 border-t border-[#44474f]/30 flex items-center justify-between">
+          {/* Modal Actions */}
+          <div className="pt-3 border-t border-[#44474f]/30 flex items-center justify-end gap-2">
             <button
               type="button"
-              onClick={handleClearCache}
-              className="px-3.5 py-2 rounded-xl bg-[#212429] hover:bg-rose-950/40 text-xs font-semibold text-[#8e9099] hover:text-rose-300 border border-[#44474f]/40 flex items-center gap-1.5 transition-colors cursor-pointer"
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-[#c4c6d0] hover:text-white hover:bg-[#282a2f] transition-colors cursor-pointer"
             >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Clear Local Session Cache</span>
+              Cancel
             </button>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-[#c4c6d0] hover:text-white hover:bg-[#282a2f] transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="submit"
-                className="m3-btn-filled px-6 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-[#0842a0]/40 transition-all cursor-pointer"
-              >
-                {savedSuccess ? <Check className="w-4 h-4 text-emerald-300" /> : null}
-                <span>{savedSuccess ? 'Saved!' : 'Save Settings'}</span>
-              </button>
-            </div>
+            <button
+              type="submit"
+              className="m3-btn-filled px-6 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-[#0842a0]/40 transition-all cursor-pointer"
+            >
+              {savedSuccess ? <Check className="w-4 h-4 text-emerald-300" /> : null}
+              <span>{savedSuccess ? 'Saved!' : 'Save Settings'}</span>
+            </button>
           </div>
         </form>
       </div>

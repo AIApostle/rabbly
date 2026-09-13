@@ -34,6 +34,40 @@
   --md-on-tertiary-container: #eaddff;
 }
 
+html.light {
+  /* Material 3 Light Theme Tokens */
+  --md-surface: #f8f9fc;
+  --md-surface-dim: #dedfe3;
+  --md-surface-bright: #ffffff;
+  --md-surface-container-lowest: #ffffff;
+  --md-surface-container-low: #f1f3f7;
+  --md-surface-container: #e8ebf0;
+  --md-surface-container-high: #dfe2e8;
+  --md-surface-container-highest: #d5d9e0;
+  --md-on-surface: #191c20;
+  --md-on-surface-variant: #44474f;
+  --md-outline: #74777f;
+  --md-outline-variant: #c4c6d0;
+  
+  --md-primary: #0842a0;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #d3e3fd;
+  --md-on-primary-container: #041e49;
+
+  --md-secondary: #004a77;
+  --md-secondary-container: #c2e7ff;
+  --md-on-secondary-container: #001d32;
+
+  --md-tertiary: #4f378b;
+  --md-tertiary-container: #eaddff;
+  --md-on-tertiary-container: #21005d;
+}
+
+html.light body {
+  background-color: var(--md-surface);
+  color: var(--md-on-surface);
+}
+
 body {
   font-family: var(--font-body);
   background-color: var(--md-surface);

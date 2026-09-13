@@ -364,15 +364,40 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
 
       {/* Sprint Cards Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {sprints
-          .filter((s) =>
-            activeFilter === 'all'
-              ? true
-              : activeFilter === 'active'
-              ? s.progressPercent < 100
-              : s.progressPercent === 100
-          )
-          .map((sprint) => (
+        {sprints.filter((s) =>
+          activeFilter === 'all'
+            ? true
+            : activeFilter === 'active'
+            ? s.progressPercent < 100
+            : s.progressPercent === 100
+        ).length === 0 ? (
+          <div className="col-span-full p-12 text-center rounded-3xl bg-[#1d2024]/60 border border-[#44474f]/30 flex flex-col items-center justify-center space-y-3 shadow-lg">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+              <Zap className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-white font-['Outfit']">No Learning Sprints Found</h3>
+            <p className="text-xs text-[#c4c6d0] max-w-sm">
+              Create a focused multi-day learning sprint to master complex topics with daily milestones and AI-guided derivations.
+            </p>
+            <button
+              type="button"
+              onClick={() => setIsCreateModalOpen(true)}
+              className="mt-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-2 cursor-pointer shadow-md transition-all"
+            >
+              <Plus className="w-3.5 h-3.5 text-slate-950" />
+              <span>Create Your First Sprint</span>
+            </button>
+          </div>
+        ) : (
+          sprints
+            .filter((s) =>
+              activeFilter === 'all'
+                ? true
+                : activeFilter === 'active'
+                ? s.progressPercent < 100
+                : s.progressPercent === 100
+            )
+            .map((sprint) => (
           <div
             key={sprint.id}
             className={`rounded-3xl bg-[#1d2024] border p-6 shadow-xl flex flex-col justify-between space-y-5 transition-all group ${
@@ -580,7 +605,8 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
-        ))}
+        ))
+      )}
       </div>
 
       {/* Feature Explainer Banner */}

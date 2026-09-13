@@ -34,7 +34,7 @@ import type {
   ClassroomParticipant,
   ExternalResource,
 } from './types';
-import { ArrowLeft, Loader2, Clock, LogOut, FileText, Crown, Hand, Users, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Loader2, Clock, LogOut, FileText, Hand, Users, ArrowRight } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 
 // ---------------------------------------------------------------------------
@@ -647,34 +647,7 @@ export function App() {
             </button>
           )}
 
-          {/* Notes & PDF Action Button */}
-          <button
-            type="button"
-            onClick={() => setIsLectureNotesOpen(true)}
-            className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 hover:text-white border border-indigo-500/40 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 shadow-sm"
-            title="Read full-page lecture notes and export PDF"
-          >
-            <FileText className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="hidden sm:inline">Notes & PDF</span>
-          </button>
 
-          {/* Pro Status or Upgrade Button */}
-          {!user?.isPro ? (
-            <button
-              type="button"
-              onClick={() => setIsUpgradeModalOpen(true)}
-              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 shadow-sm"
-              title="Unlock Rabbly Pro"
-            >
-              <Crown className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden md:inline">Upgrade</span>
-            </button>
-          ) : (
-            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-500/15 text-amber-300 border border-amber-500/30 text-xs font-mono font-bold">
-              <Crown className="w-3 h-3 text-amber-400" />
-              <span>PRO</span>
-            </span>
-          )}
 
           {/* End Session / Leave Room Button */}
           <button
