@@ -61,7 +61,13 @@ def _generate_with_openrouter(
         "   - status: 'in-progress' for the first module, 'upcoming' for the rest\n"
         "   - description: 2-3 sentences explaining what this module covers and why\n"
         "   - keyTakeaways: list of 2-3 crisp bullet points\n"
-        "5. lectureNotes: list of 5-8 detailed lecture note items. Include formulas, definitions, and clear ASCII or text diagrams where appropriate.\n"
+        "5. lectureNotes: comprehensive, publication-grade lecture notes (NOT just headlines!). A structured array of 6-8 deep Markdown-formatted study sections. MUST include:\n"
+        "   - Deep Conceptual Framework & Core Invariants\n"
+        "   - Formal Mathematical Models, Formulas, and Exact Equations\n"
+        "   - Clear ASCII Architecture / Dataflow Schemas\n"
+        "   - Step-by-Step Numerical or Algorithmic Worked Trace\n"
+        "   - Common Pitfalls, Edge Cases & Failure Modes\n"
+        "   - High-Scale Performance Considerations & Synthesis Summary\n"
         "6. sourceMaterials: list of 3-4 authoritative reference sources (canonical research papers, landmark textbooks, standard technical documentation, or specifications). Each item MUST have:\n"
         "   - title: citation title (e.g. 'Attention Is All You Need (Vaswani et al., 2017)')\n"
         "   - type: 'paper' | 'book' | 'documentation' | 'article'\n"
@@ -252,11 +258,45 @@ def _generate_fallback_plan(
     ]
 
     notes = [
-        f"**Core Invariant**: {clean_topic} guarantees structural correctness while optimizing for operational efficiency.",
-        f"**Difficulty Calibration**: Tailored for {level} mastery with emphasis on mental models and verifiable mechanisms.",
-        "**System Architecture Diagram**:\n```\n[Input Context] ───> [Transformation Engine] ───> [Verified Result]\n        │                          │\n        └─── [State Constraints] ──┘\n```",
-        "**Formal Definition**: System maps raw input states into structured representations preserving semantic consistency.",
-        "**Critical Edge Case**: Always verify boundary conditions and scale constraints under high-throughput conditions.",
+        f"### 1. Conceptual Framework & Core Invariants\n"
+        f"**Topic**: {clean_topic} ({level} Track)\n"
+        f"- **Primary Invariant**: Every atomic transformation in {clean_topic} must preserve structural correctness and state consistency.\n"
+        f"- **Mental Model**: Treat the workflow as a deterministic state machine where each transition can be validated against boundary rules before committing.",
+
+        "### 2. Formal Mathematical Definition & Equations\n"
+        "Let the input parameter state space be defined as $\\mathcal{S}$. The transition function is formulated as:\n"
+        "$$\\mathcal{T}: \\mathcal{S} \\times \\mathcal{C} \\longrightarrow \\mathcal{S}' \\quad \\text{such that} \\quad \\forall s \\in \\mathcal{S}, \\; \\mathcal{V}(s) = 1$$\n"
+        "Where $\\mathcal{C}$ denotes contextual constraints and $\\mathcal{V}$ is the invariant validator predicate.",
+
+        "### 3. Structural Architecture & Execution Flow\n"
+        "```\n"
+        "  [Input Data Space] ─────────────┐\n"
+        "          │                       ▼\n"
+        "          ▼             ┌───────────────────┐\n"
+        "  [Normalization Layer] │ Spatial Canvas    │\n"
+        "          │             │ Invariants Engine │\n"
+        "          ▼             └───────────────────┘\n"
+        "  [Execution Pipeline] ───────────▲\n"
+        "          │                       │\n"
+        "          ▼                       │\n"
+        "  [Verified Synthesis Result] ────┘\n"
+        "```\n"
+        "*Figure 1: High-throughput end-to-end processing pipeline.*",
+
+        f"### 4. Step-by-Step Worked Walkthrough ({clean_topic})\n"
+        "1. **Initialization**: Configure baseline environment and establish clean coordinate system bounds.\n"
+        "2. **Constraint Verification**: Audit input preconditions to ensure non-null operands and well-formed invariants.\n"
+        "3. **Execution & Trace**: Pass verified states through the primary transformation kernel.\n"
+        "4. **Post-condition Evaluation**: Assert that output energy/complexity bounds remain strictly within asymptotic guarantees.",
+
+        "### 5. Critical Edge Cases & Common Failure Modes\n"
+        "- **Under-specified Preconditions**: Unchecked boundary inputs can propagate silent errors across downstream modules.\n"
+        "- **Asymmetric Latency / Concurrency**: Racing state updates without atomic synchronizers can corrupt the invariant ledger.\n"
+        "- **Resource Leaks**: Incomplete lifecycle cleanup may degrade long-running runtime sessions.",
+
+        "### 6. Production Synthesis & Practical Best Practices\n"
+        "- **Automated Checkpointing**: Persist state snapshots at each module boundary to enable seamless recovery.\n"
+        "- **Telemetry & Validation**: Maintain active metric logging for operational visibility under real-world conditions."
     ]
 
     questions = [

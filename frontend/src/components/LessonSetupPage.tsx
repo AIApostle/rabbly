@@ -285,12 +285,26 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
   // Continue an existing session from Cards or Dropdown
   const handleContinueSession = (session: RecentSessionData) => {
     const savedPlan = session.boardState?.curriculum_plan as LessonPlan | undefined;
-    onStartLesson(session.topic, session.isClassroom ?? false, session.level, null, [], savedPlan || null);
+    const planToResume = savedPlan
+      ? {
+          ...savedPlan,
+          active_module_index: session.boardState?.active_module_index ?? session.completedModules ?? 0,
+          completed_modules: session.completedModules ?? 0,
+        }
+      : null;
+    onStartLesson(session.topic, session.isClassroom ?? false, session.level, null, [], planToResume);
   };
 
   const handleRestartSession = (session: RecentSessionData) => {
     const savedPlan = session.boardState?.curriculum_plan as LessonPlan | undefined;
-    onStartLesson(session.topic, session.isClassroom ?? false, session.level, null, [], savedPlan || null);
+    const planToRestart = savedPlan
+      ? {
+          ...savedPlan,
+          active_module_index: 0,
+          completed_modules: 0,
+        }
+      : null;
+    onStartLesson(session.topic, session.isClassroom ?? false, session.level, null, [], planToRestart);
   };
 
   const handleDeleteRecentSession = (sessionId: string) => {

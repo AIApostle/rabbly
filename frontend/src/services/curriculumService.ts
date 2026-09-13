@@ -76,11 +76,12 @@ function createFallbackPlan(topic: string, level: string): LessonPlan {
     estimatedMinutes: 18,
     modules,
     lectureNotes: [
-      `**Overview**: Conceptual mastery guide for ${cleanTopic} (${level} Level).`,
-      '**Core Invariant**: Every intermediate state must preserve deterministic consistency.',
-      '**Structural Architecture**:\n```\n[Input Context] ───> [Transformation Engine] ───> [Verified Result]\n```',
-      '**Key Formula / Mechanics**: System scales linearly with respect to atomic state updates.',
-      '**Practical Pitfall**: Always verify boundary conditions and edge states under heavy load.',
+      `### 1. Conceptual Framework & Core Invariants\n**Topic**: ${cleanTopic} (${level} Level)\n• **Primary Invariant**: Every transformation in ${cleanTopic} preserves structural correctness and semantic consistency.\n• **Mental Model**: Model the domain as deterministic state transitions with verified invariants.`,
+      `### 2. Formal Mathematical Models & Equations\nLet parameter state space be $\\mathcal{S}$. State transition:\n$$\\mathcal{T}: \\mathcal{S} \\times \\mathcal{C} \\longrightarrow \\mathcal{S}' \\quad \\text{where} \\quad \\forall s \\in \\mathcal{S}, \\; \\mathcal{V}(s) = 1$$\nWhere $\\mathcal{C}$ denotes contextual constraints and $\\mathcal{V}$ is the invariant validator.`,
+      `### 3. Structural Architecture & Execution Flow\n\`\`\`\n[Input Context] ───> [Normalization] ───> [Canvas Invariant Engine]\n        │                                            ▲\n        └─────────────> [Execution Kernel] ──────────┘\n\`\`\`\n*High-throughput deterministic execution pipeline.*`,
+      `### 4. Step-by-Step Worked Walkthrough (${cleanTopic})\n1. **Initialization**: Configure baseline environment and canvas coordinate boundaries.\n2. **Invariant Verification**: Check input preconditions to guarantee valid operands.\n3. **Kernel Execution**: Process transformations through the core computational engine.\n4. **Post-condition Assertion**: Validate that execution adheres to asymptotic bounds.`,
+      `### 5. Critical Failure Modes & Edge Cases\n• **Boundary Value Leakage**: Always assert non-null state on external inputs.\n• **Concurrency Hazards**: Avoid un-synchronized race conditions across distributed updates.\n• **Resource Exhaustion**: Ensure active listeners and buffers are cleanly disposed.`,
+      `### 6. Production Synthesis & Best Practices\n• **State Checkpointing**: Store incremental milestones to enable instant session resumption.\n• **Observability**: Maintain rich operational logging and real-time visual feedback.`,
     ],
     suggestedQuestions: [
       `What is the primary architectural trade-off of ${cleanTopic}?`,

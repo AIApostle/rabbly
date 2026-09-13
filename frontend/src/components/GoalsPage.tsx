@@ -351,35 +351,51 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
 
             {/* Milestones Roadmap */}
             <div className="space-y-2 py-2 border-y border-[#44474f]/20">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#8e9099] block font-mono">
-                Roadmap Milestones ({sprint.milestones.filter((m) => m.status === 'completed').length}/{sprint.milestones.length})
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8e9099] block font-mono">
+                  Roadmap Milestones ({sprint.milestones.filter((m) => m.status === 'completed').length}/{sprint.milestones.length})
+                </span>
+                <span className="text-[10px] text-[#8e9099] font-mono">Click checkbox to check off</span>
+              </div>
               {sprint.milestones.map((m) => (
                 <div
                   key={m.id}
-                  onClick={() => handleToggleMilestone(sprint.id, m.id)}
-                  className="flex items-start gap-2 p-1.5 rounded-xl hover:bg-[#282a2f] text-xs cursor-pointer transition-colors group/item"
+                  className="flex items-center justify-between gap-2 p-2 rounded-xl hover:bg-[#282a2f] text-xs transition-colors group/item"
                 >
-                  <CheckCircle2
-                    className={`w-3.5 h-3.5 mt-0.5 shrink-0 transition-colors ${
-                      m.status === 'completed'
-                        ? 'text-emerald-400'
-                        : m.status === 'in-progress'
-                        ? 'text-amber-400 animate-pulse'
-                        : 'text-slate-600 group-hover/item:text-slate-400'
-                    }`}
-                  />
-                  <span
-                    className={`text-[11px] leading-tight ${
-                      m.status === 'completed'
-                        ? 'line-through text-[#8e9099]'
-                        : m.status === 'in-progress'
-                        ? 'text-white font-medium'
-                        : 'text-[#c4c6d0]'
-                    }`}
+                  <div
+                    onClick={() => handleToggleMilestone(sprint.id, m.id)}
+                    className="flex items-start gap-2 min-w-0 cursor-pointer flex-1"
                   >
-                    {m.title}
-                  </span>
+                    <CheckCircle2
+                      className={`w-3.5 h-3.5 mt-0.5 shrink-0 transition-colors ${
+                        m.status === 'completed'
+                          ? 'text-emerald-400'
+                          : m.status === 'in-progress'
+                          ? 'text-amber-400 animate-pulse'
+                          : 'text-slate-600 group-hover/item:text-slate-400'
+                      }`}
+                    />
+                    <span
+                      className={`text-[11px] leading-snug truncate ${
+                        m.status === 'completed'
+                          ? 'line-through text-[#8e9099]'
+                          : m.status === 'in-progress'
+                          ? 'text-white font-medium'
+                          : 'text-[#c4c6d0]'
+                      }`}
+                    >
+                      {m.title}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => onStartSprintSession(`${sprint.title} - ${m.title}`, sprint.resources, 'Advanced')}
+                    className="opacity-0 group-hover/item:opacity-100 px-2 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[10px] font-mono font-semibold transition-all cursor-pointer shrink-0"
+                    title="Start lesson specifically for this milestone"
+                  >
+                    Study ➔
+                  </button>
                 </div>
               ))}
             </div>

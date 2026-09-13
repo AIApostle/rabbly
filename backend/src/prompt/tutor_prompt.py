@@ -49,14 +49,27 @@ def build_curriculum_instructions(curriculum_data: Optional[dict]) -> str:
             if isinstance(m, dict):
                 title = m.get("title", f"Module {idx}")
                 desc = m.get("description", "")
-                lines.append(f"- Module {idx}: {title} - {desc}")
+                status_tag = f" [{m.get('status', 'upcoming')}]"
+                lines.append(f"- Module {idx}: {title} - {desc}{status_tag}")
+
+    # Resume context & memory awareness
+    completed_modules = curriculum_data.get("completedModules") or curriculum_data.get("completed_modules") or 0
+    active_idx = curriculum_data.get("activeModuleIndex") or curriculum_data.get("active_module_index") or completed_modules
+    if completed_modules > 0 or active_idx > 0:
+        lines.append(
+            f"\nSESSION MEMORY / RESUME CONTEXT: The student is returning to an ongoing session! "
+            f"Modules 1 to {completed_modules} were previously completed. Current target is Module {active_idx + 1}. "
+            f"Acknowledge what was taught earlier, call get_board_state to verify existing drawings, and seamlessly continue without starting over."
+        )
 
     # Lecture Notes & Formulas
     notes = curriculum_data.get("lectureNotes") or []
     if notes:
-        lines.append("Key Concepts & Formulas to illustrate on the blackboard:")
+        lines.append("\nKey Concepts & Formulas to illustrate on the blackboard:")
         for n in notes[:5]:
-            lines.append(f"- {n}")
+            # If note has markdown headers, take first summary line
+            clean_n = n.split("\n")[0] if "\n" in n else n
+            lines.append(f"- {clean_n}")
 
     return "\n".join(lines)
 
@@ -65,7 +78,7 @@ def build_initial_greeting_prompt(curriculum_data: Optional[dict] = None) -> str
     """
     Constructs the initial spoken greeting prompt from the student perspective,
     prompting the live teacher to check the blackboard state, introduce the lesson,
-    and immediately draw the opening concepts on the blackboard.
+    or acknowledge prior progress when resuming an ongoing session.
     """
     if not curriculum_data or not isinstance(curriculum_data, dict) or not curriculum_data.get("topic"):
         return (
@@ -76,6 +89,23 @@ def build_initial_greeting_prompt(curriculum_data: Optional[dict] = None) -> str
 
     topic = curriculum_data.get("topic")
     modules = curriculum_data.get("modules") or []
+    completed_modules = curriculum_data.get("completedModules") or curriculum_data.get("completed_modules") or 0
+    active_idx = curriculum_data.get("activeModuleIndex") or curriculum_data.get("active_module_index") or completed_modules
+
+    # If resuming an ongoing lesson
+    if completed_modules > 0 or active_idx > 0:
+        target_mod = (
+            modules[active_idx].get("title", f"Module {active_idx + 1}")
+            if active_idx < len(modules) and isinstance(modules[active_idx], dict)
+            else f"Module {active_idx + 1}"
+        )
+        return (
+            f"Hi Rabbly! I am returning to continue our lesson on {topic}. "
+            f"We previously covered {completed_modules} module(s). "
+            f"Please call get_board_state to inspect our existing blackboard illustrations, "
+            f"welcome me back warmly, and let's seamlessly pick up right where we left off at {target_mod}!"
+        )
+
     first_module = "Module 1"
     if modules and isinstance(modules[0], dict):
         first_module = modules[0].get("title", "Module 1")

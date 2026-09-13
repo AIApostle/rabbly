@@ -18,6 +18,7 @@ import { AiTutorHud } from './components/AiTutorHud';
 import { AudioControlBar } from './components/AudioControlBar';
 import { LessonDrawer } from './components/LessonDrawer';
 import { ClassroomModal } from './components/ClassroomModal';
+import { SessionSummaryModal } from './components/SessionSummaryModal';
 import { generateCurriculum } from './services/curriculumService';
 import { persistNewSession } from './services/sessionService';
 import { verifyRoomCode } from './services/classroomService';
@@ -29,7 +30,7 @@ import type {
   ClassroomParticipant,
   ExternalResource,
 } from './types';
-import { ArrowLeft, Loader2, Clock } from 'lucide-react';
+import { ArrowLeft, Loader2, Clock, LogOut } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 
 // ---------------------------------------------------------------------------
@@ -114,6 +115,7 @@ export function App() {
   // Modals & Panels
   const [isNotesOpen, setIsNotesOpen] = useState<boolean>(false);
   const [isClassroomModalOpen, setIsClassroomModalOpen] = useState<boolean>(false);
+  const [isSessionSummaryOpen, setIsSessionSummaryOpen] = useState<boolean>(false);
 
   // Participants
   const [participants, setParticipants] = useState<ClassroomParticipant[]>([
@@ -297,9 +299,18 @@ export function App() {
     if (existingPlan) {
       setCurrentPlan(existingPlan);
       setCurrentTopicTitle(existingPlan.topic);
+      const resumeIndex =
+        (existingPlan as any).active_module_index ??
+        (existingPlan as any).activeModuleIndex ??
+        (existingPlan as any).completed_modules ??
+        (existingPlan as any).completedModules ??
+        0;
+      setActiveModuleIndex(resumeIndex);
+      liveDualSessionService.setCurriculumPlan(existingPlan);
       setIsGeneratingCurriculum(false);
       setIsPreparing(false);
       setIsPlaying(true);
+      setIsNotesOpen(true);
       if (classroom) {
         navigate(`/classroom/${effectiveRoomCode}`);
       } else {
@@ -386,6 +397,49 @@ export function App() {
     setElapsedSeconds(0);
     setIsPlaying(true);
     liveDualSessionService.setPaused(false);
+  };
+
+  // End Session / Leave Room
+  const handleEndSession = () => {
+    // 1. Immediately pause live audio playback
+    liveDualSessionService.setPaused(true);
+    setIsPlaying(false);
+
+    // 2. Persist final session state and progress checkpoint
+    const total = currentPlan?.modules?.length || 4;
+    const completed = Math.min(total, Math.max(1, activeModuleIndex + 1));
+
+    persistNewSession({
+      id: currentPlan?.session_id || `session-${Date.now()}`,
+      roomCode: roomCode,
+      topic: currentTopicTitle,
+      subject: currentPlan?.subject || 'STEM & Mathematics',
+      level: (currentPlan?.level as any) || 'Intermediate',
+      completedModules: completed,
+      totalModules: total,
+      lastCheckpoint: currentPlan?.modules?.[completed - 1]?.title || 'Lesson Synthesis',
+      progressPercent: Math.round((completed / total) * 100),
+      hasExternalResources: (currentPlan?.sourceMaterials?.length || 0) > 0,
+      resourceName: currentPlan?.sourceMaterials?.[0]?.title,
+      boardState: { curriculum_plan: currentPlan, active_module_index: completed },
+    }).catch((err) => console.warn('Failed to persist session on conclusion:', err));
+
+    // 3. Celebration confetti
+    confetti({ particleCount: 60, spread: 75, origin: { y: 0.65 } });
+
+    // 4. Open summary modal
+    setIsSessionSummaryOpen(true);
+  };
+
+  // Return to Dashboard from Summary Modal
+  const handleReturnToDashboard = () => {
+    setIsSessionSummaryOpen(false);
+    liveDualSessionService.disconnect();
+    if (isClassroomMode) {
+      navigate('/classrooms');
+    } else {
+      navigate('/recent');
+    }
   };
 
   // Student Microphone Toggle (Muted by default)
@@ -523,6 +577,19 @@ export function App() {
               </span>
             </button>
           )}
+
+          {/* End Session / Leave Room Button */}
+          <button
+            onClick={handleEndSession}
+            id="end-session-btn"
+            className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/30 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+            title={isClassroomMode ? 'Conclude or leave classroom' : 'Conclude learning session & view notes'}
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">
+              {isClassroomMode ? 'Leave Class' : 'End Session'}
+            </span>
+          </button>
         </div>
       </header>
 
@@ -572,6 +639,21 @@ export function App() {
           onClose={() => setIsClassroomModalOpen(false)}
           roomCode={roomCode}
           participants={participants}
+        />
+
+        {/* Session Concluded / Lecture Summary Modal */}
+        <SessionSummaryModal
+          isOpen={isSessionSummaryOpen}
+          onClose={() => setIsSessionSummaryOpen(false)}
+          onReturnToDashboard={handleReturnToDashboard}
+          onRestartSession={handleRestart}
+          topic={currentTopicTitle}
+          plan={currentPlan}
+          elapsedSeconds={elapsedSeconds}
+          completedModules={activeModuleIndex + 1}
+          totalModules={currentPlan?.modules?.length || 4}
+          isClassroom={isClassroomMode}
+          roomCode={roomCode}
         />
       </main>
     </div>

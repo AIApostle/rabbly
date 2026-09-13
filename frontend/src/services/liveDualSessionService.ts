@@ -79,6 +79,7 @@ export class LiveDualSessionService {
   private mediaStream: MediaStream | null = null;
   private processorNode: ScriptProcessorNode | null = null;
   private isMicMuted: boolean = true;
+  private lastVoiceActivityTime: number = 0;
 
   // Audio Playback & Jitter Buffering (Output WS -> Speakers)
   private playbackContext: AudioContext | null = null;
@@ -549,6 +550,18 @@ export class LiveDualSessionService {
             type: 'student_interrupted',
             sessionId: this.sessionId,
           });
+        }
+
+        // Track voice activity timing
+        const now = Date.now();
+        if (rms > 0.012) {
+          this.lastVoiceActivityTime = now;
+        }
+
+        // Token Compression & Silence Gating: If audio energy is negligible and holdover
+        // period (>350ms) has expired, avoid streaming dead silence over WebSocket
+        if (rms < 0.008 && now - this.lastVoiceActivityTime > 350) {
+          return;
         }
 
         // Downsample input from native sample rate to exact 16kHz 16-bit linear PCM
