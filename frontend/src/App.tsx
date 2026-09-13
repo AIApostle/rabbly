@@ -25,7 +25,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { UpgradeModal } from './components/UpgradeModal';
 import { generateCurriculum } from './services/curriculumService';
 import { persistNewSession } from './services/sessionService';
-import { verifyRoomCode } from './services/classroomService';
+import { verifyRoomCode, getLocalClassrooms, endClassroom } from './services/classroomService';
 import { liveDualSessionService } from './services/liveDualSessionService';
 import type {
   LessonPlan,
@@ -34,7 +34,7 @@ import type {
   ClassroomParticipant,
   ExternalResource,
 } from './types';
-import { ArrowLeft, Loader2, Clock, LogOut, FileText, Crown } from 'lucide-react';
+import { ArrowLeft, Loader2, Clock, LogOut, FileText, Crown, Hand, Users, ArrowRight } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 
 // ---------------------------------------------------------------------------
@@ -124,6 +124,10 @@ export function App() {
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState<boolean>(false);
   const [isClassroomModalOpen, setIsClassroomModalOpen] = useState<boolean>(false);
   const [isSessionSummaryOpen, setIsSessionSummaryOpen] = useState<boolean>(false);
+  const [isHostExitModalOpen, setIsHostExitModalOpen] = useState<boolean>(false);
+  const [isInviteeLeaveModalOpen, setIsInviteeLeaveModalOpen] = useState<boolean>(false);
+  const [handRaisedAlert, setHandRaisedAlert] = useState<string | null>(null);
+  const [isHost, setIsHost] = useState<boolean>(true);
 
   // Participants
   const [participants, setParticipants] = useState<ClassroomParticipant[]>([
@@ -158,27 +162,33 @@ export function App() {
           setIsPlaying(true);
         }
         // Retrieve existing room details and curriculum from backend if not already set
-        if (!currentPlan) {
-          verifyRoomCode(extractedCode)
-            .then((room) => {
-              if (room) {
-                if (room.topic && !currentTopicTitle) setCurrentTopicTitle(room.topic);
-                if (room.participants && room.participants.length > 0) {
-                  setParticipants(room.participants);
-                }
-                if (room.curriculumPlan) {
-                  setCurrentPlan(room.curriculumPlan);
-                  liveDualSessionService.setCurriculumPlan(room.curriculumPlan);
-                }
+        verifyRoomCode(extractedCode)
+          .then((room) => {
+            if (room) {
+              if (room.topic && !currentTopicTitle) setCurrentTopicTitle(room.topic);
+              if (room.participants && room.participants.length > 0) {
+                setParticipants(room.participants);
               }
-            })
-            .catch((e) => console.warn('Could not verify room code from server:', e));
-        }
+              if (room.curriculumPlan) {
+                setCurrentPlan(room.curriculumPlan);
+                liveDualSessionService.setCurriculumPlan(room.curriculumPlan);
+              }
+              // Detect if current user is host of this room
+              const localRooms = getLocalClassrooms();
+              const isLocalCreator = localRooms.some(
+                (r) => r.roomCode.toUpperCase() === extractedCode && (r.hostId === user?.id || r.hostName === 'You (Host)')
+              );
+              const isServerHost = Boolean(room.hostId && user?.id && room.hostId === user.id);
+              setIsHost(isLocalCreator || isServerHost);
+            }
+          })
+          .catch((e) => console.warn('Could not verify room code from server:', e));
       }
     } else if (location.pathname === '/learn') {
       setIsClassroomMode(false);
+      setIsHost(true);
     }
-  }, [location.pathname, roomCode, isPreparing, isGeneratingCurriculum, currentPlan, currentTopicTitle]);
+  }, [location.pathname, roomCode, currentPlan, user?.id, isPreparing, isGeneratingCurriculum, currentTopicTitle]);
 
   // Live Session Teaching Timer (records active teaching time)
   useEffect(() => {
@@ -239,13 +249,25 @@ export function App() {
           setIsPlaying(true);
         }
       },
+      onHandRaisedAlert: ({ studentName, raised }) => {
+        if (raised) {
+          setHandRaisedAlert(`${studentName} raised their hand!`);
+          setTimeout(() => setHandRaisedAlert(null), 5000);
+        }
+      },
+      onClassEndedByHost: ({ reason }) => {
+        liveDualSessionService.clearAudioPlaybackQueue(true);
+        setAiStatus('idle');
+        setAiSpeechText(reason || 'The instructor has ended this classroom session.');
+        setIsSessionSummaryOpen(true);
+      },
     });
 
     const clientUserInfo = {
       userId: user?.id || `user-${Math.random().toString(36).substring(2, 9)}`,
-      name: user?.fullName || user?.full_name || (user?.email ? user.email.split('@')[0] : (isClassroom ? 'Classroom Student' : 'Host Student')),
+      name: user?.fullName || user?.full_name || (user?.email ? user.email.split('@')[0] : (isClassroom ? (isHost ? 'Host Teacher' : 'Classroom Student') : 'Host Student')),
       avatar: user?.avatarUrl || user?.avatar_url || '🎓',
-      isHost: !isClassroom || participants.find((p) => p.id === user?.id)?.isHost || false,
+      isHost: isHost,
       isClassroom: isClassroom,
     };
 
@@ -407,13 +429,11 @@ export function App() {
     liveDualSessionService.setPaused(false);
   };
 
-  // End Session / Leave Room
-  const handleEndSession = () => {
-    // 1. Immediately pause live audio playback
+  // Internal Session Completion Handler (calculates progress, logs session, fires confetti & opens summary)
+  const handleEndSessionInternal = () => {
     liveDualSessionService.setPaused(true);
     setIsPlaying(false);
 
-    // 2. Persist final session state and progress checkpoint
     const total = currentPlan?.modules?.length || 4;
     const completed = Math.min(total, Math.max(1, activeModuleIndex + 1));
 
@@ -432,11 +452,51 @@ export function App() {
       boardState: { curriculum_plan: currentPlan, active_module_index: completed },
     }).catch((err) => console.warn('Failed to persist session on conclusion:', err));
 
-    // 3. Celebration confetti
     confetti({ particleCount: 60, spread: 75, origin: { y: 0.65 } });
-
-    // 4. Open summary modal
     setIsSessionSummaryOpen(true);
+  };
+
+  // End Session / Leave Room dispatcher
+  const handleEndSession = () => {
+    if (isClassroomMode) {
+      if (isHost) {
+        setIsHostExitModalOpen(true);
+      } else {
+        setIsInviteeLeaveModalOpen(true);
+      }
+    } else {
+      handleEndSessionInternal();
+    }
+  };
+
+  // Host permanently ends classroom for everyone
+  const handleHostEndClassConfirm = async () => {
+    setIsHostExitModalOpen(false);
+    liveDualSessionService.endClassroom();
+    if (roomCode) {
+      await endClassroom(roomCode);
+    }
+    handleEndSessionInternal();
+  };
+
+  // Host steps out, keeping classroom active on dashboard
+  const handleHostStepOut = () => {
+    setIsHostExitModalOpen(false);
+    liveDualSessionService.disconnect();
+    navigate('/classrooms');
+  };
+
+  // Invitee leaves classroom with study summary & lecture notes
+  const handleInviteeLeaveWithSummary = () => {
+    setIsInviteeLeaveModalOpen(false);
+    handleEndSessionInternal();
+  };
+
+  // Invitee leaves directly to classrooms hub
+  const handleInviteeLeaveImmediately = () => {
+    setIsInviteeLeaveModalOpen(false);
+    liveDualSessionService.disconnect();
+    navigate('/classrooms');
   };
 
   // Return to Dashboard from Summary Modal
@@ -483,12 +543,13 @@ export function App() {
     }
   };
 
-  // Student Hand Raise Toggle (Classroom Mode)
+  // Student Hand Raise  // Student Raise Hand Toggle
   const handleToggleRaiseHand = () => {
     const nextRaised = !hasRaisedHand;
     setHasRaisedHand(nextRaised);
-    const currentUserId = user?.id || 'user-host';
-    liveDualSessionService.raiseHand(currentUserId, nextRaised);
+    const currentUserId = user?.id || (isHost ? 'user-host' : 'user-student');
+    const currentUserName = user?.fullName || user?.full_name || (user?.email ? user.email.split('@')[0] : (isHost ? 'Host Student' : 'Classroom Student'));
+    liveDualSessionService.raiseHand(currentUserId, nextRaised, currentUserName);
   };
 
   // Audio Speaker Output Toggle (AI Voice)
@@ -619,16 +680,34 @@ export function App() {
           <button
             onClick={handleEndSession}
             id="end-session-btn"
-            className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/30 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
-            title={isClassroomMode ? 'Conclude or leave classroom' : 'Conclude learning session & view notes'}
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+              isClassroomMode && !isHost
+                ? 'bg-[#282a2f] hover:bg-[#33353a] text-[#c4c6d0] hover:text-white border border-[#44474f]/50'
+                : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/30'
+            }`}
+            title={
+              isClassroomMode
+                ? isHost
+                  ? 'End classroom for all students or step out'
+                  : 'Leave classroom and review study summary'
+                : 'Conclude learning session & view notes'
+            }
           >
             <LogOut className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">
-              {isClassroomMode ? 'Leave Class' : 'End Session'}
+              {isClassroomMode ? (isHost ? 'End Class' : 'Leave Class') : 'End Session'}
             </span>
           </button>
         </div>
       </header>
+
+      {/* Hand Raised Realtime Classroom Alert Banner */}
+      {handRaisedAlert && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-2xl bg-amber-500/90 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-2xl animate-in fade-in slide-in-from-top-3 duration-200">
+          <Hand className="w-4 h-4 text-slate-950 animate-bounce" />
+          <span>{handRaisedAlert}</span>
+        </div>
+      )}
 
       {/* Main Whiteboard Canvas (Strictly Read-Only for student) */}
       <main className="flex-1 w-full relative min-h-0 overflow-hidden bg-white">
@@ -846,6 +925,120 @@ export function App() {
         isOpen={isUpgradeModalOpen}
         onClose={() => setIsUpgradeModalOpen(false)}
       />
+
+      {/* Host Classroom Exit Options Modal */}
+      {isHostExitModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
+          <div className="w-full max-w-md rounded-3xl bg-[#1d2024] border border-[#44474f]/60 shadow-2xl p-6 space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white font-['Outfit']">Classroom in Progress</h3>
+                <span className="text-xs text-[#8e9099]">You are the host of room {roomCode}</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-[#c4c6d0] leading-relaxed">
+              Do you want to permanently end this classroom session for all students, or step out and leave it active so you can rejoin later?
+            </p>
+
+            <div className="space-y-2.5 pt-1">
+              {/* Option 1: End Class for Everyone */}
+              <button
+                type="button"
+                onClick={handleHostEndClassConfirm}
+                className="w-full py-3 px-4 rounded-2xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 hover:text-white text-xs font-bold transition-all flex items-center justify-between cursor-pointer"
+              >
+                <div className="text-left">
+                  <span className="block">End Class for Everyone</span>
+                  <span className="text-[10px] text-rose-300/70 font-normal">Closes room, notifies students & opens summary with PDF</span>
+                </div>
+                <LogOut className="w-4 h-4 text-rose-400 shrink-0" />
+              </button>
+
+              {/* Option 2: Step Out (Keep Class Active) */}
+              <button
+                type="button"
+                onClick={handleHostStepOut}
+                className="w-full py-3 px-4 rounded-2xl bg-[#282a2f] hover:bg-[#33353a] border border-[#44474f]/50 text-white text-xs font-semibold transition-all flex items-center justify-between cursor-pointer"
+              >
+                <div className="text-left">
+                  <span className="block">Step Out (Keep Class Active)</span>
+                  <span className="text-[10px] text-[#8e9099] font-normal">Leave room open. Rejoin anytime from your Classrooms page</span>
+                </div>
+                <ArrowRight className="w-4 h-4 text-[#a8c7fa] shrink-0" />
+              </button>
+            </div>
+
+            <div className="pt-1 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsHostExitModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-[#8e9099] hover:text-white transition-colors cursor-pointer"
+              >
+                Cancel & Stay in Class
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invitee / Student Leave Confirmation Modal */}
+      {isInviteeLeaveModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
+          <div className="w-full max-w-md rounded-3xl bg-[#1d2024] border border-[#44474f]/60 shadow-2xl p-6 space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[#4f378b]/30 border border-[#d0bcff]/30 text-[#d0bcff] flex items-center justify-center shrink-0">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white font-['Outfit']">Leave Classroom?</h3>
+                <span className="text-xs text-[#8e9099]">Room {roomCode}</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-[#c4c6d0] leading-relaxed">
+              Are you sure you want to leave? Before you go, you can review your complete study summary, lecture notes, and export a PDF of everything covered.
+            </p>
+
+            <div className="space-y-2.5 pt-1">
+              {/* Option 1: Leave & View Summary */}
+              <button
+                type="button"
+                onClick={handleInviteeLeaveWithSummary}
+                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-[#4f378b] to-[#6750a4] hover:from-[#5e42a6] hover:to-[#7965b2] text-white text-xs font-bold transition-all flex items-center justify-between cursor-pointer shadow-md shadow-[#4f378b]/30"
+              >
+                <div className="text-left">
+                  <span className="block">Leave & View Study Summary</span>
+                  <span className="text-[10px] text-purple-200/80 font-normal">Review lecture notes, formulas, diagrams, and export PDF</span>
+                </div>
+                <ArrowRight className="w-4 h-4 text-white shrink-0" />
+              </button>
+
+              {/* Option 2: Leave Directly */}
+              <button
+                type="button"
+                onClick={handleInviteeLeaveImmediately}
+                className="w-full py-2.5 px-4 rounded-2xl bg-[#282a2f] hover:bg-[#33353a] border border-[#44474f]/50 text-[#c4c6d0] hover:text-white text-xs font-medium transition-all text-center cursor-pointer"
+              >
+                Leave Directly to Dashboard
+              </button>
+            </div>
+
+            <div className="pt-1 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsInviteeLeaveModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-[#8e9099] hover:text-white transition-colors cursor-pointer"
+              >
+                Cancel & Stay
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

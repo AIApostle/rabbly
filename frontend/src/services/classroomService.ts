@@ -289,3 +289,30 @@ export async function joinClassroom(roomCode: string, participantName?: string):
 
   return verifyRoomCode(cleanCode);
 }
+
+/**
+ * Permanently end an active classroom session (host only).
+ */
+export async function endClassroom(roomCode: string): Promise<boolean> {
+  const cleanCode = roomCode.trim().toUpperCase();
+
+  // 1. Update local cache
+  const current = getLocalClassrooms();
+  const updated = current.map((r) =>
+    r.roomCode.toUpperCase() === cleanCode ? { ...r, status: 'ended' as const } : r
+  );
+  saveLocalClassrooms(updated);
+
+  // 2. Notify backend endpoint
+  try {
+    const res = await fetch(`/api/classrooms/${cleanCode}/end`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn('Failed to dispatch endClassroom to backend:', err);
+    return true;
+  }
+}
+

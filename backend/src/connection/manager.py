@@ -460,18 +460,43 @@ class LiveSessionManager:
         elif msg_type == "raise_hand":
             uid = data.get("userId")
             hand_raised = bool(data.get("raised", True))
-            if uid and uid in session.participants:
-                session.participants[uid]["hasRaisedHand"] = hand_raised
-                student_name = session.participants[uid].get("name", "A student")
-                logger.info(
-                    f"[LiveSessionManager:{session.session_id}] Student '{student_name}' handRaised={hand_raised}."
-                )
+            student_name = data.get("userName") or "A student"
+
+            if uid:
+                if uid in session.participants:
+                    session.participants[uid]["hasRaisedHand"] = hand_raised
+                    if session.participants[uid].get("name"):
+                        student_name = session.participants[uid]["name"]
+                else:
+                    session.participants[uid] = {
+                        "id": uid,
+                        "name": student_name,
+                        "avatar": data.get("avatar") or "🎓",
+                        "isHost": bool(data.get("isHost", False)),
+                        "isMuted": True,
+                        "hasRaisedHand": hand_raised,
+                        "joinedAt": "Just now",
+                    }
                 await session.broadcast_roster()
+
                 if hand_raised:
-                    # Notify the AI tutor that a student has raised their hand
-                    await session.agent.send_text_message(
-                        f"[{student_name} raised their hand in the classroom with a question]"
+                    logger.info(
+                        f"[LiveSessionManager:{session.session_id}] Student '{student_name}' raised their hand."
                     )
+                    # 1. Dispatch explicit pedagogical directive to the AI tutor
+                    await session.agent.send_text_message(
+                        f"[CLASSROOM HAND RAISED: Student '{student_name}' raised their hand with a question! "
+                        f"Immediately pause your current lecture, acknowledge {student_name} warmly by name, "
+                        f"and ask them to speak or unmute to ask their question.]"
+                    )
+                    # 2. Broadcast hand raise banner to all output sockets for visual recognition
+                    await session.send_to_output({
+                        "type": "hand_raised_alert",
+                        "sessionId": session.session_id,
+                        "userId": uid,
+                        "studentName": student_name,
+                        "raised": True,
+                    })
 
         elif msg_type == "mute_toggle":
             uid = data.get("userId")
@@ -479,6 +504,21 @@ class LiveSessionManager:
             if uid and uid in session.participants:
                 session.participants[uid]["isMuted"] = is_muted
                 await session.broadcast_roster()
+
+        # 6b. Classroom Ended by Host
+        elif msg_type == "end_class":
+            logger.info(
+                f"[LiveSessionManager:{session.session_id}] Host initiated end_class."
+            )
+            # Broadcast to all connected clients that the classroom has ended
+            await session.send_to_output({
+                "type": "class_ended_by_host",
+                "sessionId": session.session_id,
+                "roomCode": session.session_id,
+                "reason": "The host has ended this classroom session.",
+            })
+            # Cleanly stop the live tutor agent
+            await session.agent.stop()
 
         # 7. Heartbeat / ping
         elif msg_type == "ping":

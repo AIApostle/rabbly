@@ -81,3 +81,19 @@ def test_get_nonexistent_classroom():
     res = client.get("/api/classrooms/RAB-999999")
     assert res.status_code == 404
     assert "not found" in res.json()["detail"].lower()
+
+
+def test_end_classroom():
+    """Verify POST /api/classrooms/{code}/end closes classroom."""
+    create_res = client.post(
+        "/api/classrooms",
+        json={"topic": "Quantum Computing & Superposition", "level": "Advanced"},
+    )
+    assert create_res.status_code == 201
+    room_code = create_res.json()["room_code"]
+
+    # End room
+    end_res = client.post(f"/api/classrooms/{room_code}/end")
+    assert end_res.status_code == 200
+    assert end_res.json()["status"] == "ended"
+

@@ -412,3 +412,72 @@ async def join_classroom(
         status_code=status.HTTP_404_NOT_FOUND,
         detail=f"Classroom '{clean_code}' not found.",
     )
+
+
+@classrooms_router.post(
+    "/{room_code}/end",
+    response_model=Dict[str, Any],
+    summary="End an active collaborative classroom",
+    description="Terminates the classroom session, marks status as ended, and notifies participants.",
+)
+async def end_classroom(
+    room_code: str,
+    user: Optional[UserProfile] = Depends(get_optional_user),
+):
+    """
+    Terminates an active classroom session.
+    """
+    clean_code = room_code.strip().toUpperCase() if hasattr(room_code, 'toUpperCase') else room_code.strip().upper()
+
+    # 1. Update in-memory registry
+    if clean_code in _memory_classrooms:
+        _memory_classrooms[clean_code]["status"] = "ended"
+        _memory_classrooms[clean_code]["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    # 2. Update Supabase if configured
+    if _is_supabase_ready():
+        try:
+            client = get_supabase_admin_client()
+            from src.db.general import update
+            session = get_session_by_code(client, clean_code)
+            if session:
+                update(client, "sessions", str(session.id), {"status": "completed"})
+        except Exception:
+            pass
+
+    # 3. Broadcast to Live Session Manager if active
+    try:
+        from src.connection.manager import session_manager
+        live_session = session_manager._sessions.get(clean_code)
+        if live_session:
+            await live_session.send_to_output({
+                "type": "class_ended_by_host",
+                "sessionId": clean_code,
+                "roomCode": clean_code,
+                "reason": "The host has ended this classroom session.",
+            })
+            await live_session.agent.stop()
+            session_manager._sessions.pop(clean_code, None)
+    except Exception:
+        pass
+
+    return {
+        "success": True,
+        "room_code": clean_code,
+        "status": "ended",
+        "message": f"Classroom '{clean_code}' has been ended.",
+    }
+
+
+@classrooms_router.delete(
+    "/{room_code}",
+    response_model=Dict[str, Any],
+    summary="Delete / End a collaborative classroom",
+)
+async def delete_classroom(
+    room_code: str,
+    user: Optional[UserProfile] = Depends(get_optional_user),
+):
+    """Alias for ending and removing a classroom."""
+    return await end_classroom(room_code, user)
+

@@ -32,6 +32,8 @@ export interface LiveSessionCallbacks {
   onRosterUpdate?: (participants: ClassroomParticipant[], count: number) => void;
   onBoardSync?: (boardState: BoardStatePayload) => void;
   onCurriculumSync?: (curriculum: LessonPlan) => void;
+  onHandRaisedAlert?: (data: { userId: string; studentName: string; raised: boolean }) => void;
+  onClassEndedByHost?: (data: { reason: string; roomCode?: string }) => void;
 }
 
 /**
@@ -80,6 +82,7 @@ export class LiveDualSessionService {
   private processorNode: ScriptProcessorNode | null = null;
   private isMicMuted: boolean = true;
   private lastVoiceActivityTime: number = 0;
+  private hasSpokenInUtterance: boolean = false;
 
   // Audio Playback & Jitter Buffering (Output WS -> Speakers)
   private playbackContext: AudioContext | null = null;
@@ -144,6 +147,8 @@ export class LiveDualSessionService {
     userInfo?: ClientUserInfo
   ): Promise<void> {
     this.sessionId = sessionId;
+    this.isPaused = false;
+    this.hasSpokenInUtterance = false;
     if (initialPlan) {
       this.curriculumPlan = initialPlan;
     }
@@ -391,17 +396,47 @@ export class LiveDualSessionService {
         this.callbacks.onCurriculumSync?.(payload);
       }
     }
+
+    // 9. Classroom Hand Raised Alert
+    else if (type === 'hand_raised_alert') {
+      console.log(`[DualWS:Output] Hand raised alert: ${data.studentName}`);
+      this.callbacks.onHandRaisedAlert?.({
+        userId: String(data.userId || ''),
+        studentName: String(data.studentName || 'A student'),
+        raised: Boolean(data.raised),
+      });
+    }
+
+    // 10. Classroom Ended by Host
+    else if (type === 'class_ended_by_host') {
+      console.log(`[DualWS:Output] Classroom ended by host:`, data.reason);
+      this.callbacks.onClassEndedByHost?.({
+        reason: String(data.reason || 'The instructor has ended this classroom session.'),
+        roomCode: String(data.roomCode || this.sessionId || ''),
+      });
+    }
   }
 
   /**
    * Raise or lower hand in the classroom.
    */
-  public raiseHand(userId: string, raised: boolean = true): void {
+  public raiseHand(userId: string, raised: boolean = true, userName?: string): void {
     this.sendToInput({
       type: 'raise_hand',
       sessionId: this.sessionId,
       userId,
+      userName,
       raised,
+    });
+  }
+
+  /**
+   * Broadcast end of classroom session (host only).
+   */
+  public endClassroom(): void {
+    this.sendToInput({
+      type: 'end_class',
+      sessionId: this.sessionId,
     });
   }
 
@@ -554,13 +589,23 @@ export class LiveDualSessionService {
 
         // Track voice activity timing
         const now = Date.now();
-        if (rms > 0.012) {
+        if (rms > 0.008) {
+          this.hasSpokenInUtterance = true;
           this.lastVoiceActivityTime = now;
         }
 
         // Token Compression & Silence Gating: If audio energy is negligible and holdover
-        // period (>350ms) has expired, avoid streaming dead silence over WebSocket
-        if (rms < 0.008 && now - this.lastVoiceActivityTime > 350) {
+        // period (>500ms) has expired:
+        if (rms < 0.006 && now - this.lastVoiceActivityTime > 500) {
+          // If student was just speaking and has now paused, dispatch audio_stream_end
+          if (this.hasSpokenInUtterance) {
+            this.sendToInput({
+              type: 'audio_stream_end',
+              sessionId: this.sessionId,
+            });
+            this.hasSpokenInUtterance = false;
+            console.log('[AudioBridge] Dispatched audio_stream_end after speech pause.');
+          }
           return;
         }
 
@@ -617,6 +662,9 @@ export class LiveDualSessionService {
   public setMicMuted(muted: boolean): void {
     const wasUnmuted = !this.isMicMuted;
     this.isMicMuted = muted;
+    if (!muted) {
+      this.isPaused = false;
+    }
     console.log(`[AudioBridge] Mic muted state: ${muted}`);
 
     if (muted) {

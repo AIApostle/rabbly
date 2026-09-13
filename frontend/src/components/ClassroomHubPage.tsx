@@ -17,10 +17,13 @@ import {
   AlertCircle,
   Link2,
 } from 'lucide-react';
-import type { ExternalResource } from '../types';
+import type { ExternalResource, ClassroomRoom } from '../types';
 import {
   createClassroom,
   verifyRoomCode,
+  loadClassrooms,
+  getLocalClassrooms,
+  endClassroom,
 } from '../services/classroomService';
 
 interface ClassroomHubPageProps {
@@ -54,6 +57,39 @@ export const ClassroomHubPage: React.FC<ClassroomHubPageProps> = ({
   const [roomLevel, setRoomLevel] = useState<'Beginner' | 'Intermediate' | 'Advanced'>('Intermediate');
   const [roomResources, setRoomResources] = useState<ExternalResource[]>([]);
   const [isCreating, setIsCreating] = useState(false);
+
+  // Active classrooms tracked for quick rejoin or termination
+  const [activeRooms, setActiveRooms] = useState<ClassroomRoom[]>(() =>
+    getLocalClassrooms().filter((r) => r.status === 'active')
+  );
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    loadClassrooms().then((rooms) => {
+      if (mounted && rooms) {
+        setActiveRooms(rooms.filter((r) => r.status === 'active'));
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleCopyInviteLink = (code: string) => {
+    const url = `${window.location.origin}/classroom/${code}`;
+    navigator.clipboard.writeText(url);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(null), 2500);
+  };
+
+  const handleEndActiveRoom = async (code: string) => {
+    if (!window.confirm(`End classroom '${code}' for everyone? This will close the session.`)) {
+      return;
+    }
+    await endClassroom(code);
+    setActiveRooms((prev) => prev.filter((r) => r.roomCode !== code));
+  };
 
   // Menu states
   const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
@@ -533,6 +569,118 @@ export const ClassroomHubPage: React.FC<ClassroomHubPageProps> = ({
             </button>
           </form>
         </div>
+      </div>
+
+      {/* Active Classrooms Section (Host & Open Rooms) */}
+      <div className="pt-2 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+            <h2 className="text-base sm:text-lg font-bold text-white font-['Outfit']">
+              Your Active Classrooms
+            </h2>
+            {activeRooms.length > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-mono font-bold">
+                {activeRooms.length} Active
+              </span>
+            )}
+          </div>
+          <span className="text-xs text-[#8e9099] hidden sm:inline">
+            Active study rooms remain open until you click End Class
+          </span>
+        </div>
+
+        {activeRooms.length === 0 ? (
+          <div className="p-8 rounded-3xl bg-[#1d2024]/40 border border-dashed border-[#44474f]/40 flex flex-col items-center justify-center text-center space-y-2">
+            <div className="w-10 h-10 rounded-2xl bg-[#282a2f] text-[#8e9099] flex items-center justify-center">
+              <Users className="w-5 h-5" />
+            </div>
+            <h3 className="text-sm font-semibold text-white">No active classrooms right now</h3>
+            <p className="text-xs text-[#8e9099] max-w-sm">
+              Create a classroom above to start a live study room. If you step out, you can rejoin anytime from here until you end the session.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {activeRooms.map((room) => (
+              <div
+                key={room.id}
+                className="p-5 rounded-3xl bg-[#1d2024] border border-[#44474f]/50 hover:border-[#a8c7fa]/50 transition-all flex flex-col justify-between space-y-4 shadow-lg group"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-bold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                      <span>LIVE SESSION</span>
+                    </span>
+
+                    <span className="text-[11px] font-mono text-[#a8c7fa] bg-[#0842a0]/30 border border-[#a8c7fa]/30 px-2.5 py-0.5 rounded-lg font-bold">
+                      {room.roomCode}
+                    </span>
+                  </div>
+
+                  <h3 className="text-sm sm:text-base font-bold text-white line-clamp-2 font-['Outfit'] mb-1">
+                    {room.topic}
+                  </h3>
+
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-[#8e9099] mt-2 font-medium">
+                    <span className="px-2 py-0.5 rounded-md bg-[#282a2f] text-[#c4c6d0] text-[11px]">
+                      {room.level}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Users className="w-3.5 h-3.5 text-[#8e9099]" />
+                      <span>{room.participantCount || 1} participant(s)</span>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-[#44474f]/30 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    {/* Rejoin Class button */}
+                    <button
+                      type="button"
+                      onClick={() => onJoinRoom(room.roomCode)}
+                      className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#4f378b] to-[#6750a4] hover:from-[#5e42a6] hover:to-[#7965b2] text-white text-xs font-bold transition-all shadow-md shadow-[#4f378b]/30 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>Rejoin Class</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* Copy Link button */}
+                    <button
+                      type="button"
+                      onClick={() => handleCopyInviteLink(room.roomCode)}
+                      className="px-3 py-2 rounded-xl bg-[#282a2f] hover:bg-[#33353a] text-xs font-medium text-[#c4c6d0] hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"
+                      title="Copy classroom share link"
+                    >
+                      {copiedCode === room.roomCode ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="text-emerald-300 font-bold">Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Link2 className="w-3.5 h-3.5 text-[#a8c7fa]" />
+                          <span>Share Link</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* End Class button */}
+                  <button
+                    type="button"
+                    onClick={() => handleEndActiveRoom(room.roomCode)}
+                    className="px-2.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 hover:border-rose-500/50 text-xs font-medium transition-all cursor-pointer"
+                    title="Permanently end this classroom for all students"
+                  >
+                    End Class
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Classroom Guidelines & Architecture Info */}

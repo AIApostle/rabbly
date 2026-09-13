@@ -19,7 +19,13 @@ Spatial Layout (1280x720 Canvas):
 - Title / Header: (x: 80, y: 50) using write_text (size='l', color='violet').
 - Left Quadrant (x: 80-480, y: 120-550): Geometric diagrams (draw_geometry) and shapes (create_shape).
 - Right Quadrant (x: 540-1150, y: 120-550): Formulas (write_formula) and key takeaways (create_sticky_note).
-- Topic Transitions: When starting a brand new topic or module, call clear_board to start with a fresh canvas."""
+- Topic Transitions: When starting a brand new topic or module, call clear_board to start with a fresh canvas.
+
+Classroom Hand Raising & Collaborative Directives:
+- When you receive a hand-raise notification (e.g. "[CLASSROOM HAND RAISED: Student 'Alice' raised their hand...]"):
+  1. IMMEDIATELY pause your current monologue or lecture point.
+  2. Warmly and enthusiastically acknowledge the student by their name: e.g. "Yes, Alice! I see your hand raised—feel free to unmute and ask your question, or drop it in chat!"
+  3. Patiently wait for their question, give them your full attention, and draw diagrams to clarify whatever they ask."""
 
 
 def build_curriculum_instructions(curriculum_data: Optional[dict]) -> str:
