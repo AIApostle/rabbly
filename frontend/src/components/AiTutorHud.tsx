@@ -10,6 +10,7 @@ interface AiTutorHudProps {
   onRestart: () => void;
   currentTopic?: string;
   elapsedSeconds?: number;
+  isClassroom?: boolean;
 }
 
 export const AiTutorHud: React.FC<AiTutorHudProps> = ({
@@ -18,6 +19,7 @@ export const AiTutorHud: React.FC<AiTutorHudProps> = ({
   isPlaying,
   onTogglePlay,
   onRestart,
+  isClassroom = false,
 }) => {
   const getStatusBadge = () => {
     switch (status) {
@@ -85,13 +87,16 @@ export const AiTutorHud: React.FC<AiTutorHudProps> = ({
 
         {/* Lecture Controls */}
         <div className="flex items-center gap-1.5">
-          <button
-            onClick={onTogglePlay}
-            title={isPlaying ? 'Pause Lecture' : 'Resume Lecture'}
-            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700/80 transition-all cursor-pointer shadow-sm active:scale-95"
-          >
-            {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-          </button>
+          {/* Pause is only available in 1-on-1 sessions, not in collaborative classrooms */}
+          {!isClassroom && (
+            <button
+              onClick={onTogglePlay}
+              title={isPlaying ? 'Pause Lecture' : 'Resume Lecture'}
+              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700/80 transition-all cursor-pointer shadow-sm active:scale-95"
+            >
+              {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+            </button>
+          )}
 
           <button
             onClick={onRestart}

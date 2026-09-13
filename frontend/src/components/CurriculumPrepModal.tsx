@@ -15,6 +15,8 @@ interface CurriculumPrepModalProps {
   plan?: LessonPlan | null;
   isGenerating?: boolean;
   onReady: () => void;
+  isClassroom?: boolean;
+  roomCode?: string;
 }
 
 export const CurriculumPrepModal: React.FC<CurriculumPrepModalProps> = ({
@@ -22,6 +24,8 @@ export const CurriculumPrepModal: React.FC<CurriculumPrepModalProps> = ({
   plan,
   isGenerating = false,
   onReady,
+  isClassroom = false,
+  roomCode,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(20);
@@ -32,7 +36,7 @@ export const CurriculumPrepModal: React.FC<CurriculumPrepModalProps> = ({
       desc: 'Extracting key concepts, learning level, and attached reference materials...',
     },
     {
-      title: 'Agent Structuring Progressive Modules',
+      title: isClassroom ? 'Structuring Classroom Modules & Takeaways' : 'Agent Structuring Progressive Modules',
       desc: 'Generating sequential milestones, pedagogical breakdown, and takeaways...',
     },
     {
@@ -40,8 +44,8 @@ export const CurriculumPrepModal: React.FC<CurriculumPrepModalProps> = ({
       desc: 'Synthesizing formulas, structural architecture, and summary notes...',
     },
     {
-      title: 'Preparing Whiteboard Workspace',
-      desc: 'Setting up clean canvas layout and module curriculum drawer...',
+      title: isClassroom ? 'Preparing Collaborative Classroom' : 'Preparing Whiteboard Workspace',
+      desc: isClassroom ? 'Setting up interactive whiteboard and room participant roster...' : 'Setting up clean canvas layout and module curriculum drawer...',
     },
   ];
 
@@ -106,22 +110,34 @@ export const CurriculumPrepModal: React.FC<CurriculumPrepModalProps> = ({
             <div className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border mb-1.5 font-mono transition-colors">
               {isComplete ? (
                 <span className="text-emerald-400 bg-emerald-500/10 border-emerald-500/30">
-                  ✓ Modules & Notes Generated
+                  {isClassroom ? '✓ Classroom Modules & Takeaways Ready' : '✓ Modules & Notes Generated'}
                 </span>
               ) : (
                 <span className="text-indigo-400 bg-indigo-500/10 border-indigo-500/30 flex items-center gap-1.5">
                   <Loader2 className="w-3 h-3 animate-spin" />
-                  <span>Agent Synthesizing Curriculum</span>
+                  <span>{isClassroom ? 'Agent Structuring Classroom' : 'Agent Synthesizing Curriculum'}</span>
                 </span>
               )}
             </div>
+            {isClassroom && roomCode && (
+              <div className="mb-2">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-indigo-950/60 border border-indigo-500/40 text-[11px] font-mono text-indigo-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span>Room: <strong className="text-white font-bold">{roomCode}</strong></span>
+                </span>
+              </div>
+            )}
             <h2 className="text-lg sm:text-2xl font-extrabold text-white font-['Outfit'] line-clamp-1">
-              {plan?.topic || topic || 'Generating Curriculum'}
+              {plan?.topic || topic || (isClassroom ? 'Preparing Classroom' : 'Generating Curriculum')}
             </h2>
             <p className="text-xs text-slate-400 mt-0.5 max-w-md mx-auto">
               {isComplete
-                ? 'Curriculum modules and deep lecture notes are ready. Enter the whiteboard to study.'
-                : 'The AI agent is analyzing your prompt and generating structured progressive modules and notes...'}
+                ? (isClassroom
+                    ? 'Classroom curriculum modules and key takeaways are ready. Click below to enter the live classroom.'
+                    : 'Curriculum modules and deep lecture notes are ready. Enter the whiteboard to study.')
+                : (isClassroom
+                    ? 'The AI agent is analyzing your topic and generating structured classroom modules, key takeaways, and notes...'
+                    : 'The AI agent is analyzing your prompt and generating structured progressive modules and notes...')}
             </p>
           </div>
 
@@ -263,7 +279,7 @@ export const CurriculumPrepModal: React.FC<CurriculumPrepModalProps> = ({
               className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-emerald-500 hover:from-indigo-500 hover:to-emerald-400 text-white font-bold text-sm sm:text-base shadow-xl shadow-emerald-500/20 hover:shadow-indigo-600/40 transition-all cursor-pointer hover:scale-[1.01] active:scale-[0.98] ring-2 ring-emerald-400/50"
             >
               <Sparkles className="w-4 h-4 text-amber-300" />
-              <span>Enter Whiteboard</span>
+              <span>{isClassroom ? 'Enter Classroom' : 'Enter Whiteboard'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           ) : (
@@ -273,7 +289,11 @@ export const CurriculumPrepModal: React.FC<CurriculumPrepModalProps> = ({
               className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl bg-slate-800/90 text-slate-400 font-semibold text-xs sm:text-sm border border-slate-700/70 cursor-not-allowed select-none opacity-90"
             >
               <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
-              <span>Generating Modules & Notes ({Math.min(100, Math.round(progress))}%)</span>
+              <span>
+                {isClassroom
+                  ? `Structuring Classroom Modules (${Math.min(100, Math.round(progress))}%)`
+                  : `Generating Modules & Notes (${Math.min(100, Math.round(progress))}%)`}
+              </span>
             </button>
           )}
         </div>

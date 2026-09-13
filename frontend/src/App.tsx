@@ -29,7 +29,7 @@ import type {
   ClassroomParticipant,
   ExternalResource,
 } from './types';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Clock } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 
 // ---------------------------------------------------------------------------
@@ -140,31 +140,35 @@ export function App() {
       const extractedCode = location.pathname.replace(/^\/classroom\/?/, '').split('/')[0].trim().toUpperCase();
       if (extractedCode) {
         setIsClassroomMode(true);
-        setIsPreparing(false);
-        setIsPlaying(true);
         if (roomCode !== extractedCode) {
           setRoomCode(extractedCode);
         }
-        // Retrieve existing room details and curriculum from backend
-        verifyRoomCode(extractedCode)
-          .then((room) => {
-            if (room) {
-              if (room.topic) setCurrentTopicTitle(room.topic);
-              if (room.participants && room.participants.length > 0) {
-                setParticipants(room.participants);
+        // If not actively preparing/generating a new room curriculum, mark as active playing
+        if (!isPreparing && !isGeneratingCurriculum) {
+          setIsPlaying(true);
+        }
+        // Retrieve existing room details and curriculum from backend if not already set
+        if (!currentPlan) {
+          verifyRoomCode(extractedCode)
+            .then((room) => {
+              if (room) {
+                if (room.topic && !currentTopicTitle) setCurrentTopicTitle(room.topic);
+                if (room.participants && room.participants.length > 0) {
+                  setParticipants(room.participants);
+                }
+                if (room.curriculumPlan) {
+                  setCurrentPlan(room.curriculumPlan);
+                  liveDualSessionService.setCurriculumPlan(room.curriculumPlan);
+                }
               }
-              if (room.curriculumPlan) {
-                setCurrentPlan(room.curriculumPlan);
-                liveDualSessionService.setCurriculumPlan(room.curriculumPlan);
-              }
-            }
-          })
-          .catch((e) => console.warn('Could not verify room code from server:', e));
+            })
+            .catch((e) => console.warn('Could not verify room code from server:', e));
+        }
       }
     } else if (location.pathname === '/learn') {
       setIsClassroomMode(false);
     }
-  }, [location.pathname, roomCode]);
+  }, [location.pathname, roomCode, isPreparing, isGeneratingCurriculum, currentPlan, currentTopicTitle]);
 
   // Live Session Teaching Timer (records active teaching time)
   useEffect(() => {
@@ -263,7 +267,7 @@ export function App() {
     setIsClassroomMode(classroom);
 
     // If joining an existing classroom room, seamlessly enter without restarting from scratch
-    if (classroom && (isJoinExisting || (specificRoomCode && (!resources || resources.length === 0)))) {
+    if (classroom && isJoinExisting) {
       setIsPreparing(false);
       setIsPlaying(true);
       setElapsedSeconds(0);
@@ -364,8 +368,9 @@ export function App() {
     }
   };
 
-  // Toggle Lecture Play/Pause
+  // Toggle Lecture Play/Pause (Only allowed in 1-on-1 mode, disabled in classroom)
   const handleTogglePlay = () => {
+    if (isClassroomMode) return;
     setIsPlaying((prev) => !prev);
   };
 
@@ -467,25 +472,36 @@ export function App() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Live Session Recording Timer */}
-          <div
-            className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-mono transition-all shrink-0 ${
-              isPlaying
-                ? 'bg-rose-950/40 border-rose-500/40 text-rose-300 shadow-sm shadow-rose-500/10'
-                : 'bg-amber-950/40 border-amber-500/40 text-amber-300'
-            }`}
-            title={isPlaying ? 'Teaching session is actively running' : 'Teaching session is paused'}
-          >
-            <span
-              className={`w-2 h-2 rounded-full ${
-                isPlaying ? 'bg-rose-500 animate-pulse' : 'bg-amber-400'
+          {/* Lesson & Classroom Teaching Timer (REC removed) */}
+          {!isClassroomMode ? (
+            <div
+              className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-mono transition-all shrink-0 ${
+                isPlaying
+                  ? 'bg-slate-800/80 border-slate-700/80 text-slate-300'
+                  : 'bg-amber-950/40 border-amber-500/40 text-amber-300'
               }`}
-            ></span>
-            <span className="font-bold tracking-wider text-[10px] sm:text-[11px]">
-              {isPlaying ? 'REC' : 'PAUSED'}
-            </span>
-            <span className="text-white font-semibold">{formatTimer(elapsedSeconds)}</span>
-          </div>
+              title={isPlaying ? '1-on-1 teaching session is active' : 'Teaching session is paused'}
+            >
+              <Clock className={`w-3.5 h-3.5 ${isPlaying ? 'text-indigo-400' : 'text-amber-400'}`} />
+              {!isPlaying && (
+                <span className="font-bold tracking-wider text-[10px] sm:text-[11px] text-amber-400">
+                  PAUSED
+                </span>
+              )}
+              <span className="text-white font-semibold">{formatTimer(elapsedSeconds)}</span>
+            </div>
+          ) : (
+            <div
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-700/80 bg-slate-800/80 text-xs font-mono transition-all shrink-0 shadow-sm"
+              title="Classroom session is live"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="font-bold tracking-wider text-[10px] sm:text-[11px] text-emerald-400">
+                LIVE
+              </span>
+              <span className="text-white font-semibold">{formatTimer(elapsedSeconds)}</span>
+            </div>
+          )}
 
           {/* Classroom Code Badge - ONLY in Classroom Mode */}
           {isClassroomMode && (
@@ -514,6 +530,7 @@ export function App() {
           status={aiStatus}
           speechText={aiSpeechText}
           isPlaying={isPlaying}
+          isClassroom={isClassroomMode}
           onTogglePlay={handleTogglePlay}
           onRestart={handleRestart}
         />
@@ -704,6 +721,7 @@ export function App() {
             <ProtectedRoute>
               {isPreparing ? (
                 <CurriculumPrepModal
+                  isClassroom={false}
                   topic={currentTopicTitle}
                   plan={currentPlan}
                   isGenerating={isGeneratingCurriculum}
@@ -721,6 +739,8 @@ export function App() {
             <ProtectedRoute>
               {isPreparing ? (
                 <CurriculumPrepModal
+                  isClassroom={true}
+                  roomCode={roomCode}
                   topic={currentTopicTitle}
                   plan={currentPlan}
                   isGenerating={isGeneratingCurriculum}
