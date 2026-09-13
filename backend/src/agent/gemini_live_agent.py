@@ -73,6 +73,8 @@ class GeminiLiveAgent:
         )
 
         self.is_active = False
+        self.is_paused = False
+        self._is_interrupted = False
         self._session_context: Optional[Any] = None
         self._session: Optional[live.AsyncSession] = None
         self._receive_task: Optional[asyncio.Task] = None
@@ -116,6 +118,48 @@ class GeminiLiveAgent:
                     f"[GeminiLiveAgent:{self.session_id}] Error in outbound callback: {err}",
                     exc_info=True,
                 )
+
+    async def pause_agent(self) -> None:
+        """Pause agent vocalization and speech output."""
+        self.is_paused = True
+        self._is_interrupted = True
+        logger.info(f"[GeminiLiveAgent:{self.session_id}] Agent paused.")
+        await self.emit_to_frontend(
+            {
+                "type": "agent_status",
+                "sessionId": self.session_id,
+                "status": "paused",
+                "message": "Lecture Paused",
+            }
+        )
+
+    async def resume_agent(self) -> None:
+        """Resume agent interaction."""
+        self.is_paused = False
+        self._is_interrupted = False
+        logger.info(f"[GeminiLiveAgent:{self.session_id}] Agent resumed.")
+        await self.emit_to_frontend(
+            {
+                "type": "agent_status",
+                "sessionId": self.session_id,
+                "status": "listening",
+                "message": "Ready",
+            }
+        )
+
+    async def interrupt_agent(self) -> None:
+        """Handle student barge-in interruption."""
+        self._is_interrupted = True
+        logger.info(
+            f"[GeminiLiveAgent:{self.session_id}] Student barged in / interrupted."
+        )
+        await self.emit_to_frontend(
+            {
+                "type": "agent_status",
+                "sessionId": self.session_id,
+                "status": "interrupted",
+            }
+        )
 
     def _build_live_config(self) -> genai_types.LiveConnectConfig:
         """Constructs the LiveConnectConfig for Gemini Live session."""
@@ -354,6 +398,7 @@ class GeminiLiveAgent:
                                 logger.info(
                                     f"[GeminiLiveAgent:{self.session_id}] Student interrupted the agent."
                                 )
+                                self._is_interrupted = True
                                 await self.emit_to_frontend(
                                     {
                                         "type": "agent_status",
@@ -361,6 +406,16 @@ class GeminiLiveAgent:
                                         "status": "interrupted",
                                     }
                                 )
+                                continue
+
+                            # Suppress trailing model_turn parts from interrupted turn or when paused
+                            if self.is_paused or self._is_interrupted:
+                                if server_content.turn_complete:
+                                    self._is_interrupted = False
+                                continue
+
+                            if server_content.turn_complete:
+                                self._is_interrupted = False
 
                             model_turn = server_content.model_turn
                             if model_turn and model_turn.parts:
@@ -488,7 +543,7 @@ class GeminiLiveAgent:
         Args:
             pcm_bytes: Raw mono PCM audio bytes (16kHz or 24kHz).
         """
-        if not self.is_active:
+        if not self.is_active or self.is_paused:
             return
 
         if self._session:
@@ -512,7 +567,7 @@ class GeminiLiveAgent:
         Notify the Gemini Live session that the student has finished speaking / muted microphone.
         Dispatches audio_stream_end to trigger immediate response generation.
         """
-        if not self.is_active or not self._session:
+        if not self.is_active or not self._session or self.is_paused:
             return
 
         try:

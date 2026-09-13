@@ -203,6 +203,8 @@ export function App() {
           setAiStatus('thinking');
         } else if (newStatus === 'listening') {
           setAiStatus('listening');
+        } else if (newStatus === 'paused') {
+          setIsPlaying(false);
         }
         if (msg) setAiSpeechText(msg);
       },
@@ -371,15 +373,19 @@ export function App() {
   // Toggle Lecture Play/Pause (Only allowed in 1-on-1 mode, disabled in classroom)
   const handleTogglePlay = () => {
     if (isClassroomMode) return;
-    setIsPlaying((prev) => !prev);
+    const nextPlaying = !isPlaying;
+    setIsPlaying(nextPlaying);
+    liveDualSessionService.setPaused(!nextPlaying);
   };
 
   // Restart Lecture
   const handleRestart = () => {
+    liveDualSessionService.clearAudioPlaybackQueue(true);
     setIncomingAction({ action: 'clear', id: 'reset' });
     setActiveModuleIndex(0);
     setElapsedSeconds(0);
     setIsPlaying(true);
+    liveDualSessionService.setPaused(false);
   };
 
   // Student Microphone Toggle (Muted by default)
@@ -402,8 +408,8 @@ export function App() {
     );
 
     if (!nextMuted) {
-      // Student has unmuted! AI immediately stops speaking and listens
-      setIsPlaying(false);
+      // Student has unmuted to speak! AI immediately stops speaking and clears audio queue
+      liveDualSessionService.clearAudioPlaybackQueue(true);
       setAiStatus('listening');
       setAiSpeechText("I'm listening! Speak into your microphone or ask a question...");
     } else {
@@ -411,7 +417,6 @@ export function App() {
       if (aiStatus === 'listening') {
         setAiStatus('explaining');
         setAiSpeechText("Microphone muted. Resuming visual explanation...");
-        setIsPlaying(true);
       }
     }
   };
@@ -433,15 +438,15 @@ export function App() {
 
   // Student Asks a Question
   const handleAskQuestion = (questionText: string) => {
-    // 1. Switch AI to thinking
+    // 1. Immediately clear pending AI audio queue & halt active speech
+    liveDualSessionService.clearAudioPlaybackQueue(true);
+
+    // 2. Switch AI to thinking
     setAiStatus('thinking');
     setAiSpeechText(`Processing your question: "${questionText}"...`);
 
-    // 2. Transmit to Gemini Live agent over Input WebSocket
+    // 3. Transmit to Gemini Live agent over Input WebSocket
     liveDualSessionService.sendTextMessage(questionText);
-
-    // 3. Pause
-    setIsPlaying(false);
   };
 
   // Classroom & Whiteboard Workspace

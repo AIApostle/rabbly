@@ -15,7 +15,7 @@
 import { whiteboardMcpServer, type McpJsonRpcRequest } from '../mcp/whiteboardMcpServer';
 import type { BoardStatePayload, LessonPlan, ClassroomParticipant } from '../types';
 
-export type AgentLiveStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking' | 'interrupted' | 'error';
+export type AgentLiveStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking' | 'interrupted' | 'paused' | 'error';
 
 export interface ClientUserInfo {
   userId?: string;
@@ -80,12 +80,21 @@ export class LiveDualSessionService {
   private processorNode: ScriptProcessorNode | null = null;
   private isMicMuted: boolean = true;
 
-  // Audio Playback (Output WS -> Speakers)
+  // Audio Playback & Jitter Buffering (Output WS -> Speakers)
   private playbackContext: AudioContext | null = null;
   private gainNode: GainNode | null = null;
   private activeSources: AudioBufferSourceNode[] = [];
   private nextPlayTime: number = 0;
   private isSpeakerMuted: boolean = false;
+
+  // Jitter buffer and queue state
+  private audioQueue: AudioBuffer[] = [];
+  private isJitterBuffering: boolean = false;
+  private jitterBufferTimeout: number | null = null;
+  private isPaused: boolean = false;
+  private isInterrupted: boolean = false;
+  private interruptionCooldownTimeout: number | null = null;
+  private readonly MIN_JITTER_CHUNKS: number = 3;
 
   // Board State Streaming
   private lastStreamedElementCount: number = -1;
@@ -272,7 +281,9 @@ export class LiveDualSessionService {
       console.log(`[DualWS:Output] Status: ${status} - ${message || ''}`);
 
       if (status === 'interrupted') {
-        this.clearAudioPlaybackQueue();
+        this.clearAudioPlaybackQueue(true);
+      } else if (status === 'speaking') {
+        this.isInterrupted = false;
       }
 
       this.updateStatus(status, message);
@@ -281,6 +292,9 @@ export class LiveDualSessionService {
     // 2. Agent Live Speech Subtitles
     else if (type === 'transcript') {
       const text = String(data.text || '');
+      if (text.trim()) {
+        this.isInterrupted = false;
+      }
       console.log(`[DualWS:Output] Transcript: "${text}"`);
       this.callbacks.onTranscript?.(text);
     }
@@ -288,7 +302,7 @@ export class LiveDualSessionService {
     // 3. Agent Audio PCM Stream
     else if (type === 'audio') {
       const base64Data = data.data as string;
-      if (base64Data) {
+      if (base64Data && !this.isPaused && !this.isInterrupted) {
         this.queueAudioChunk(base64Data);
       }
     }
@@ -513,7 +527,7 @@ export class LiveDualSessionService {
       this.processorNode = this.audioContext.createScriptProcessor(2048, 1, 1);
 
       this.processorNode.onaudioprocess = (e) => {
-        if (this.isMicMuted) return;
+        if (this.isMicMuted || this.isPaused) return;
 
         const inputData = e.inputBuffer.getChannelData(0);
         // Calculate audio RMS level for visual meter
@@ -524,9 +538,17 @@ export class LiveDualSessionService {
         const rms = Math.sqrt(sum / inputData.length);
         this.callbacks.onAudioLevel?.(Math.min(rms * 5, 1));
 
-        // Barge-in: if student speaks while agent is playing speech, instantly silence AI audio
-        if (rms > 0.04 && this.status === 'speaking') {
-          this.clearAudioPlaybackQueue();
+        // Barge-in: if student speaks while agent is playing speech or has active/queued buffers,
+        // instantly silence AI audio and notify backend
+        if (
+          rms > 0.04 &&
+          (this.status === 'speaking' || this.activeSources.length > 0 || this.audioQueue.length > 0)
+        ) {
+          this.clearAudioPlaybackQueue(true);
+          this.sendToInput({
+            type: 'student_interrupted',
+            sessionId: this.sessionId,
+          });
         }
 
         // Downsample input from native sample rate to exact 16kHz 16-bit linear PCM
@@ -638,7 +660,7 @@ export class LiveDualSessionService {
    * Queue raw 24kHz 1-channel PCM audio chunk from Gemini for smooth playback.
    */
   private queueAudioChunk(base64Data: string): void {
-    if (this.status === 'idle' || this.isSpeakerMuted) {
+    if (this.status === 'idle' || this.isSpeakerMuted || this.isPaused || this.isInterrupted) {
       return;
     }
 
@@ -673,46 +695,116 @@ export class LiveDualSessionService {
       const audioBuffer = this.playbackContext.createBuffer(1, float32.length, 24000);
       audioBuffer.copyToChannel(float32, 0);
 
-      this.scheduleBufferPlayback(audioBuffer);
+      this.enqueueAudioBuffer(audioBuffer);
     } catch (err) {
       console.error('[AudioPlayback] Failed to decode audio chunk:', err);
     }
   }
 
-  private scheduleBufferPlayback(buffer: AudioBuffer): void {
-    if (!this.playbackContext || !this.gainNode) return;
+  /**
+   * Jitter-buffered queue ingestion. Prevents voice breaking / gaps by pre-buffering
+   * a tiny window of audio before starting playout, and then continuously streaming.
+   */
+  private enqueueAudioBuffer(buffer: AudioBuffer): void {
+    if (this.isPaused || this.isInterrupted || !this.playbackContext || !this.gainNode) return;
 
-    const source = this.playbackContext.createBufferSource();
-    source.buffer = buffer;
-    source.connect(this.gainNode);
+    this.audioQueue.push(buffer);
+
+    const currentTime = this.playbackContext.currentTime;
+    const isActivelyPlaying = this.activeSources.length > 0 && this.nextPlayTime > currentTime;
+
+    if (isActivelyPlaying) {
+      // Playout is already active and ahead of clock: drain immediately without re-buffering
+      this.drainAudioQueue();
+    } else {
+      // Playout is idle or experienced an underrun: accumulate jitter buffer before launching
+      if (!this.isJitterBuffering) {
+        this.isJitterBuffering = true;
+        this.jitterBufferTimeout = window.setTimeout(() => {
+          this.startPlayoutAfterJitterBuffer();
+        }, 60);
+      } else if (this.audioQueue.length >= this.MIN_JITTER_CHUNKS) {
+        if (this.jitterBufferTimeout) {
+          clearTimeout(this.jitterBufferTimeout);
+          this.jitterBufferTimeout = null;
+        }
+        this.startPlayoutAfterJitterBuffer();
+      }
+    }
+  }
+
+  private startPlayoutAfterJitterBuffer(): void {
+    this.isJitterBuffering = false;
+    this.jitterBufferTimeout = null;
+
+    if (this.isPaused || this.isInterrupted || !this.playbackContext || !this.gainNode) {
+      return;
+    }
+    if (this.audioQueue.length === 0) return;
+
+    const currentTime = this.playbackContext.currentTime;
+    // Schedule playout starting with 80ms headroom ahead of current hardware clock
+    this.nextPlayTime = Math.max(this.nextPlayTime, currentTime + 0.08);
+    this.drainAudioQueue();
+  }
+
+  private drainAudioQueue(): void {
+    if (!this.playbackContext || !this.gainNode || this.isPaused || this.isInterrupted) return;
 
     const currentTime = this.playbackContext.currentTime;
     if (this.nextPlayTime < currentTime) {
-      this.nextPlayTime = currentTime;
+      this.nextPlayTime = currentTime + 0.04;
     }
 
-    source.start(this.nextPlayTime);
-    this.nextPlayTime += buffer.duration;
+    while (this.audioQueue.length > 0) {
+      const buffer = this.audioQueue.shift();
+      if (!buffer) break;
 
-    this.activeSources.push(source);
-    this.updateStatus('speaking');
+      const source = this.playbackContext.createBufferSource();
+      source.buffer = buffer;
+      source.connect(this.gainNode);
 
-    source.onended = () => {
-      this.activeSources = this.activeSources.filter((s) => s !== source);
-      if (this.playbackContext && this.activeSources.length === 0 && this.playbackContext.currentTime >= this.nextPlayTime - 0.05) {
-        this.updateStatus('listening');
-      }
-    };
+      source.start(this.nextPlayTime);
+      this.nextPlayTime += buffer.duration;
+      this.activeSources.push(source);
+
+      this.updateStatus('speaking');
+
+      source.onended = () => {
+        this.activeSources = this.activeSources.filter((s) => s !== source);
+        if (
+          this.activeSources.length === 0 &&
+          this.audioQueue.length === 0 &&
+          !this.isPaused &&
+          !this.isJitterBuffering
+        ) {
+          if (this.playbackContext && this.playbackContext.currentTime >= this.nextPlayTime - 0.05) {
+            this.updateStatus('listening');
+          }
+        }
+      };
+    }
   }
 
   /**
-   * Instantly halt playback of all scheduled buffers and reset playback pointer.
-   * Triggered on student speech or server interruption.
+   * Instantly halt playback of all scheduled buffers and clear the entire audio queue.
+   * Triggered on student speech, server interruption, lecture pause, restart, or student questions.
    */
-  private clearAudioPlaybackQueue(): void {
-    console.log('[AudioPlayback] Clearing playback queue (interrupted). Stopping', this.activeSources.length, 'active buffers.');
+  public clearAudioPlaybackQueue(markInterrupted: boolean = true): void {
+    console.log(
+      `[AudioPlayback] Clearing playback queue & buffer. Stopping ${this.activeSources.length} active sources, discarding ${this.audioQueue.length} queued chunks.`
+    );
+
+    if (this.jitterBufferTimeout) {
+      clearTimeout(this.jitterBufferTimeout);
+      this.jitterBufferTimeout = null;
+    }
+    this.isJitterBuffering = false;
+    this.audioQueue = [];
+
     for (const source of this.activeSources) {
       try {
+        source.onended = null;
         source.stop(0);
         source.disconnect();
       } catch {}
@@ -721,8 +813,54 @@ export class LiveDualSessionService {
 
     if (this.playbackContext) {
       this.nextPlayTime = this.playbackContext.currentTime;
+    } else {
+      this.nextPlayTime = 0;
     }
-    this.updateStatus('listening');
+
+    if (markInterrupted) {
+      this.isInterrupted = true;
+      if (this.interruptionCooldownTimeout) {
+        clearTimeout(this.interruptionCooldownTimeout);
+      }
+      this.interruptionCooldownTimeout = window.setTimeout(() => {
+        this.isInterrupted = false;
+        this.interruptionCooldownTimeout = null;
+      }, 350);
+    }
+
+    if (!this.isPaused) {
+      this.updateStatus('listening');
+    }
+  }
+
+  /**
+   * Pause or resume the live session.
+   * On pause, immediately silences playback, purges the audio queue, and stops mic streaming.
+   */
+  public setPaused(paused: boolean): void {
+    this.isPaused = paused;
+    if (paused) {
+      console.log('[AudioPlayback] Pausing lecture: stopping audio playback and clearing queue.');
+      this.clearAudioPlaybackQueue(true);
+      this.sendToInput({
+        type: 'session_pause',
+        sessionId: this.sessionId,
+      });
+      this.updateStatus('paused', 'Lecture Paused');
+    } else {
+      console.log('[AudioPlayback] Resuming lecture.');
+      this.isInterrupted = false;
+      this.clearAudioPlaybackQueue(false);
+      this.sendToInput({
+        type: 'session_resume',
+        sessionId: this.sessionId,
+      });
+      this.updateStatus('listening', 'Ready');
+    }
+  }
+
+  public isLecturePaused(): boolean {
+    return this.isPaused;
   }
 
   private updateStatus(status: AgentLiveStatus, message?: string): void {
@@ -741,7 +879,19 @@ export class LiveDualSessionService {
     console.log('[DualWS] Disconnecting session...');
     this.status = 'idle';
     this.stopAudioCapture();
-    this.clearAudioPlaybackQueue();
+    this.clearAudioPlaybackQueue(false);
+
+    if (this.jitterBufferTimeout) {
+      clearTimeout(this.jitterBufferTimeout);
+      this.jitterBufferTimeout = null;
+    }
+    if (this.interruptionCooldownTimeout) {
+      clearTimeout(this.interruptionCooldownTimeout);
+      this.interruptionCooldownTimeout = null;
+    }
+    this.audioQueue = [];
+    this.isPaused = false;
+    this.isInterrupted = false;
 
     if (this.inputSocket) {
       this.inputSocket.onclose = null;

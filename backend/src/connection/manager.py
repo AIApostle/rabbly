@@ -389,6 +389,26 @@ class LiveSessionManager:
             )
             await session.agent.send_audio_stream_end()
 
+        # 2c. Lecture Session Pause / Resume
+        elif msg_type == "session_pause":
+            logger.info(
+                f"[LiveSessionManager:{session.session_id}] Lecture paused by student."
+            )
+            await session.agent.pause_agent()
+
+        elif msg_type == "session_resume":
+            logger.info(
+                f"[LiveSessionManager:{session.session_id}] Lecture resumed by student."
+            )
+            await session.agent.resume_agent()
+
+        # 2d. Student Barge-in Interruption
+        elif msg_type == "student_interrupted":
+            logger.info(
+                f"[LiveSessionManager:{session.session_id}] Student barge-in interruption received."
+            )
+            await session.agent.interrupt_agent()
+
         # 3. Student Text Message
         elif msg_type == "text":
             text = data.get("text", "")

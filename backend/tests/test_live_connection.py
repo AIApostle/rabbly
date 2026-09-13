@@ -131,3 +131,42 @@ def test_classroom_multi_client_broadcast(client: TestClient):
             assert s2_welcome["count"] == 2
 
 
+def test_session_pause_resume_interrupted(client: TestClient):
+    """Verify that student can pause, resume, and barge-in / interrupt the session."""
+    session_id = "test-pause-resume-session"
+
+    def read_until_type(ws, target_type: str, max_tries: int = 5):
+        for _ in range(max_tries):
+            msg = json.loads(ws.receive_text())
+            if msg.get("type") == target_type:
+                return msg
+        raise AssertionError(f"Did not receive message of type '{target_type}'")
+
+    with client.websocket_connect(f"/ws/live/{session_id}/output") as output_ws:
+        with client.websocket_connect(f"/ws/live/{session_id}/input") as input_ws:
+            # 1. Send session_pause from student
+            input_ws.send_text(json.dumps({
+                "type": "session_pause",
+                "sessionId": session_id,
+            }))
+            pause_msg = read_until_type(output_ws, "agent_status")
+            assert pause_msg["status"] == "paused"
+
+            # 2. Send session_resume from student
+            input_ws.send_text(json.dumps({
+                "type": "session_resume",
+                "sessionId": session_id,
+            }))
+            resume_msg = read_until_type(output_ws, "agent_status")
+            assert resume_msg["status"] == "listening"
+
+            # 3. Send student_interrupted (barge-in)
+            input_ws.send_text(json.dumps({
+                "type": "student_interrupted",
+                "sessionId": session_id,
+            }))
+            interrupt_msg = read_until_type(output_ws, "agent_status")
+            assert interrupt_msg["status"] == "interrupted"
+
+
+
