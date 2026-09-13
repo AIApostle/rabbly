@@ -6,6 +6,7 @@
 
 import type { LessonPlan, ExternalResource, CurriculumModule } from '../types';
 import { getAuthHeaders } from './authService';
+import { getApiUrl } from './apiConfig';
 
 export interface GenerateCurriculumParams {
   topic: string;
@@ -107,7 +108,7 @@ export async function generateCurriculum(params: GenerateCurriculumParams): Prom
       content: r.type === 'file' && r.file ? `File: ${r.file.name} (${(r.file.size / 1024).toFixed(0)} KB)` : undefined,
     }));
 
-    const response = await fetch('/api/curriculum/generate', {
+    const response = await fetch(getApiUrl('/api/curriculum/generate'), {
       method: 'POST',
       headers: {
         ...getAuthHeaders(),
@@ -158,7 +159,7 @@ export async function generateCurriculum(params: GenerateCurriculumParams): Prom
  */
 export async function fetchLibraryCurricula(): Promise<LessonPlan[]> {
   try {
-    const response = await fetch('/api/curriculum/library', {
+    const response = await fetch(getApiUrl('/api/curriculum/library'), {
       method: 'GET',
       headers: {
         ...getAuthHeaders(),

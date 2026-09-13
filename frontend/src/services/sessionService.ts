@@ -6,6 +6,7 @@
 
 import type { RecentSessionData } from '../types';
 import { getAuthHeaders } from './authService';
+import { getApiUrl } from './apiConfig';
 
 const STORAGE_KEY = 'rabbly_recent_sessions_v1';
 
@@ -107,7 +108,7 @@ export function saveLocalSessions(sessions: RecentSessionData[]): void {
  */
 export async function loadRecentSessions(): Promise<RecentSessionData[]> {
   try {
-    const res = await fetch('/api/sessions', {
+    const res = await fetch(getApiUrl('/api/sessions'), {
       headers: getAuthHeaders(),
     });
 
@@ -173,7 +174,7 @@ export async function persistNewSession(session: Partial<RecentSessionData>): Pr
       board_state: localItem.boardState,
     };
 
-    const res = await fetch('/api/sessions', {
+    const res = await fetch(getApiUrl('/api/sessions'), {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(payload),
@@ -201,7 +202,7 @@ export async function removeSession(sessionId: string, roomCode?: string): Promi
   const codeToDelete = roomCode || currentSessions.find((s) => s.id === sessionId)?.roomCode;
   if (codeToDelete) {
     try {
-      await fetch(`/api/sessions/${codeToDelete}`, {
+      await fetch(getApiUrl(`/api/sessions/${codeToDelete}`), {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
@@ -219,7 +220,7 @@ export async function updateSessionProgress(
   updates: Partial<BackendSessionPayload>
 ): Promise<void> {
   try {
-    await fetch(`/api/sessions/${roomCode}`, {
+    await fetch(getApiUrl(`/api/sessions/${roomCode}`), {
       method: 'PATCH',
       headers: getAuthHeaders(),
       body: JSON.stringify(updates),

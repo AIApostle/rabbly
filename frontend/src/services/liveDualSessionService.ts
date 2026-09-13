@@ -14,6 +14,7 @@
 
 import { whiteboardMcpServer, type McpJsonRpcRequest } from '../mcp/whiteboardMcpServer';
 import type { BoardStatePayload, LessonPlan, ClassroomParticipant } from '../types';
+import { getWebSocketBaseUrl } from './apiConfig';
 
 export type AgentLiveStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking' | 'interrupted' | 'paused' | 'error';
 
@@ -154,7 +155,7 @@ export class LiveDualSessionService {
     }
     this.updateStatus('connecting', 'Connecting to Rabbly AI Tutor live session...');
 
-    const host = baseWsUrl || (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + (window.location.hostname === 'localhost' ? 'localhost:8000' : window.location.host);
+    const host = (baseWsUrl || getWebSocketBaseUrl()).replace(/\/+$/, '');
 
     const queryParts: string[] = [];
     if (userInfo?.userId) queryParts.push(`user_id=${encodeURIComponent(userInfo.userId)}`);

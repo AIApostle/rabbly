@@ -316,7 +316,7 @@ class GeminiLiveAgent:
                     logger.warning(
                         f"[GeminiLiveAgent:{self.session_id}] Could not pre-fetch curriculum plan: {plan_err}"
                     )
-            elif self.curriculum_data.get("board_state"):
+            elif self.curriculum_data and self.curriculum_data.get("board_state"):
                 self.mcp_client.restore_from_saved_state(self.curriculum_data["board_state"])
 
             config = self._build_live_config()
@@ -703,7 +703,7 @@ class GeminiLiveAgent:
                     self.mcp_client.restore_from_saved_state(self.curriculum_data["board_state"])
             except Exception as plan_err:
                 logger.debug(f"[GeminiLiveAgent:{self.session_id}] Simulation curriculum fetch: {plan_err}")
-        elif self.curriculum_data.get("board_state"):
+        elif self.curriculum_data and self.curriculum_data.get("board_state"):
             self.mcp_client.restore_from_saved_state(self.curriculum_data["board_state"])
 
         completed = 0
@@ -714,7 +714,7 @@ class GeminiLiveAgent:
             completed = self.curriculum_data.get("completed_modules") or self.curriculum_data.get("completedModules") or 0
             active_idx = self.curriculum_data.get("active_module_index") or self.curriculum_data.get("activeModuleIndex") or completed
 
-        if completed > 0 or active_idx > 0:
+        if (completed > 0 or active_idx > 0) and self.curriculum_data:
             modules = self.curriculum_data.get("modules") or []
             target_title = (
                 modules[active_idx].get("title", f"Module {active_idx + 1}")

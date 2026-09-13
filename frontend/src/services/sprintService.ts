@@ -6,6 +6,7 @@
 
 import type { ExternalResource } from '../types';
 import { getAuthHeaders } from './authService';
+import { getApiUrl } from './apiConfig';
 
 export interface Milestone {
   id: string;
@@ -86,7 +87,7 @@ export function saveLocalSprints(sprints: LearningSprint[]): void {
 
 export async function loadSprints(): Promise<LearningSprint[]> {
   try {
-    const res = await fetch('/api/sprints', {
+    const res = await fetch(getApiUrl('/api/sprints'), {
       headers: getAuthHeaders(),
     });
     if (res.ok) {
@@ -138,7 +139,7 @@ export async function createSprint(sprint: Partial<LearningSprint>): Promise<Lea
       resources: localItem.resources,
     };
 
-    const res = await fetch('/api/sprints', {
+    const res = await fetch(getApiUrl('/api/sprints'), {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(payload),
@@ -163,7 +164,7 @@ export async function updateSprintMilestones(
   saveLocalSprints(updated);
 
   try {
-    await fetch(`/api/sprints/${sprintId}`, {
+    await fetch(getApiUrl(`/api/sprints/${sprintId}`), {
       method: 'PATCH',
       headers: getAuthHeaders(),
       body: JSON.stringify({
@@ -182,7 +183,7 @@ export async function deleteSprint(sprintId: string): Promise<void> {
   saveLocalSprints(updated);
 
   try {
-    await fetch(`/api/sprints/${sprintId}`, {
+    await fetch(getApiUrl(`/api/sprints/${sprintId}`), {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });

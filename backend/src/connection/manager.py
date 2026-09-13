@@ -115,6 +115,10 @@ class LiveSessionContext:
         }
         await self.send_to_output(roster_msg)
 
+    async def broadcast_output(self, message: Dict[str, Any]) -> None:
+        """Broadcast a JSON message to all connected output clients (alias for send_to_output)."""
+        await self.send_to_output(message)
+
 
 class LiveSessionManager:
     """

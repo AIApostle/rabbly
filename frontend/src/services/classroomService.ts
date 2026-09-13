@@ -6,6 +6,7 @@
 
 import type { ClassroomRoom, ExternalResource } from '../types';
 import { getAuthHeaders } from './authService';
+import { getApiUrl } from './apiConfig';
 
 const CLASSROOMS_STORAGE_KEY = 'rabbly_classrooms_cache';
 
@@ -45,7 +46,7 @@ export function saveLocalClassrooms(classrooms: ClassroomRoom[]): void {
  */
 export async function loadClassrooms(): Promise<ClassroomRoom[]> {
   try {
-    const res = await fetch('/api/classrooms', {
+    const res = await fetch(getApiUrl('/api/classrooms'), {
       headers: getAuthHeaders(),
     });
     if (res.ok) {
@@ -101,7 +102,7 @@ export async function createClassroom(payload: {
   };
 
   try {
-    const res = await fetch('/api/classrooms', {
+    const res = await fetch(getApiUrl('/api/classrooms'), {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(body),
@@ -173,7 +174,7 @@ export async function verifyRoomCode(roomCode: string): Promise<ClassroomRoom> {
   const cleanCode = roomCode.trim().toUpperCase();
 
   try {
-    const res = await fetch(`/api/classrooms/${cleanCode}`, {
+    const res = await fetch(getApiUrl(`/api/classrooms/${cleanCode}`), {
       headers: getAuthHeaders(),
     });
 
@@ -248,7 +249,7 @@ export async function joinClassroom(roomCode: string, participantName?: string):
   const cleanCode = roomCode.trim().toUpperCase();
 
   try {
-    const res = await fetch(`/api/classrooms/${cleanCode}/join`, {
+    const res = await fetch(getApiUrl(`/api/classrooms/${cleanCode}/join`), {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ participant_name: participantName }),
@@ -305,7 +306,7 @@ export async function endClassroom(roomCode: string): Promise<boolean> {
 
   // 2. Notify backend endpoint
   try {
-    const res = await fetch(`/api/classrooms/${cleanCode}/end`, {
+    const res = await fetch(getApiUrl(`/api/classrooms/${cleanCode}/end`), {
       method: 'POST',
       headers: getAuthHeaders(),
     });

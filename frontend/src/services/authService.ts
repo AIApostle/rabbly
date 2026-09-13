@@ -3,6 +3,8 @@
  * Manages user authentication, token storage, and session authorization headers.
  */
 
+import { getApiUrl } from './apiConfig';
+
 export interface AuthUser {
   id: string;
   email: string;
@@ -126,7 +128,7 @@ export function getAuthHeaders(): HeadersInit {
 }
 
 export async function login(payload: SignInPayload): Promise<AuthResponse> {
-  const res = await fetch('/api/auth/signin', {
+  const res = await fetch(getApiUrl('/api/auth/signin'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -149,7 +151,7 @@ export async function login(payload: SignInPayload): Promise<AuthResponse> {
 }
 
 export async function signup(payload: SignUpPayload): Promise<AuthResponse> {
-  const res = await fetch('/api/auth/signup', {
+  const res = await fetch(getApiUrl('/api/auth/signup'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -177,7 +179,7 @@ export async function signup(payload: SignUpPayload): Promise<AuthResponse> {
 
 export async function requestPasswordReset(email: string): Promise<string> {
   const redirectTo = `${window.location.origin}/login#type=recovery`;
-  const res = await fetch('/api/auth/forgot-password', {
+  const res = await fetch(getApiUrl('/api/auth/forgot-password'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -196,7 +198,7 @@ export async function requestPasswordReset(email: string): Promise<string> {
 }
 
 export async function resetPassword(newPassword: string): Promise<string> {
-  const res = await fetch('/api/auth/reset-password', {
+  const res = await fetch(getApiUrl('/api/auth/reset-password'), {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({ new_password: newPassword }),
@@ -216,7 +218,7 @@ export async function verifyActiveToken(): Promise<AuthUser | null> {
   if (!token) return null;
 
   try {
-    const res = await fetch('/api/auth/me', {
+    const res = await fetch(getApiUrl('/api/auth/me'), {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
