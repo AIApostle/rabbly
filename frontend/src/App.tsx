@@ -243,7 +243,12 @@ export function App() {
       onCurriculumSync: (syncedPlan) => {
         console.log('[App] Received curriculum sync for active lecture:', syncedPlan?.topic);
         if (syncedPlan) {
-          setCurrentPlan(syncedPlan);
+          setCurrentPlan((prev) => {
+            if (prev && prev.topic === syncedPlan.topic && prev.modules?.length === syncedPlan.modules?.length) {
+              return prev;
+            }
+            return syncedPlan;
+          });
           if (syncedPlan.topic) setCurrentTopicTitle(syncedPlan.topic);
           setIsPreparing(false);
           setIsPlaying(true);
@@ -336,6 +341,7 @@ export function App() {
         (existingPlan as any).completedModules ??
         0;
       setActiveModuleIndex(resumeIndex);
+      liveDualSessionService.unlockAudio();
       liveDualSessionService.setCurriculumPlan(existingPlan);
       setIsGeneratingCurriculum(false);
       setIsPreparing(false);
@@ -400,11 +406,12 @@ export function App() {
 
   // Transition into Whiteboard workspace
   const handlePrepReady = () => {
+    liveDualSessionService.unlockAudio();
     setIsPreparing(false);
     setIsPlaying(true);
     setIncomingAction(null); // Keep whiteboard canvas clean
     setElapsedSeconds(0);
-    setIsNotesOpen(true); // Open drawer showing generated modules and notes
+    setIsNotesOpen(true); // Open drawer showing generated modules
 
     if (isClassroomMode) {
       confetti({ particleCount: 40, spread: 60, origin: { y: 0.85 } });

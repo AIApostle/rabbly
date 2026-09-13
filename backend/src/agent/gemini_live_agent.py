@@ -429,6 +429,22 @@ class GeminiLiveAgent:
                             if server_content.turn_complete:
                                 self._is_interrupted = False
 
+                            # Audio Transcription chunk from Gemini Live
+                            if hasattr(server_content, "output_transcription") and server_content.output_transcription:
+                                ot = server_content.output_transcription
+                                ot_text = getattr(ot, "text", "") if hasattr(ot, "text") else str(ot or "")
+                                if ot_text and ot_text.strip():
+                                    logger.info(
+                                        f"[GeminiLiveAgent:{self.session_id}] Spoken transcript chunk: '{ot_text}'"
+                                    )
+                                    await self.emit_to_frontend(
+                                        {
+                                            "type": "transcript",
+                                            "sessionId": self.session_id,
+                                            "text": ot_text,
+                                        }
+                                    )
+
                             model_turn = server_content.model_turn
                             if model_turn and model_turn.parts:
                                 for part in model_turn.parts:

@@ -8,12 +8,15 @@ import {
   CheckCircle2,
   Paperclip,
   Trash2,
-  Sparkles,
   Link2,
   SquarePlay,
   FileText,
   Globe,
-  X,
+  ChevronDown,
+  ChevronUp,
+  Target,
+  Play,
+  Layers,
 } from 'lucide-react';
 import type { ExternalResource } from '../types';
 import {
@@ -70,8 +73,21 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [expandedSprintIds, setExpandedSprintIds] = useState<Set<string>>(new Set());
   const [addingMilestoneSprintId, setAddingMilestoneSprintId] = useState<string | null>(null);
   const [newMilestoneInput, setNewMilestoneInput] = useState('');
+
+  const toggleExpandSprint = (id: string) => {
+    setExpandedSprintIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   const handleAddMilestoneInline = (sprintId: string) => {
     if (!newMilestoneInput.trim()) {
@@ -96,6 +112,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
     setNewMilestoneInput('');
     setAddingMilestoneSprintId(null);
   };
+
   const [newTitle, setNewTitle] = useState('');
   const [newSubject, setNewSubject] = useState('');
   const [newTimeframe, setNewTimeframe] = useState('3-Day Sprint');
@@ -185,66 +202,80 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
           id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
           type: 'file',
           title: file.name,
-          detail: sizeStr,
+          detail: `${sizeStr} • Document`,
+          size: file.size,
+          fileObject: file,
         },
       ]);
     });
 
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    setIsPlusMenuOpen(false);
   };
 
-  const handleCreateSprint = (e: React.FormEvent) => {
+  const handleRemoveResource = (id: string) => {
+    setNewResources((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  const handleCreateSprint = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
 
-    const parsedMilestones = newMilestonesText
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0)
-      .map((line, idx) => ({
-        id: `m-${Date.now()}-${idx}`,
-        title: line,
-        status: (idx === 0 ? 'in-progress' : 'upcoming') as 'in-progress' | 'upcoming',
-      }));
+    let days = 3;
+    if (newTimeframe.includes('5-Day')) days = 5;
+    else if (newTimeframe.includes('1-Week')) days = 7;
+    else if (newTimeframe.includes('2-Week')) days = 14;
 
-    const finalMilestones =
-      parsedMilestones.length > 0
-        ? parsedMilestones
-        : [
-            { id: 'm1', title: '1. Foundations & Mathematical Intuition', status: 'in-progress' as const },
-            { id: 'm2', title: '2. Core Principles & Step-by-Step Breakdown', status: 'upcoming' as const },
-            { id: 'm3', title: '3. Synthesis & Real-World Problem Solving', status: 'upcoming' as const },
-          ];
+    const milestones = newMilestonesText.trim()
+      ? newMilestonesText
+          .split('\n')
+          .filter((line) => line.trim())
+          .map((line, idx) => ({
+            id: `m-${Date.now()}-${idx}`,
+            title: line.replace(/^[-*•\d.]+\s*/, '').trim(),
+            status: (idx === 0 ? 'in-progress' : 'upcoming') as 'in-progress' | 'upcoming',
+          }))
+      : [
+          { id: `m-${Date.now()}-1`, title: '1. First-Principles Foundations', status: 'in-progress' as const },
+          { id: `m-${Date.now()}-2`, title: '2. Core Mechanics & Derivations', status: 'upcoming' as const },
+          { id: `m-${Date.now()}-3`, title: '3. Real-World Applications & Edge Cases', status: 'upcoming' as const },
+        ];
 
-    const days = newTimeframe.includes('3') ? 3 : newTimeframe.includes('5') ? 5 : 7;
-
-    const newSprintPayload: Partial<LearningSprint> = {
+    const newSprint: LearningSprint = {
+      id: `sprint-${Date.now()}`,
       title: newTitle.trim(),
-      subject: newSubject.trim() || 'General Mastery',
+      subject: newSubject.trim() || 'General Science',
       timeframe: newTimeframe,
       daysRemaining: days,
       totalDays: days,
       progressPercent: 0,
-      milestones: finalMilestones,
+      milestones,
       resources: newResources,
+      createdAt: 'Just now',
     };
 
-    createSprint(newSprintPayload).then((persisted) => {
-      setSprints((prev) => [persisted, ...prev.filter((s) => s.id !== persisted.id)]);
-    });
+    setSprints((prev) => [newSprint, ...prev]);
 
-    setIsCreateModalOpen(false);
+    // Save to backend database API
+    createSprint(newSprint).catch((err) =>
+      console.warn('Failed to sync new sprint with backend:', err)
+    );
+
     setNewTitle('');
     setNewSubject('');
+    setNewTimeframe('3-Day Sprint');
     setNewMilestonesText('');
     setNewResources([]);
+    setIsCreateModalOpen(false);
   };
 
-  const handleDeleteSprint = (sprintId: string) => {
-    deleteSprint(sprintId);
-    setSprints((prev) => prev.filter((s) => s.id !== sprintId));
+  const handleDeleteSprint = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this learning sprint?')) {
+      setSprints((prev) => prev.filter((s) => s.id !== id));
+      deleteSprint(id).catch((err) =>
+        console.warn('Failed to delete sprint from database:', err)
+      );
+    }
   };
 
   const handleToggleMilestone = (sprintId: string, milestoneId: string) => {
@@ -269,6 +300,15 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
     );
   };
 
+  const filteredSprints = sprints.filter((s) => {
+    if (activeFilter === 'active') return s.progressPercent < 100;
+    if (activeFilter === 'completed') return s.progressPercent === 100;
+    return true;
+  });
+
+  // Spotlight sprint for Hero Stage
+  const activeSpotlight = sprints.find((s) => s.progressPercent < 100) || sprints[0];
+
   return (
     <div className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 py-8 flex flex-col space-y-8">
       {/* Hidden File Input for Sprint Attachments */}
@@ -282,7 +322,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
       />
 
       {/* Top Header */}
-      <div className="pb-4 border-b border-[#44474f]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="pb-4 border-b border-blue-900/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-sky-400 mb-1">
             <Zap className="w-4 h-4" />
@@ -291,10 +331,8 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white font-['Outfit']">
             Sprints
           </h1>
-          <p className="text-xs sm:text-sm text-[#c4c6d0] mt-0.5 max-w-2xl leading-relaxed">
-            Set focused learning sprints to master subjects and concepts quickly (e.g.{' '}
-            <span className="text-sky-300 font-mono">Master Calculus in 3 Days</span> or{' '}
-            <span className="text-sky-300 font-mono">Build a Transformer in 5 Days</span>). Rabbly guides you through daily milestones using your attached study materials.
+          <p className="text-xs sm:text-sm text-slate-300 mt-0.5 max-w-2xl leading-relaxed">
+            Focused multi-day sprints with daily milestones and AI-guided derivations on the blackboard.
           </p>
         </div>
 
@@ -302,7 +340,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
           <button
             type="button"
             onClick={onBackToChat}
-            className="px-3 py-1.5 rounded-xl bg-[#282a2f] hover:bg-[#33353a] text-xs font-medium text-[#c4c6d0] hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-xl bg-[#1a2130] hover:bg-[#222c40] text-xs font-medium text-slate-300 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 border border-blue-900/30"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back</span>
@@ -311,7 +349,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="px-4 py-2 rounded-2xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-bold text-xs shadow-lg shadow-blue-500/25 transition-all cursor-pointer flex items-center gap-2"
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-bold text-xs shadow-lg shadow-blue-500/25 transition-all cursor-pointer flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             <span>New Sprint</span>
@@ -319,16 +357,100 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex rounded-xl bg-[#191c20] p-1 border border-[#44474f]/40">
+      {/* Hero Stage: Active Sprint Spotlight Banner */}
+      {activeSpotlight && (
+        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0e1628] via-[#111c33] to-[#0c1220] border border-blue-500/30 p-6 sm:p-8 shadow-2xl">
+          <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+            <div className="space-y-3 max-w-2xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-blue-500/20 text-sky-300 border border-blue-500/40">
+                  {activeSpotlight.subject}
+                </span>
+                <span className="text-xs font-mono text-emerald-400 flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-950/40 border border-emerald-800/40">
+                  <Clock className="w-3 h-3" />
+                  <span>{activeSpotlight.daysRemaining} days remaining</span>
+                </span>
+                <span className="text-xs text-slate-400 font-mono">
+                  • {activeSpotlight.timeframe}
+                </span>
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-black text-white font-['Outfit'] tracking-tight">
+                {activeSpotlight.title}
+              </h2>
+
+              {/* Current Active Milestone Preview */}
+              {(() => {
+                const currentM =
+                  activeSpotlight.milestones.find((m) => m.status === 'in-progress') ||
+                  activeSpotlight.milestones.find((m) => m.status === 'upcoming') ||
+                  activeSpotlight.milestones[0];
+                return currentM ? (
+                  <div className="flex items-center gap-2 text-xs text-slate-300">
+                    <Target className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                    <span>Next milestone:</span>
+                    <span className="font-semibold text-sky-200 truncate">{currentM.title}</span>
+                  </div>
+                ) : null;
+              })()}
+
+              {/* Attached materials count */}
+              {activeSpotlight.resources.length > 0 && (
+                <div className="flex items-center gap-2 text-xs text-slate-400 pt-1">
+                  <Paperclip className="w-3.5 h-3.5 text-sky-400" />
+                  <span>{activeSpotlight.resources.length} study material(s) attached</span>
+                </div>
+              )}
+            </div>
+
+            {/* Right Side: Progress & Launch Action */}
+            <div className="flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end gap-4 shrink-0">
+              <div className="space-y-1.5 w-full sm:w-60 lg:text-right">
+                <div className="flex justify-between lg:justify-end gap-3 text-xs">
+                  <span className="text-slate-400">Mastery Progress</span>
+                  <span className="font-mono font-bold text-sky-300">
+                    {activeSpotlight.progressPercent}%
+                  </span>
+                </div>
+                <div className="w-full bg-[#1b253b] h-2.5 rounded-full overflow-hidden border border-blue-950">
+                  <div
+                    className="bg-gradient-to-r from-blue-600 to-sky-400 h-full rounded-full transition-all duration-500"
+                    style={{ width: `${activeSpotlight.progressPercent}%` }}
+                  />
+                </div>
+                <span className="text-[11px] text-slate-400 font-mono block">
+                  {activeSpotlight.milestones.filter((m) => m.status === 'completed').length} of{' '}
+                  {activeSpotlight.milestones.length} milestones completed
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  onStartSprintSession(activeSpotlight.title, activeSpotlight.resources, 'Advanced')
+                }
+                className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white text-xs font-bold shadow-xl shadow-blue-500/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>Launch Sprint Live Session</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Filter Tabs & Count */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+        <div className="inline-flex rounded-xl bg-[#141b2b] p-1 border border-blue-900/30">
           <button
             type="button"
             onClick={() => setActiveFilter('all')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
               activeFilter === 'all'
-                ? 'bg-[#282a2f] text-white shadow-sm'
-                : 'text-[#8e9099] hover:text-white'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
             All Sprints ({sprints.length})
@@ -336,48 +458,42 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
           <button
             type="button"
             onClick={() => setActiveFilter('active')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
               activeFilter === 'active'
-                ? 'bg-blue-600/30 text-sky-300 border border-blue-500/30 shadow-sm'
-                : 'text-[#8e9099] hover:text-white'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
-            In Progress ({sprints.filter((s) => s.progressPercent < 100).length})
+            Active ({sprints.filter((s) => s.progressPercent < 100).length})
           </button>
           <button
             type="button"
             onClick={() => setActiveFilter('completed')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
               activeFilter === 'completed'
-                ? 'bg-[#282a2f] text-emerald-400 shadow-sm'
-                : 'text-[#8e9099] hover:text-white'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
             Mastered ({sprints.filter((s) => s.progressPercent === 100).length})
           </button>
         </div>
 
-        <span className="text-xs text-[#8e9099] font-mono">
-          Showing {sprints.filter((s) => activeFilter === 'all' || (activeFilter === 'active' ? s.progressPercent < 100 : s.progressPercent === 100)).length} sprint(s)
+        <span className="text-xs text-slate-400 font-mono">
+          Showing {filteredSprints.length} sprint(s)
         </span>
       </div>
 
-      {/* Sprint Cards Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {sprints.filter((s) =>
-          activeFilter === 'all'
-            ? true
-            : activeFilter === 'active'
-            ? s.progressPercent < 100
-            : s.progressPercent === 100
-        ).length === 0 ? (
-          <div className="col-span-full p-12 text-center rounded-3xl bg-[#1d2024]/60 border border-[#44474f]/30 flex flex-col items-center justify-center space-y-3 shadow-lg">
+      {/* Modern Editorial List Directory (Anti-Card Overload) */}
+      <div className="rounded-3xl bg-[#0f1422] border border-blue-900/30 overflow-hidden shadow-xl divide-y divide-blue-900/20">
+        {filteredSprints.length === 0 ? (
+          <div className="p-12 text-center flex flex-col items-center justify-center space-y-3">
             <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-sky-400">
               <Zap className="w-6 h-6" />
             </div>
             <h3 className="text-base font-bold text-white font-['Outfit']">No Learning Sprints Found</h3>
-            <p className="text-xs text-[#c4c6d0] max-w-sm">
-              Create a focused multi-day learning sprint to master complex topics with daily milestones and AI-guided derivations.
+            <p className="text-xs text-slate-400 max-w-sm">
+              Create a focused sprint with targeted milestones to master complex concepts rapidly.
             </p>
             <button
               type="button"
@@ -385,250 +501,246 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
               className="mt-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-md transition-all"
             >
               <Plus className="w-3.5 h-3.5 text-white" />
-              <span>Create Your First Sprint</span>
+              <span>Create First Sprint</span>
             </button>
           </div>
         ) : (
-          sprints
-            .filter((s) =>
-              activeFilter === 'all'
-                ? true
-                : activeFilter === 'active'
-                ? s.progressPercent < 100
-                : s.progressPercent === 100
-            )
-            .map((sprint) => (
-          <div
-            key={sprint.id}
-            className={`rounded-3xl bg-[#1d2024] border p-6 shadow-xl flex flex-col justify-between space-y-5 transition-all group ${
-              sprint.progressPercent === 100
-                ? 'border-emerald-500/50 shadow-emerald-950/20'
-                : 'border-[#44474f]/40 hover:border-blue-500/50'
-            }`}
-          >
-            <div className="space-y-3">
-              {/* Header tags */}
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase tracking-wider px-2.5 py-1 rounded-full bg-blue-500/15 text-sky-300 border border-blue-500/30">
-                  {sprint.subject}
-                </span>
+          filteredSprints.map((sprint) => {
+            const isExpanded = expandedSprintIds.has(sprint.id);
+            const isCompleted = sprint.progressPercent === 100;
+            const completedCount = sprint.milestones.filter((m) => m.status === 'completed').length;
 
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-mono text-emerald-400 flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    <span>{sprint.daysRemaining}d left</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteSprint(sprint.id)}
-                    className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                    title="Delete sprint"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
+            return (
+              <div key={sprint.id} className="transition-colors hover:bg-[#131b2d]/60">
+                {/* Main List Row */}
+                <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  {/* Left: Indicator & Title */}
+                  <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                    <div className="mt-0.5 shrink-0">
+                      {isCompleted ? (
+                        <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                      ) : (
+                        <span className="relative flex h-4 w-4 mt-0.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-4 w-4 bg-blue-600"></span>
+                        </span>
+                      )}
+                    </div>
 
-              <h2 className="text-base font-bold text-white font-['Outfit'] leading-snug group-hover:text-sky-200 transition-colors">
-                {sprint.title}
-              </h2>
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[10px] font-mono uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-500/15 text-sky-300 border border-blue-500/30">
+                          {sprint.subject}
+                        </span>
+                        <span className="text-[11px] font-mono text-slate-400">
+                          {sprint.timeframe}
+                        </span>
+                        <span className="text-[11px] font-mono text-emerald-400 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          <span>{sprint.daysRemaining}d remaining</span>
+                        </span>
+                      </div>
 
-              <div className="text-xs text-[#8e9099] flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-lg bg-[#282a2f] text-slate-300 font-mono text-[11px]">
-                  {sprint.timeframe}
-                </span>
-                <span>•</span>
-                <span>Created {sprint.createdAt}</span>
-              </div>
-
-              {/* Progress bar */}
-              <div className="space-y-1.5 pt-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-[#c4c6d0]">Sprint Progress</span>
-                  <span className={`font-mono font-bold ${sprint.progressPercent === 100 ? 'text-emerald-400' : 'text-sky-400'}`}>
-                    {sprint.progressPercent}%
-                  </span>
-                </div>
-                <div className="w-full h-2 rounded-full bg-[#111318] overflow-hidden border border-[#44474f]/30">
-                  <div
-                    className={`h-full transition-all duration-500 rounded-full ${
-                      sprint.progressPercent === 100
-                        ? 'bg-emerald-400'
-                        : 'bg-gradient-to-r from-blue-600 via-sky-400 to-emerald-400'
-                    }`}
-                    style={{ width: `${sprint.progressPercent}%` }}
-                  />
-                </div>
-              </div>
-
-              {sprint.progressPercent === 100 && (
-                <div className="p-2.5 rounded-2xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 flex items-center justify-between text-xs animate-in fade-in">
-                  <span className="font-bold flex items-center gap-1.5 font-['Outfit']">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Sprint Fully Mastered!</span>
-                  </span>
-                  <span className="text-[10px] font-mono font-bold bg-emerald-500/20 px-2 py-0.5 rounded-full">
-                    100%
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Milestones Roadmap */}
-            <div className="space-y-2 py-2 border-y border-[#44474f]/20">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8e9099] block font-mono">
-                  Roadmap Milestones ({sprint.milestones.filter((m) => m.status === 'completed').length}/{sprint.milestones.length})
-                </span>
-                <span className="text-[10px] text-[#8e9099] font-mono">Click checkbox to check off</span>
-              </div>
-              {sprint.milestones.map((m) => (
-                <div
-                  key={m.id}
-                  className="flex items-center justify-between gap-2 p-2 rounded-xl hover:bg-[#282a2f] text-xs transition-colors group/item"
-                >
-                  <div
-                    onClick={() => handleToggleMilestone(sprint.id, m.id)}
-                    className="flex items-start gap-2 min-w-0 cursor-pointer flex-1"
-                  >
-                    <CheckCircle2
-                      className={`w-3.5 h-3.5 mt-0.5 shrink-0 transition-colors ${
-                        m.status === 'completed'
-                          ? 'text-emerald-400'
-                          : m.status === 'in-progress'
-                          ? 'text-sky-400 animate-pulse'
-                          : 'text-slate-600 group-hover/item:text-slate-400'
-                      }`}
-                    />
-                    <span
-                      className={`text-[11px] leading-snug truncate ${
-                        m.status === 'completed'
-                          ? 'line-through text-[#8e9099]'
-                          : m.status === 'in-progress'
-                          ? 'text-white font-medium'
-                          : 'text-[#c4c6d0]'
-                      }`}
-                    >
-                      {m.title}
-                    </span>
+                      <h3 className="text-base font-bold text-white font-['Outfit'] truncate">
+                        {sprint.title}
+                      </h3>
+                    </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => onStartSprintSession(`${sprint.title} - ${m.title}`, sprint.resources, 'Advanced')}
-                    className="opacity-0 group-hover/item:opacity-100 px-2 py-0.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-sky-300 border border-blue-500/30 text-[10px] font-mono font-semibold transition-all cursor-pointer shrink-0"
-                    title="Start lesson specifically for this milestone"
-                  >
-                    Study ➔
-                  </button>
-                </div>
-              ))}
+                  {/* Center: Progress Metric */}
+                  <div className="flex items-center gap-3 shrink-0 md:w-56">
+                    <div className="flex-1 space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-400 text-[11px] font-mono">
+                          {completedCount} / {sprint.milestones.length} milestones
+                        </span>
+                        <span className={`font-mono font-bold text-xs ${isCompleted ? 'text-emerald-400' : 'text-sky-300'}`}>
+                          {sprint.progressPercent}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-[#1b253b] h-2 rounded-full overflow-hidden border border-blue-950">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${
+                            isCompleted ? 'bg-emerald-400' : 'bg-gradient-to-r from-blue-600 to-sky-400'
+                          }`}
+                          style={{ width: `${sprint.progressPercent}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
 
-              {/* Inline Add Milestone Button / Input */}
-              {addingMilestoneSprintId === sprint.id ? (
-                <div className="flex items-center gap-1.5 pt-1.5">
-                  <input
-                    type="text"
-                    autoFocus
-                    placeholder="Milestone title..."
-                    value={newMilestoneInput}
-                    onChange={(e) => setNewMilestoneInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleAddMilestoneInline(sprint.id);
-                      if (e.key === 'Escape') setAddingMilestoneSprintId(null);
-                    }}
-                    className="flex-1 bg-[#111318] border border-blue-500/50 rounded-xl px-2.5 py-1 text-xs text-white focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleAddMilestoneInline(sprint.id)}
-                    className="px-2.5 py-1 rounded-xl bg-blue-600 text-white text-xs font-bold cursor-pointer hover:bg-blue-500"
-                  >
-                    Add
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAddingMilestoneSprintId(null)}
-                    className="p-1 text-[#8e9099] hover:text-white cursor-pointer"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAddingMilestoneSprintId(sprint.id);
-                    setNewMilestoneInput('');
-                  }}
-                  className="w-full py-1 text-[11px] text-[#8e9099] hover:text-sky-300 transition-colors flex items-center justify-center gap-1 cursor-pointer border border-dashed border-[#44474f]/40 hover:border-blue-500/40 rounded-xl mt-1"
-                >
-                  <Plus className="w-3 h-3" />
-                  <span>Add Milestone</span>
-                </button>
-              )}
-            </div>
+                  {/* Right: Actions */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => toggleExpandSprint(sprint.id)}
+                      className="px-3 py-1.5 rounded-xl bg-[#192236] hover:bg-[#202b44] text-xs font-semibold text-slate-300 hover:text-white transition-colors cursor-pointer flex items-center gap-1 border border-blue-900/30"
+                    >
+                      <span>Milestones</span>
+                      {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    </button>
 
-            {/* Attached Sources */}
-            {sprint.resources.length > 0 && (
-              <div className="pt-2 border-t border-[#44474f]/20 flex flex-wrap items-center gap-2">
-                <span className="text-[11px] text-[#8e9099] font-mono flex items-center gap-1 mr-1">
-                  <Paperclip className="w-3.5 h-3.5 text-sky-400" />
-                  <span>Sprint Materials:</span>
-                </span>
-                {sprint.resources.map((res) => (
-                  <span
-                    key={res.id}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#111318] border border-[#44474f]/40 text-xs text-slate-300"
-                  >
-                    {res.type === 'youtube' ? (
-                      <SquarePlay className="w-3 h-3 text-rose-400" />
-                    ) : res.type === 'link' ? (
-                      <Link2 className="w-3 h-3 text-cyan-400" />
-                    ) : (
-                      <FileText className="w-3 h-3 text-sky-400" />
+                    <button
+                      type="button"
+                      onClick={() => onStartSprintSession(sprint.title, sprint.resources, 'Advanced')}
+                      className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white text-xs font-bold shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Play className="w-3 h-3 fill-current" />
+                      <span>Start Session</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteSprint(sprint.id)}
+                      className="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                      title="Delete sprint"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Expanded Milestones Roadmap Panel */}
+                {isExpanded && (
+                  <div className="bg-[#0b0f19] px-6 py-4 border-t border-blue-900/20 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-sky-400 font-mono flex items-center gap-1.5">
+                        <Layers className="w-3.5 h-3.5" />
+                        <span>Sprint Milestones Roadmap</span>
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        Click checkboxes to mark progress
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {sprint.milestones.map((m) => (
+                        <div
+                          key={m.id}
+                          className="flex items-center justify-between gap-3 p-3 rounded-xl bg-[#12192a] border border-blue-900/20 hover:border-blue-700/40 transition-all group/item"
+                        >
+                          <div
+                            onClick={() => handleToggleMilestone(sprint.id, m.id)}
+                            className="flex items-center gap-3 min-w-0 cursor-pointer flex-1"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={m.status === 'completed'}
+                              onChange={() => {}}
+                              className="w-4 h-4 rounded text-blue-600 bg-slate-900 border-slate-700 focus:ring-blue-500 cursor-pointer"
+                            />
+                            <span
+                              className={`text-xs truncate ${
+                                m.status === 'completed'
+                                  ? 'line-through text-slate-500'
+                                  : m.status === 'in-progress'
+                                  ? 'text-sky-200 font-semibold'
+                                  : 'text-slate-300'
+                              }`}
+                            >
+                              {m.title}
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onStartSprintSession(
+                                `${sprint.title} - ${m.title}`,
+                                sprint.resources,
+                                'Advanced'
+                              )
+                            }
+                            className="opacity-0 group-hover/item:opacity-100 px-2.5 py-1 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-sky-300 border border-blue-500/30 text-[11px] font-mono transition-all cursor-pointer shrink-0"
+                          >
+                            Study ➔
+                          </button>
+                        </div>
+                      ))}
+
+                      {/* Inline Add Milestone */}
+                      {addingMilestoneSprintId === sprint.id ? (
+                        <div className="flex items-center gap-2 pt-2">
+                          <input
+                            type="text"
+                            autoFocus
+                            placeholder="Milestone title..."
+                            value={newMilestoneInput}
+                            onChange={(e) => setNewMilestoneInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleAddMilestoneInline(sprint.id);
+                              if (e.key === 'Escape') setAddingMilestoneSprintId(null);
+                            }}
+                            className="flex-1 bg-[#12192a] border border-blue-500/50 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleAddMilestoneInline(sprint.id)}
+                            className="px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold cursor-pointer hover:bg-blue-500"
+                          >
+                            Add
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAddingMilestoneSprintId(null)}
+                            className="p-1.5 text-slate-400 hover:text-white cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAddingMilestoneSprintId(sprint.id);
+                            setNewMilestoneInput('');
+                          }}
+                          className="w-full py-2 text-xs text-slate-400 hover:text-sky-300 transition-colors flex items-center justify-center gap-1.5 cursor-pointer border border-dashed border-blue-900/30 hover:border-blue-500/40 rounded-xl mt-2"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add Milestone</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Attached Resources */}
+                    {sprint.resources.length > 0 && (
+                      <div className="pt-2 border-t border-blue-900/20 flex flex-wrap items-center gap-2">
+                        <span className="text-xs text-slate-400 font-mono flex items-center gap-1 mr-1">
+                          <Paperclip className="w-3.5 h-3.5 text-sky-400" />
+                          <span>Materials:</span>
+                        </span>
+                        {sprint.resources.map((res) => (
+                          <span
+                            key={res.id}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#12192a] border border-blue-900/30 text-xs text-slate-300"
+                          >
+                            {res.type === 'youtube' ? (
+                              <SquarePlay className="w-3 h-3 text-rose-400" />
+                            ) : res.type === 'link' ? (
+                              <Link2 className="w-3 h-3 text-cyan-400" />
+                            ) : (
+                              <FileText className="w-3 h-3 text-sky-400" />
+                            )}
+                            <span className="truncate max-w-[200px]">{res.title}</span>
+                          </span>
+                        ))}
+                      </div>
                     )}
-                    <span className="truncate max-w-[200px]">{res.title}</span>
-                  </span>
-                ))}
+                  </div>
+                )}
               </div>
-            )}
-
-            {/* Launch sprint study session */}
-            <button
-              type="button"
-              onClick={() => onStartSprintSession(sprint.title, sprint.resources, 'Advanced')}
-              className="w-full py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md shadow-blue-500/20"
-            >
-              <Sparkles className="w-4 h-4 text-white" />
-              <span>Launch Sprint Session</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        ))
-      )}
-      </div>
-
-      {/* Feature Explainer Banner */}
-      <div className="p-6 rounded-3xl bg-[#17191e] border border-[#44474f]/30 space-y-3">
-        <div className="flex items-center gap-2 text-xs font-semibold text-sky-400">
-          <Zap className="w-4 h-4" />
-          <span>How Learning Sprints Work</span>
-        </div>
-        <h3 className="text-sm font-bold text-white font-['Outfit']">
-          Fast-Paced Concept Mastery
-        </h3>
-        <p className="text-xs text-[#c4c6d0] leading-relaxed max-w-3xl">
-          Sprints break large subjects into daily achievable milestones. When you launch a sprint session, the AI tutor focuses directly on your active milestone, working through derivations on the whiteboard with clear step-by-step intuition and interactive Q&A.
-        </p>
+            );
+          })
+        )}
       </div>
 
       {/* Modal: Create Sprint */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="w-full max-w-xl rounded-3xl bg-[#1d2024] border border-[#44474f]/60 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+          <div className="w-full max-w-xl rounded-3xl bg-[#0f1422] border border-blue-900/40 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
             {/* Modal Header */}
-            <div className="p-5 sm:p-6 border-b border-[#44474f]/30 flex items-center justify-between">
+            <div className="p-5 sm:p-6 border-b border-blue-900/30 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-sky-400 flex items-center justify-center border border-blue-500/30">
                   <Zap className="w-4 h-4" />
@@ -637,13 +749,13 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
                   <h3 className="text-base font-bold text-white font-['Outfit']">
                     Create New Sprint
                   </h3>
-                  <span className="text-[11px] text-[#8e9099]">Define your sprint topic, timeframe, and study materials</span>
+                  <span className="text-[11px] text-slate-400">Define your sprint topic, timeframe, and study materials</span>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(false)}
-                className="p-1.5 rounded-lg hover:bg-[#282a2f] text-[#8e9099] hover:text-white transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg hover:bg-[#1a2130] text-slate-400 hover:text-white transition-colors cursor-pointer"
               >
                 ✕
               </button>
@@ -652,22 +764,22 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
             {/* Modal Form */}
             <form onSubmit={handleCreateSprint} className="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1">
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-[#8e9099] block mb-1 font-mono">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1 font-mono">
                   Sprint Topic or Subject to Master *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Master Calculus in 3 Days or Build a Transformer from Scratch"
+                  placeholder="e.g. Master Multivariable Calculus in 3 Days or Build a Transformer from Scratch"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-blue-500 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none"
+                  className="w-full bg-[#141b2b] border border-blue-900/40 focus:border-blue-500 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-[#8e9099] block mb-1 font-mono">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1 font-mono">
                     Subject / Field
                   </label>
                   <input
@@ -675,18 +787,18 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
                     placeholder="e.g. Mathematics, Machine Learning, Systems"
                     value={newSubject}
                     onChange={(e) => setNewSubject(e.target.value)}
-                    className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-blue-500 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none"
+                    className="w-full bg-[#141b2b] border border-blue-900/40 focus:border-blue-500 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-[#8e9099] block mb-1 font-mono">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1 font-mono">
                     Target Timeframe
                   </label>
                   <select
                     value={newTimeframe}
                     onChange={(e) => setNewTimeframe(e.target.value)}
-                    className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-blue-500 rounded-2xl px-3 py-2.5 text-xs text-white focus:outline-none cursor-pointer"
+                    className="w-full bg-[#141b2b] border border-blue-900/40 focus:border-blue-500 rounded-2xl px-3 py-2.5 text-xs text-white focus:outline-none cursor-pointer"
                   >
                     <option value="3-Day Sprint">3-Day Sprint</option>
                     <option value="5-Day Sprint">5-Day Sprint</option>
@@ -698,142 +810,111 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
               </div>
 
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-[#8e9099] block mb-1 font-mono">
-                  Roadmap Milestones (One per line)
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1 font-mono">
+                  Milestones (1 per line)
                 </label>
                 <textarea
                   rows={3}
-                  placeholder={"1. Foundational Concepts & Core Intuition\n2. Key Formulas & Worked Examples\n3. Advanced Synthesis & Practice"}
+                  placeholder={"1. Core Concepts & Foundations\n2. Key Mathematical Derivations\n3. Practical Implementation"}
                   value={newMilestonesText}
                   onChange={(e) => setNewMilestonesText(e.target.value)}
-                  className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-blue-500 rounded-2xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none resize-none leading-relaxed"
+                  className="w-full bg-[#141b2b] border border-blue-900/40 focus:border-blue-500 rounded-2xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none leading-relaxed resize-none font-mono"
                 />
               </div>
 
-              {/* Attach Study Materials with Dropdown Popover */}
-              <div className="space-y-2 pt-2 border-t border-[#44474f]/30">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-[#8e9099] block font-mono">
-                      Attach Study Materials
-                    </label>
-                    <p className="text-[11px] text-slate-400">
-                      Add notes, papers, or video lectures for this sprint.
-                    </p>
-                  </div>
+              {/* Attach Materials */}
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5 font-mono">
+                  Attach Study Materials (PDFs, Web URLs, YouTube)
+                </label>
 
-                  {/* Plus dropdown button */}
-                  <div ref={plusMenuRef} className="relative">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative" ref={plusMenuRef}>
                     <button
                       type="button"
                       onClick={() => setIsPlusMenuOpen(!isPlusMenuOpen)}
-                      className="px-3 py-1.5 rounded-xl bg-[#282a2f] hover:bg-[#33353a] text-xs font-semibold text-sky-300 hover:text-white border border-[#44474f]/40 flex items-center gap-1.5 cursor-pointer transition-colors"
+                      className="px-3 py-1.5 rounded-xl bg-[#1a2130] hover:bg-[#222c40] text-xs font-semibold text-slate-300 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 border border-blue-900/40"
                     >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Attach Material</span>
+                      <Plus className="w-3.5 h-3.5 text-sky-400" />
+                      <span>Attach Resource</span>
                     </button>
 
                     {isPlusMenuOpen && (
-                      <div className="absolute right-0 bottom-9 w-64 rounded-2xl bg-[#17191e] border border-[#44474f]/60 shadow-2xl p-1.5 z-30 flex flex-col gap-1 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-150">
-                        {/* 1. Document */}
+                      <div className="absolute left-0 bottom-full mb-2 w-52 rounded-2xl bg-[#0f1422] border border-blue-900/40 shadow-2xl p-1.5 z-30 space-y-0.5">
                         <button
                           type="button"
-                          onClick={() => {
-                            setIsPlusMenuOpen(false);
-                            fileInputRef.current?.click();
-                          }}
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-[#282a2f] text-xs font-medium text-white transition-colors text-left cursor-pointer"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full px-3 py-2 rounded-xl text-left text-xs text-slate-300 hover:text-white hover:bg-[#1a2130] flex items-center gap-2.5 transition-colors cursor-pointer"
                         >
-                          <div className="w-6 h-6 rounded-lg bg-[#0842a0]/40 text-[#a8c7fa] flex items-center justify-center shrink-0">
-                            <Paperclip className="w-3.5 h-3.5" />
-                          </div>
-                          <div>
-                            <span className="block font-semibold">Upload Document</span>
-                            <span className="text-[10px] text-[#8e9099]">PDF, Notes, Markdown</span>
-                          </div>
+                          <Paperclip className="w-3.5 h-3.5 text-sky-400" />
+                          <span>Upload Document (PDF)</span>
                         </button>
-
-                        {/* 2. YouTube */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsPlusMenuOpen(false);
-                            setIsYoutubeModalOpen(true);
-                          }}
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-[#282a2f] text-xs font-medium text-white transition-colors text-left cursor-pointer"
-                        >
-                          <div className="w-6 h-6 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0 border border-rose-500/30">
-                            <SquarePlay className="w-3.5 h-3.5" />
-                          </div>
-                          <div>
-                            <span className="block font-semibold">YouTube Video Tutorial</span>
-                            <span className="text-[10px] text-[#8e9099]">Lecture or tutorial URL</span>
-                          </div>
-                        </button>
-
-                        {/* 3. Link */}
                         <button
                           type="button"
                           onClick={() => {
                             setIsPlusMenuOpen(false);
                             setIsUrlModalOpen(true);
                           }}
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-[#282a2f] text-xs font-medium text-white transition-colors text-left cursor-pointer"
+                          className="w-full px-3 py-2 rounded-xl text-left text-xs text-slate-300 hover:text-white hover:bg-[#1a2130] flex items-center gap-2.5 transition-colors cursor-pointer"
                         >
-                          <div className="w-6 h-6 rounded-lg bg-[#004a77]/40 text-[#7dd3fc] flex items-center justify-center shrink-0">
-                            <Globe className="w-3.5 h-3.5" />
-                          </div>
-                          <div>
-                            <span className="block font-semibold">Web Link / Paper URL</span>
-                            <span className="text-[10px] text-[#8e9099]">arXiv, docs, article</span>
-                          </div>
+                          <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>Web Page / Article Link</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsPlusMenuOpen(false);
+                            setIsYoutubeModalOpen(true);
+                          }}
+                          className="w-full px-3 py-2 rounded-xl text-left text-xs text-slate-300 hover:text-white hover:bg-[#1a2130] flex items-center gap-2.5 transition-colors cursor-pointer"
+                        >
+                          <SquarePlay className="w-3.5 h-3.5 text-rose-400" />
+                          <span>YouTube Video</span>
                         </button>
                       </div>
                     )}
                   </div>
-                </div>
 
-                {/* Attached resources preview */}
-                {newResources.length > 0 ? (
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    {newResources.map((res) => (
-                      <span
-                        key={res.id}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#111318] border border-blue-500/40 text-xs text-sky-300"
+                  {newResources.map((res) => (
+                    <span
+                      key={res.id}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#141b2b] border border-blue-900/40 text-xs text-slate-200"
+                    >
+                      {res.type === 'youtube' ? (
+                        <SquarePlay className="w-3.5 h-3.5 text-rose-400" />
+                      ) : res.type === 'link' ? (
+                        <Link2 className="w-3.5 h-3.5 text-cyan-400" />
+                      ) : (
+                        <FileText className="w-3.5 h-3.5 text-sky-400" />
+                      )}
+                      <span className="truncate max-w-[150px]">{res.title}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveResource(res.id)}
+                        className="text-slate-500 hover:text-rose-400 ml-1"
                       >
-                        {res.type === 'youtube' ? (
-                          <SquarePlay className="w-3 h-3 text-rose-400" />
-                        ) : res.type === 'link' ? (
-                          <Globe className="w-3 h-3 text-cyan-400" />
-                        ) : (
-                          <FileText className="w-3 h-3 text-sky-400" />
-                        )}
-                        <span className="max-w-[180px] truncate">{res.title}</span>
-                        <button
-                          type="button"
-                          onClick={() => setNewResources((prev) => prev.filter((r) => r.id !== res.id))}
-                          className="hover:text-rose-400 ml-1 cursor-pointer"
-                        >
-                          ✕
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[11px] text-slate-500 italic pt-1">
-                    No materials attached yet. Click "Attach Material" to add references.
-                  </p>
-                )}
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                </div>
               </div>
 
-              {/* Submit button */}
-              <div className="pt-4 border-t border-[#44474f]/30">
+              {/* Submit Buttons */}
+              <div className="pt-4 border-t border-blue-900/30 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-[#1a2130] hover:bg-[#222c40] text-xs font-semibold text-slate-300 hover:text-white transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
                 <button
                   type="submit"
-                  disabled={!newTitle.trim()}
-                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-bold text-xs shadow-lg shadow-blue-500/25 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-bold text-xs shadow-lg shadow-blue-500/25 transition-all cursor-pointer flex items-center gap-2"
                 >
-                  Start Sprint & Initialize Roadmap
+                  <Plus className="w-4 h-4" />
+                  <span>Create Sprint</span>
                 </button>
               </div>
             </form>
@@ -841,65 +922,58 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
         </div>
       )}
 
-      {/* Web URL Popover Modal */}
+      {/* Sub-Modal: Add URL Link */}
       {isUrlModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-150">
-          <div className="w-full max-w-md rounded-3xl bg-[#1d2024] border border-[#44474f]/60 shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-[#44474f]/30">
-              <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-[#7dd3fc]" />
-                <h3 className="text-sm font-bold text-white font-['Outfit']">Attach Web Resource</h3>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+          <div className="w-full max-w-md rounded-2xl bg-[#0f1422] border border-blue-900/40 p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <Globe className="w-4 h-4 text-cyan-400" />
+                <span>Add Web Page / Reference URL</span>
+              </h4>
               <button
                 type="button"
                 onClick={() => setIsUrlModalOpen(false)}
-                className="p-1.5 rounded-lg hover:bg-[#282a2f] text-[#8e9099] hover:text-white transition-colors cursor-pointer"
+                className="text-slate-400 hover:text-white"
               >
-                <X className="w-4 h-4" />
+                ✕
               </button>
             </div>
-
-            <form onSubmit={handleAddUrl} className="space-y-3.5">
+            <form onSubmit={handleAddUrl} className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-[#c4c6d0] block mb-1">
-                  Resource URL <span className="text-[#a8c7fa]">*</span>
-                </label>
+                <label className="text-[11px] text-slate-400 block mb-1">Web Page Title (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Stanford CS229 Lecture Notes"
+                  value={urlTitleInput}
+                  onChange={(e) => setUrlTitleInput(e.target.value)}
+                  className="w-full bg-[#141b2b] border border-blue-900/40 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] text-slate-400 block mb-1">URL *</label>
                 <input
                   type="text"
                   required
-                  placeholder="https://arxiv.org/abs/... or github.com"
+                  placeholder="https://..."
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
-                  className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-white placeholder-[#8e9099] focus:outline-none"
+                  className="w-full bg-[#141b2b] border border-blue-900/40 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
                 />
               </div>
-
-              <div>
-                <label className="text-xs font-semibold text-[#c4c6d0] block mb-1">
-                  Title or Label (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Research Paper or Reference Notes"
-                  value={urlTitleInput}
-                  onChange={(e) => setUrlTitleInput(e.target.value)}
-                  className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-white placeholder-[#8e9099] focus:outline-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsUrlModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-[#c4c6d0] hover:text-white hover:bg-[#282a2f] transition-colors cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors cursor-pointer shadow-md shadow-blue-500/20"
+                  className="px-4 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-500 cursor-pointer"
                 >
-                  Attach Resource
+                  Attach Link
                 </button>
               </div>
             </form>
@@ -907,71 +981,58 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
         </div>
       )}
 
-      {/* YouTube Video Modal */}
+      {/* Sub-Modal: Add YouTube Link */}
       {isYoutubeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-150">
-          <div className="w-full max-w-md rounded-3xl bg-[#1d2024] border border-[#44474f]/60 shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-[#44474f]/30">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30">
-                  <SquarePlay className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white font-['Outfit']">Attach YouTube Video Tutorial</h3>
-                  <span className="text-[10px] text-[#8e9099]">AI whiteboard lecture based on video</span>
-                </div>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+          <div className="w-full max-w-md rounded-2xl bg-[#0f1422] border border-blue-900/40 p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <SquarePlay className="w-4 h-4 text-rose-400" />
+                <span>Add YouTube Video Lecture</span>
+              </h4>
               <button
                 type="button"
                 onClick={() => setIsYoutubeModalOpen(false)}
-                className="p-1.5 rounded-lg hover:bg-[#282a2f] text-[#8e9099] hover:text-white transition-colors cursor-pointer"
+                className="text-slate-400 hover:text-white"
               >
-                <X className="w-4 h-4" />
+                ✕
               </button>
             </div>
-
-            <form onSubmit={handleAddYoutube} className="space-y-3.5">
+            <form onSubmit={handleAddYoutube} className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-[#c4c6d0] block mb-1">
-                  YouTube Video Link <span className="text-rose-400">*</span>
-                </label>
+                <label className="text-[11px] text-slate-400 block mb-1">Lecture Title (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 3Blue1Brown Essence of Calculus Chapter 1"
+                  value={youtubeTitleInput}
+                  onChange={(e) => setYoutubeTitleInput(e.target.value)}
+                  className="w-full bg-[#141b2b] border border-blue-900/40 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] text-slate-400 block mb-1">YouTube URL *</label>
                 <input
                   type="text"
                   required
-                  placeholder="https://www.youtube.com/watch?v=... or youtu.be/..."
+                  placeholder="https://youtube.com/watch?v=..."
                   value={youtubeUrlInput}
                   onChange={(e) => setYoutubeUrlInput(e.target.value)}
-                  className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-rose-400 rounded-xl px-3 py-2 text-xs text-white placeholder-[#8e9099] focus:outline-none"
+                  className="w-full bg-[#141b2b] border border-blue-900/40 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
                 />
               </div>
-
-              <div>
-                <label className="text-xs font-semibold text-[#c4c6d0] block mb-1">
-                  Video Topic or Lecture Title (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. 3Blue1Brown Neural Networks Chapter 1"
-                  value={youtubeTitleInput}
-                  onChange={(e) => setYoutubeTitleInput(e.target.value)}
-                  className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-rose-400 rounded-xl px-3 py-2 text-xs text-white placeholder-[#8e9099] focus:outline-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsYoutubeModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-[#c4c6d0] hover:text-white hover:bg-[#282a2f] transition-colors cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white transition-all cursor-pointer shadow-md shadow-rose-900/30 flex items-center gap-1.5"
+                  className="px-4 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-500 cursor-pointer"
                 >
-                  <SquarePlay className="w-3.5 h-3.5" />
-                  <span>Attach Video Tutorial</span>
+                  Attach Video
                 </button>
               </div>
             </form>

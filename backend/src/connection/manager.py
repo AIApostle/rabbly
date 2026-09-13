@@ -365,6 +365,15 @@ class LiveSessionManager:
 
         msg_type = data.get("type")
 
+        # 0. Client Heartbeat Ping to keep connection alive
+        if msg_type == "ping":
+            if sender_ws:
+                try:
+                    await sender_ws.send_text(json.dumps({"type": "pong"}))
+                except Exception:
+                    pass
+            return
+
         # 1. Continuous Board State Streaming from tldraw
         if msg_type == "board_state":
             payload = data.get("payload", {})

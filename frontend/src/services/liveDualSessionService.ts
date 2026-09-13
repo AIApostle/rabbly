@@ -110,9 +110,30 @@ export class LiveDualSessionService {
 
   // Outbound message queue for Input channel (prevents dropped MCP responses)
   private inputQueue: string[] = [];
+  private heartbeatTimer: number | null = null;
 
   constructor() {
     console.log('[LiveDualSessionService] Initialized.');
+  }
+
+  /**
+   * Unlocks the Web Audio API playback context during a user click/gesture.
+   * Ensures browser autoplay restrictions do not mute the AI voice.
+   */
+  public unlockAudio(): void {
+    if (!this.playbackContext || this.playbackContext.state === 'closed') {
+      this.initPlaybackContext();
+    }
+    if (this.playbackContext && this.playbackContext.state === 'suspended') {
+      this.playbackContext
+        .resume()
+        .then(() => {
+          console.log('[AudioPlayback] Playout context unlocked successfully via user gesture.');
+        })
+        .catch((err) => {
+          console.warn('[AudioPlayback] Could not unlock playout context:', err);
+        });
+    }
   }
 
   /**
@@ -147,6 +168,19 @@ export class LiveDualSessionService {
     initialPlan?: LessonPlan | null,
     userInfo?: ClientUserInfo
   ): Promise<void> {
+    // If already open and connected to the same session, avoid redundant tear down
+    if (
+      this.sessionId === sessionId &&
+      this.outputSocket &&
+      this.outputSocket.readyState === WebSocket.OPEN &&
+      this.inputSocket &&
+      this.inputSocket.readyState === WebSocket.OPEN
+    ) {
+      console.log(`[DualWS] Already connected to session '${sessionId}', updating plan if needed.`);
+      if (initialPlan) this.setCurriculumPlan(initialPlan);
+      return;
+    }
+
     this.sessionId = sessionId;
     this.isPaused = false;
     this.hasSpokenInUtterance = false;
@@ -185,6 +219,14 @@ export class LiveDualSessionService {
       // 3. Send initial board state immediately
       this.streamBoardState();
 
+      // 4. Start 25s keep-alive heartbeat to prevent Render/proxy timeout
+      if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = window.setInterval(() => {
+        if (this.inputSocket && this.inputSocket.readyState === WebSocket.OPEN) {
+          this.sendToInput({ type: 'ping' });
+        }
+      }, 25000);
+
       this.updateStatus('listening', 'Connected and listening.');
       console.log(`[DualWS] Both channels successfully established for session '${sessionId}'.`);
     } catch (err) {
@@ -211,8 +253,8 @@ export class LiveDualSessionService {
         reject(err);
       };
 
-      this.outputSocket.onclose = () => {
-        console.log('[DualWS:Output] Channel CLOSED.');
+      this.outputSocket.onclose = (event) => {
+        console.log(`[DualWS:Output] Channel CLOSED. Code: ${event.code}, Reason: ${event.reason || 'clean'}`);
       };
 
       this.outputSocket.onmessage = async (event) => {
@@ -260,8 +302,8 @@ export class LiveDualSessionService {
         reject(err);
       };
 
-      this.inputSocket.onclose = () => {
-        console.log('[DualWS:Input] Channel CLOSED.');
+      this.inputSocket.onclose = (event) => {
+        console.log(`[DualWS:Input] Channel CLOSED. Code: ${event.code}, Reason: ${event.reason || 'clean'}`);
       };
 
       this.inputSocket.onmessage = (event) => {
@@ -943,6 +985,10 @@ export class LiveDualSessionService {
     this.stopAudioCapture();
     this.clearAudioPlaybackQueue(false);
 
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
     if (this.jitterBufferTimeout) {
       clearTimeout(this.jitterBufferTimeout);
       this.jitterBufferTimeout = null;

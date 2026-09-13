@@ -481,6 +481,12 @@ export class WhiteboardMcpServer {
     }
 
     if (!this.editor) {
+      if (name === 'clear_board') {
+        this.log('tools/call:clear_board', { cleared: true, editorAttached: false }, 'ok');
+        return {
+          content: [{ type: 'text', text: 'Blackboard cleared.' }],
+        };
+      }
       this.log(`tools/call:${name}`, { error: 'Editor not attached' }, 'error');
       return {
         isError: true,
@@ -565,8 +571,8 @@ export class WhiteboardMcpServer {
         };
       }
 
-      // 4. write_formula
-      if (name === 'write_formula') {
+      // 4. write_formula (or draw_formula)
+      if (name === 'write_formula' || name === 'draw_formula') {
         const formulaId = createShapeId(`formula-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`);
         const rawFormula = String(args.formula || '');
         const title = typeof args.title === 'string' ? args.title : undefined;
@@ -767,8 +773,8 @@ export class WhiteboardMcpServer {
         };
       }
 
-      // 7. draw_connector
-      if (name === 'draw_connector') {
+      // 7. draw_connector (or draw_arrow / connect_nodes)
+      if (name === 'draw_connector' || name === 'draw_arrow' || name === 'connect_nodes') {
         const fromShape = this.editor.getShape(args.from_id as TLShapeId);
         const toShape = this.editor.getShape(args.to_id as TLShapeId);
 
@@ -919,8 +925,8 @@ export class WhiteboardMcpServer {
         };
       }
 
-      // 14. set_camera
-      if (name === 'set_camera') {
+      // 14. set_camera (or adjust_view)
+      if (name === 'set_camera' || name === 'adjust_view') {
         const mode = String(args.mode || 'zoom_to_fit');
 
         if (mode === 'zoom_to_fit') {
