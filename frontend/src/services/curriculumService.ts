@@ -107,7 +107,8 @@ function createFallbackPlan(topic: string, level: string): LessonPlan {
  * Returns dynamic, authentic STEM questions tailored to the active topic and subject.
  */
 export function getTopicSpecificQuestions(topic: string, subject?: string): string[] {
-  const clean = (topic || '').trim();
+  const raw = (topic || '').trim();
+  const clean = raw || 'Lesson Concept';
   const lowerTopic = clean.toLowerCase();
   const lowerSubj = (subject || '').toLowerCase();
 
@@ -119,43 +120,47 @@ export function getTopicSpecificQuestions(topic: string, subject?: string): stri
 
   if (isMath) {
     return [
-      `Can you walk through a step-by-step worked example of ${clean.slice(0, 32)} on the board?`,
-      `Why does this formula hold from first principles rather than pure memorization?`,
-      `What is the most common mistake students make with this in WAEC and JAMB exams?`,
+      `Can you walk through a step-by-step worked example of ${clean} on the board?`,
+      `Why does the formula for ${clean} hold from first principles rather than pure memorization?`,
+      `What is the most common calculation trap students fall into with ${clean} in WAEC / JAMB?`,
+      `Can we solve a challenging problem on ${clean} together directly on the blackboard?`,
     ];
   }
   if (isPhys) {
     return [
-      `Can you draw the diagram on the board and derive the formula step by step?`,
-      `How do dimensional analysis and SI units confirm our calculations here?`,
-      `How does ${clean.slice(0, 32)} appear in real-world exam questions?`,
+      `Can you draw the diagram for ${clean} on the board and derive the equations step by step?`,
+      `How do SI units and dimensional analysis confirm our calculations for ${clean}?`,
+      `How does ${clean} apply to practical engineering and WAEC/JAMB exam problems?`,
+      `What is the physical intuition behind ${clean} that helps solve problems without guessing?`,
     ];
   }
   if (isChem) {
     return [
-      `Can you illustrate the reaction mechanism or structure on the blackboard?`,
-      `How do temperature, pressure, or concentration affect this according to Le Chatelier's principle?`,
-      `What standard observations or test reagents are tested in WAEC practicals for this?`,
+      `Can you illustrate the reaction mechanism and molecular structures for ${clean} on the board?`,
+      `How do temperature, pressure, or concentration affect ${clean} according to Le Chatelier's principle?`,
+      `What observations, color changes, or reagents are tested in WAEC practicals for ${clean}?`,
+      `Can you walk through the stoichiometric calculations for ${clean} step by step?`,
     ];
   }
   if (isBio) {
     return [
-      `Can you draw and label the key diagram or cycle on the board?`,
-      `How do each of the components function together as an integrated system?`,
-      `What key definitions and differences do examiners look for in WAEC/JAMB?`,
+      `Can you draw and label the biological diagram and pathways for ${clean} on the canvas?`,
+      `How do the cellular/physiological mechanisms in ${clean} work as an integrated system?`,
+      `What key definitions and functional differences do WAEC/JAMB examiners test on ${clean}?`,
     ];
   }
   if (isCS) {
     return [
-      `What is the key performance trade-off when implementing ${clean.slice(0, 32)}?`,
-      `How does ${clean.slice(0, 32)} handle edge cases and boundary conditions?`,
-      `What are the best practices for testing and debugging this in production?`,
+      `Can you trace an example execution of ${clean} step by step on the blackboard?`,
+      `What are the time and space complexity guarantees when implementing ${clean}?`,
+      `How does ${clean} handle edge cases, boundary conditions, and scale?`,
     ];
   }
   return [
-    `Can you walk through a step-by-step worked example of ${clean.slice(0, 32)} on the board?`,
-    `What is the underlying first-principles intuition behind this concept?`,
-    `How do examiners commonly test ${clean.slice(0, 32)} in WAEC, NECO, or JAMB?`,
+    `Can you walk through a step-by-step worked example of ${clean} on the board?`,
+    `What is the foundational first-principles intuition behind ${clean}?`,
+    `What is the most common misconception students have about ${clean}?`,
+    `How is ${clean} typically tested in WAEC, NECO, or university exams?`,
   ];
 }
 

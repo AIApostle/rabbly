@@ -910,17 +910,17 @@ class GeminiLiveAgent:
                     "labels": {"hypotenuse": "c (5)", "opposite": "b (4)", "adjacent": "a (3)", "angle": "θ"},
                 },
             )
-            # 2. Dynamically write formula without hardcoded width/height
+            # 2. Dynamically write formula directly on the chalkboard canvas
             await self.mcp_client.call_tool(
                 "write_formula",
                 {
                     "title": "Pythagorean Theorem",
                     "formula": "a² + b² = c²\n3² + 4² = 9 + 16 = 25 = 5²",
-                    "style": "card",
+                    "style": "text",
                     "color": "yellow",
                 },
             )
-            # 3. Add pedagogical chalk step
+            # 3. Add pedagogical chalk step directly on canvas
             await self.mcp_client.call_tool(
                 "write_formula",
                 {
@@ -942,15 +942,17 @@ class GeminiLiveAgent:
                 {
                     "title": "Quadratic Formula Derivation",
                     "formula": "ax² + bx + c = 0\nx² + (b/a)x = -c/a\n(x + b/(2a))² = (b² - 4ac)/(4a²)\nx = (-b ± √(b² - 4ac)) / (2a)",
-                    "style": "card",
+                    "style": "text",
                     "color": "yellow",
                 },
             )
             await self.mcp_client.call_tool(
-                "create_sticky_note",
+                "write_text",
                 {
-                    "text": "Discriminant (Δ = b² - 4ac):\nΔ > 0: 2 real roots\nΔ = 0: 1 real root\nΔ < 0: 2 complex roots",
+                    "text": "Discriminant (Δ = b² - 4ac):\n• Δ > 0: 2 distinct real roots\n• Δ = 0: 1 repeated real root\n• Δ < 0: Complex conjugate roots",
                     "color": "light-blue",
+                    "size": "s",
+                    "font": "mono",
                     "x": 160,
                     "y": 180,
                 },

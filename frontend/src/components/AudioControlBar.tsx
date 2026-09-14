@@ -52,16 +52,22 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
   const [showQuestionsMenu, setShowQuestionsMenu] = useState(false);
   const [customQuestion, setCustomQuestion] = useState('');
 
-  // Sanitize or dynamically generate STEM suggested questions
+  // Dynamically derive questions directly from active topic
   const effectiveQuestions = useMemo(() => {
-    const isHardcodedGeneric = (q: string) =>
-      /architectural trade-off|non-standard input|scaling to larger datasets|single most critical trade-off|boundary failure/i.test(q);
+    const topicQ = getTopicSpecificQuestions(topic || 'Lesson Concept', subject);
 
-    const validQuestions = (suggestedQuestions || []).filter((q) => q && !isHardcodedGeneric(q));
-    if (validQuestions.length > 0) {
-      return validQuestions;
+    const isGenericOrStale = (q: string) =>
+      /architectural trade-off|non-standard input|scaling to larger datasets|critical trade-off|boundary failure|mental model differ|naive first-principles|failure occurs/i.test(q);
+
+    // If custom suggestedQuestions were provided, verify they are topic-rich and not generic placeholders
+    if (suggestedQuestions && suggestedQuestions.length > 0) {
+      const cleanCustom = suggestedQuestions.filter((q) => q && !isGenericOrStale(q));
+      // Only accept if custom questions are not generic
+      if (cleanCustom.length >= 2) {
+        return cleanCustom;
+      }
     }
-    return getTopicSpecificQuestions(topic || 'Lesson Concept', subject);
+    return topicQ;
   }, [suggestedQuestions, topic, subject]);
 
   const handleSubmitCustomQuestion = (e: React.FormEvent) => {

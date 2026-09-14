@@ -210,8 +210,8 @@ class TldrawMcpClient:
             McpToolDefinition(
                 name="create_sticky_note",
                 description=(
-                    "Creates a colorful sticky note card on the blackboard with automatic text wrapping. "
-                    "Great for important callouts, definitions, or summary cards."
+                    "Creates a colorful sticky note card on the blackboard. STRICT RULE: DO NOT use sticky notes for "
+                    "normal teaching, formulas, derivations, or explanations. Only use if the student specifically requests a sticky note."
                 ),
                 inputSchema={
                     "type": "object",
@@ -236,18 +236,18 @@ class TldrawMcpClient:
             McpToolDefinition(
                 name="write_formula",
                 description=(
-                    "Writes mathematical formulas, step-by-step derivations, or theorem cards with formatted equations on the board. "
-                    "Supports LaTeX and math notation, auto-formatting superscripts/greek symbols, and adaptive layout."
+                    "Writes mathematical formulas, step-by-step derivations, and proofs DIRECTLY onto the blackboard canvas. "
+                    "Defaults to style='text' for clean chalkboard math typography. Do NOT use style='card' unless a boxed card is explicitly requested."
                 ),
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "title": {"type": "string", "description": "Title header for the formula card (e.g. 'Pythagorean Theorem')."},
+                        "title": {"type": "string", "description": "Optional title header for the formula."},
                         "formula": {"type": "string", "description": "Mathematical formula or equations to render (supports multi-line proofs)."},
                         "style": {
                             "type": "string",
-                            "enum": ["card", "text"],
-                            "description": "Visual format: 'card' for an accented equation box, or 'text' for clean chalkboard math typography.",
+                            "enum": ["text", "card"],
+                            "description": "Visual format: 'text' (DEFAULT) for direct blackboard chalk mathematics, or 'card' for a boxed card.",
                         },
                         "x": {"type": "number", "description": "Horizontal coordinate (0-1280). If omitted, positioned dynamically."},
                         "y": {"type": "number", "description": "Vertical coordinate (0-720). If omitted, positioned dynamically."},
@@ -265,8 +265,9 @@ class TldrawMcpClient:
             McpToolDefinition(
                 name="create_shape",
                 description=(
-                    "Creates any geometric shape from tldraw's full palette (rectangle, ellipse, triangle, diamond, star, "
-                    "cloud, heart, etc.) with customizable stroke, fill, and dash styles."
+                    "Creates a geometric shape (ellipse, star, diamond, etc.) for visual diagrams. "
+                    "STRICT RULE: DO NOT use this tool to write text, notes, or math inside boxes or rectangles. "
+                    "Always write formulas and text directly on the canvas using write_formula and write_text."
                 ),
                 inputSchema={
                     "type": "object",

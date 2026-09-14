@@ -169,7 +169,7 @@ export function App() {
         verifyRoomCode(extractedCode)
           .then((room) => {
             if (room) {
-              if (room.topic && !currentTopicTitle) setCurrentTopicTitle(room.topic);
+              if (room.topic) setCurrentTopicTitle(room.topic);
               if (room.participants && room.participants.length > 0) {
                 setParticipants(room.participants);
               }

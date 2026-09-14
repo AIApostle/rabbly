@@ -82,8 +82,6 @@ export class LiveDualSessionService {
   private mediaStream: MediaStream | null = null;
   private processorNode: ScriptProcessorNode | null = null;
   private isMicMuted: boolean = true;
-  private lastVoiceActivityTime: number = 0;
-  private hasSpokenInUtterance: boolean = false;
 
   // Audio Playback & Jitter Buffering (Output WS -> Speakers)
   private playbackContext: AudioContext | null = null;
@@ -189,7 +187,6 @@ export class LiveDualSessionService {
 
     this.sessionId = sessionId;
     this.isPaused = false;
-    this.hasSpokenInUtterance = false;
     this.clientUserInfo = userInfo;
     if (initialPlan) {
       this.curriculumPlan = initialPlan;
@@ -630,8 +627,8 @@ export class LiveDualSessionService {
         const rms = Math.sqrt(sum / inputData.length);
         this.callbacks.onAudioLevel?.(Math.min(rms * 5, 1));
 
-        // Track sustained speech frames (>0.065 RMS filters speaker feedback / key clicks)
-        if (rms > 0.065) {
+        // Track sustained speech frames for mobile-compatible barge-in (>0.022 RMS)
+        if (rms > 0.022) {
           this.consecutiveSpeechFrames++;
         } else {
           this.consecutiveSpeechFrames = 0;
@@ -657,28 +654,6 @@ export class LiveDualSessionService {
           this.consecutiveSpeechFrames = 0;
         }
 
-        // Track voice activity timing
-        const now = Date.now();
-        if (rms > 0.008) {
-          this.hasSpokenInUtterance = true;
-          this.lastVoiceActivityTime = now;
-        }
-
-        // Token Compression & Silence Gating: If audio energy is negligible and holdover
-        // period (>500ms) has expired:
-        if (rms < 0.006 && now - this.lastVoiceActivityTime > 500) {
-          // If student was just speaking and has now paused, dispatch audio_stream_end
-          if (this.hasSpokenInUtterance) {
-            this.sendToInput({
-              type: 'audio_stream_end',
-              sessionId: this.sessionId,
-            });
-            this.hasSpokenInUtterance = false;
-            console.log('[AudioBridge] Dispatched audio_stream_end after speech pause.');
-          }
-          return;
-        }
-
         // Downsample input from native sample rate to exact 16kHz 16-bit linear PCM
         const pcm16 = downsampleTo16kHz(inputData, inputRate);
 
@@ -690,7 +665,7 @@ export class LiveDualSessionService {
         }
         const b64 = window.btoa(binary);
 
-        // Transmit over Input WebSocket
+        // Transmit continuous 16kHz audio over Input WebSocket to Gemini Live
         this.sendToInput({
           type: 'audio',
           sessionId: this.sessionId,
@@ -698,8 +673,14 @@ export class LiveDualSessionService {
         });
       };
 
+      // Route processor through zero-gain node to prevent microphone feedback loop
+      // into device speakers which triggers aggressive hardware echo suppression on mobile
+      const silentGain = this.audioContext.createGain();
+      silentGain.gain.setValueAtTime(0, this.audioContext.currentTime);
+
       source.connect(this.processorNode);
-      this.processorNode.connect(this.audioContext.destination);
+      this.processorNode.connect(silentGain);
+      silentGain.connect(this.audioContext.destination);
 
       this.isMicMuted = false;
       console.log('[AudioBridge] Microphone streaming active (resampled to 16kHz mono PCM).');

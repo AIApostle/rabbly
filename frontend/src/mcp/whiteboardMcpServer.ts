@@ -560,6 +560,13 @@ function normalizeCanvasCoords(
           }),
         ]);
 
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+          const bounds = this.editor.getCurrentPageBounds();
+          if (bounds && bounds.w > 20 && bounds.h > 20) {
+            this.editor.zoomToBounds(bounds, { inset: 20, force: true, animation: { duration: 300 } });
+          }
+        }
+
         this.log('tools/call:write_text', { shapeId, text: textContent }, 'ok');
         return {
           content: [{ type: 'text', text: `Created text block (ID: ${shapeId}) at (${x}, ${y}): "${textContent.slice(0, 50)}"` }],
@@ -644,6 +651,13 @@ function normalizeCanvasCoords(
           ]);
         }
 
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+          const bounds = this.editor.getCurrentPageBounds();
+          if (bounds && bounds.w > 20 && bounds.h > 20) {
+            this.editor.zoomToBounds(bounds, { inset: 20, force: true, animation: { duration: 300 } });
+          }
+        }
+
         this.log('tools/call:write_formula', { formulaId, layout, style, title }, 'ok');
         return {
           content: [
@@ -679,6 +693,13 @@ function normalizeCanvasCoords(
             richText: toRichText(text || ''),
           }),
         ]);
+
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+          const bounds = this.editor.getCurrentPageBounds();
+          if (bounds && bounds.w > 20 && bounds.h > 20) {
+            this.editor.zoomToBounds(bounds, { inset: 20, force: true, animation: { duration: 300 } });
+          }
+        }
 
         this.log('tools/call:create_shape', { shapeId, geo, x, y }, 'ok');
         return {
@@ -750,6 +771,14 @@ function normalizeCanvasCoords(
         }
 
         const created = executeAiActionOnBoard(this.editor, action);
+
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+          const bounds = this.editor.getCurrentPageBounds();
+          if (bounds && bounds.w > 20 && bounds.h > 20) {
+            this.editor.zoomToBounds(bounds, { inset: 20, force: true, animation: { duration: 300 } });
+          }
+        }
+
         this.log('tools/call:draw_geometry', { shapeType, count: created.length }, 'ok');
 
         return {
