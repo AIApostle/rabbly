@@ -683,14 +683,21 @@ export const ClassroomHubPage: React.FC<ClassroomHubPageProps> = ({
         )}
       </div>
 
-      {/* Classroom Guidelines & Architecture Info */}
-      <div className="p-6 rounded-3xl bg-[#17191e] border border-[#44474f]/25 space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-[#8e9099] font-mono">
-          How Invite-Only Classrooms Work
-        </h3>
+      {/* Classroom Guidelines & Architecture Info - Responsive Carousel on Mobile */}
+      <div className="p-4 sm:p-6 rounded-3xl bg-[#17191e] border border-[#44474f]/25 space-y-3 sm:space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#8e9099] font-mono">
+            How Invite-Only Classrooms Work
+          </h3>
+          <span className="text-[11px] text-[#a8c7fa] font-mono md:hidden flex items-center gap-1">
+            <span>Swipe</span>
+            <span>→</span>
+          </span>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 rounded-2xl bg-[#1d2024] border border-[#44474f]/20 flex flex-col space-y-2">
+        {/* Carousel container: horizontally scrollable with snap on mobile, 3-col grid on desktop */}
+        <div className="flex overflow-x-auto snap-x snap-mandatory gap-3 pb-2 -mx-1 px-1 scroll-smooth md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:mx-0 md:px-0 scrollbar-none">
+          <div className="min-w-[82vw] sm:min-w-[280px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink p-4 rounded-2xl bg-[#1d2024] border border-[#44474f]/20 flex flex-col space-y-2">
             <div className="w-8 h-8 rounded-xl bg-[#4f378b]/30 text-[#d0bcff] flex items-center justify-center">
               <Lock className="w-4 h-4" />
             </div>
@@ -700,7 +707,7 @@ export const ClassroomHubPage: React.FC<ClassroomHubPageProps> = ({
             </p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-[#1d2024] border border-[#44474f]/20 flex flex-col space-y-2">
+          <div className="min-w-[82vw] sm:min-w-[280px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink p-4 rounded-2xl bg-[#1d2024] border border-[#44474f]/20 flex flex-col space-y-2">
             <div className="w-8 h-8 rounded-xl bg-[#0842a0]/30 text-[#a8c7fa] flex items-center justify-center">
               <Sparkles className="w-4 h-4" />
             </div>
@@ -710,7 +717,7 @@ export const ClassroomHubPage: React.FC<ClassroomHubPageProps> = ({
             </p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-[#1d2024] border border-[#44474f]/20 flex flex-col space-y-2">
+          <div className="min-w-[82vw] sm:min-w-[280px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink p-4 rounded-2xl bg-[#1d2024] border border-[#44474f]/20 flex flex-col space-y-2">
             <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center">
               <Volume2 className="w-4 h-4" />
             </div>
@@ -719,6 +726,13 @@ export const ClassroomHubPage: React.FC<ClassroomHubPageProps> = ({
               Collaborate smoothly. Unmute to ask questions or discuss concepts directly with the tutor and peers.
             </p>
           </div>
+        </div>
+
+        {/* Carousel hint indicators for mobile */}
+        <div className="flex md:hidden items-center justify-center gap-1.5 pt-1">
+          <div className="w-5 h-1 rounded-full bg-[#a8c7fa]" />
+          <div className="w-2 h-1 rounded-full bg-[#44474f]" />
+          <div className="w-2 h-1 rounded-full bg-[#44474f]" />
         </div>
       </div>
 

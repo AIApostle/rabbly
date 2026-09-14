@@ -213,10 +213,14 @@ h1, h2, h3, h4, h5, h6 {
   position: absolute;
   inset: 0;
   background-color: #ffffff !important;
+  touch-action: none !important;
+  overscroll-behavior: none !important;
 }
 
 .tldraw-container .tl-container {
   background-color: #ffffff !important;
+  touch-action: none !important;
+  overscroll-behavior: none !important;
 }
 
 .tldraw-container .tl-theme__dark,
@@ -227,6 +231,8 @@ h1, h2, h3, h4, h5, h6 {
 
 .tldraw-container .tl-canvas {
   background-color: #ffffff !important;
+  touch-action: none !important;
+  overscroll-behavior: none !important;
 }
 
 /* Hide tldraw editing toolbars when readonly */

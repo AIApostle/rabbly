@@ -32,6 +32,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
   const [curricula, setCurricula] = useState<LessonPlan[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState<boolean>(false);
   const [selectedLevel, setSelectedLevel] = useState<string>('All');
   const [selectedSubject, setSelectedSubject] = useState<string>('All');
   const [selectedPlan, setSelectedPlan] = useState<LessonPlan | null>(null);
@@ -168,7 +169,8 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
 
         {/* Filter & Search Bar */}
         <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between pb-2">
-          <div className="relative flex-1 max-w-md">
+          {/* Desktop Search Bar */}
+          <div className="hidden md:block relative flex-1 max-w-md">
             <Search className="w-4 h-4 text-[#627288] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
@@ -188,6 +190,15 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* Mobile Search Icon Button */}
+            <button
+              type="button"
+              onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
+              className="md:hidden p-2 rounded-xl bg-[#111726] border border-[#232d44] text-[#cbd5e1] hover:text-white transition-colors cursor-pointer"
+              title="Search library"
+            >
+              <Search className="w-4 h-4 text-[#a8c7fa]" />
+            </button>
             {/* Level Filter Pills */}
             <div className="inline-flex items-center p-1 rounded-xl bg-[#111726] border border-[#232d44]">
               {['All', 'Beginner', 'Intermediate', 'Advanced'].map((lvl) => (
@@ -224,6 +235,40 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
             )}
           </div>
         </div>
+
+        {/* Mobile Expandable Search Drawer */}
+        {isMobileSearchOpen && (
+          <div className="md:hidden flex items-center gap-2 p-2 px-3 rounded-2xl bg-[#111726] border border-blue-500/60 shadow-lg animate-in fade-in slide-in-from-top-1 duration-150 mb-2">
+            <Search className="w-4 h-4 text-blue-400 shrink-0" />
+            <input
+              type="text"
+              autoFocus
+              placeholder="Search by topic, concept, or subject..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 bg-transparent text-xs text-white placeholder-[#627288] focus:outline-none"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="text-[#627288] hover:text-white p-1"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setIsMobileSearchOpen(false);
+                setSearchQuery('');
+              }}
+              className="text-xs text-blue-400 hover:text-white font-medium pl-1 cursor-pointer"
+            >
+              Done
+            </button>
+          </div>
+        )}
 
         {/* Editorial Directory Table / List View (Replacing 3-Column Cards) */}
         {isLoading ? (

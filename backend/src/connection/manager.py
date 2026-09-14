@@ -190,6 +190,8 @@ class LiveSessionManager:
                 }
                 if user_info.get("is_classroom"):
                     session.is_classroom = True
+                if user_info.get("voice"):
+                    session.agent.set_voice(user_info["voice"])
 
         logger.info(
             f"[LiveSessionManager] Attached Output WS for session '{session_id}' (Total output clients: {len(session.output_sockets)})."
@@ -309,6 +311,8 @@ class LiveSessionManager:
             session.input_sockets.add(websocket)
             if user_info and user_info.get("is_classroom"):
                 session.is_classroom = True
+            if user_info and user_info.get("voice"):
+                session.agent.set_voice(user_info["voice"])
         logger.info(
             f"[LiveSessionManager] Attached Input WS for session '{session_id}' (Total input clients: {len(session.input_sockets)})."
         )

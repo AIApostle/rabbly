@@ -18,14 +18,37 @@ export function formatMathFormula(input: string): string {
 
   let out = input;
 
-  // Handle common LaTeX fractions: \frac{num}{den} -> (num / den)
-  out = out.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1 / $2)');
+  // 1. Convert LaTeX line breaks \\ or \newline to actual newlines
+  out = out.replace(/\\\\/g, '\n').replace(/\\newline/g, '\n');
 
-  // Handle square root: \sqrt{arg} or \sqrt[n]{arg}
+  // 2. Strip LaTeX alignment & spacing operators
+  out = out.replace(/&/g, ' ');
+  out = out.replace(/\\[,;!]/g, ' ');
+  out = out.replace(/\\(quad|qquad|enspace|thinspace)/g, ' ');
+
+  // 3. Strip LaTeX text and font modifiers: \text{...}, \mathrm{...}, \mathbf{...}, \mathit{...}, etc.
+  out = out.replace(/\\(?:text|mathrm|mathbf|mathit|mathsf|mathtt|operatorname)\{([^}]+)\}/g, '$1');
+
+  // 4. Handle common LaTeX fractions: \frac{num}{den} -> num / den
+  // Strip nested \text in fractions first if any remain
+  out = out.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, (_, num, den) => {
+    const cleanNum = num.trim();
+    const cleanDen = den.trim();
+    const numNeedsParens = /[+\-]/.test(cleanNum) && !cleanNum.startsWith('(');
+    const denNeedsParens = /[+\-]/.test(cleanDen) && !cleanDen.startsWith('(');
+    const n = numNeedsParens ? `(${cleanNum})` : cleanNum;
+    const d = denNeedsParens ? `(${cleanDen})` : cleanDen;
+    return `${n} / ${d}`;
+  });
+
+  // 5. Common mathematical functions (strip leading backslash): \sin, \cos, \tan, etc.
+  out = out.replace(/\\(sin|cos|tan|arcsin|arccos|arctan|sec|csc|cot|sinh|cosh|tanh|ln|log|exp|lim|max|min|det|gcd|deg)\b/g, '$1');
+
+  // 6. Handle square root: \sqrt{arg} or \sqrt[n]{arg}
   out = out.replace(/\\sqrt\[([^\]]+)\]\{([^}]+)\}/g, '$1√($2)');
   out = out.replace(/\\sqrt\{([^}]+)\}/g, '√($1)');
 
-  // Handle superscripts
+  // 7. Handle superscripts
   const superscripts: Record<string, string> = {
     '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
     '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
@@ -35,7 +58,7 @@ export function formatMathFormula(input: string): string {
   out = out.replace(/\^{?([0-9+\-nixy])}?/g, (_, char) => superscripts[char] || `^${char}`);
   out = out.replace(/\^([0-9+\-nixy])/g, (_, char) => superscripts[char] || `^${char}`);
 
-  // Handle subscripts
+  // 8. Handle subscripts
   const subscripts: Record<string, string> = {
     '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
     '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉',
@@ -44,7 +67,7 @@ export function formatMathFormula(input: string): string {
   };
   out = out.replace(/_{?([0-9+\-aeijox])}?/g, (_, char) => subscripts[char] || `_${char}`);
 
-  // Greek letters and mathematical symbols
+  // 9. Greek letters and mathematical symbols
   const mathSymbols: Record<string, string> = {
     '\\theta': 'θ', '\\Theta': 'Θ',
     '\\alpha': 'α', '\\beta': 'β', '\\gamma': 'γ', '\\Gamma': 'Γ',
@@ -56,6 +79,7 @@ export function formatMathFormula(input: string): string {
     '\\phi': 'φ', '\\Phi': 'Φ',
     '\\psi': 'ψ', '\\Psi': 'Ψ',
     '\\mu': 'μ', '\\rho': 'ρ', '\\tau': 'τ',
+    '\\eta': 'η', '\\epsilon': 'ε', '\\varepsilon': 'ε',
     '\\times': '×', '\\cdot': '·', '\\div': '÷',
     '\\approx': '≈', '\\neq': '≠', '\\leq': '≤', '\\geq': '≥',
     '\\pm': '±', '\\mp': '∓', '\\infty': '∞',
@@ -69,8 +93,17 @@ export function formatMathFormula(input: string): string {
     out = out.split(latex).join(unicode);
   }
 
+  // 10. Delimiters
   out = out.replace(/\\left\(/g, '(').replace(/\\right\)/g, ')');
   out = out.replace(/\\left\[/g, '[').replace(/\\right\]/g, ']');
+  out = out.replace(/\\left\\{/g, '{').replace(/\\right\\}/g, '}');
+
+  // 11. Normalize multi-line formatting and trim extraneous spaces
+  out = out
+    .split('\n')
+    .map((line) => line.trim().replace(/\s{2,}/g, ' '))
+    .filter(Boolean)
+    .join('\n');
 
   return out;
 }
@@ -92,13 +125,13 @@ export function calculateAdaptiveFormulaLayout(
   const maxLineLen = Math.max(
     ...lines.map((l) => l.trim().length),
     title ? title.length : 0,
-    12
+    14
   );
   const lineCount = lines.length;
 
-  // Compute adaptive dimensions
-  const autoW = Math.max(50, Math.round(Math.abs(requestedW ?? Math.min(880, Math.max(300, Math.round(maxLineLen * 13 + 52))))));
-  const autoH = Math.max(40, Math.round(Math.abs(requestedH ?? Math.max(90, Math.round(lineCount * 32 + (title ? 56 : 32))))));
+  // Compute adaptive dimensions with comfortable padding to prevent text clipping
+  const autoW = Math.max(50, Math.round(Math.abs(requestedW ?? Math.min(880, Math.max(320, Math.round(maxLineLen * 13.5 + 64))))));
+  const autoH = Math.max(40, Math.round(Math.abs(requestedH ?? Math.max(90, Math.round(lineCount * 36 + (title ? 60 : 36))))));
 
   // If coordinates are explicitly given, use them
   if (typeof requestedX === 'number' && typeof requestedY === 'number') {
@@ -110,7 +143,7 @@ export function calculateAdaptiveFormulaLayout(
   if (pageShapes.length === 0) {
     return {
       x: requestedX ?? 540,
-      y: requestedY ?? 120,
+      y: requestedY ?? 110,
       w: autoW,
       h: autoH,
     };
@@ -118,16 +151,21 @@ export function calculateAdaptiveFormulaLayout(
 
   // Look for existing shapes on the right half (x >= 480)
   let maxRightY = 90;
+  let maxRightX = 540;
   let hasRightShapes = false;
 
   for (const shape of pageShapes) {
     try {
       const bounds = editor.getShapeGeometry(shape).bounds;
       const shapeBottom = shape.y + bounds.height;
+      const shapeRight = shape.x + bounds.width;
       if (shape.x >= 480) {
         hasRightShapes = true;
         if (shapeBottom > maxRightY) {
           maxRightY = shapeBottom;
+        }
+        if (shapeRight > maxRightX) {
+          maxRightX = shapeRight;
         }
       }
     } catch {
@@ -135,16 +173,22 @@ export function calculateAdaptiveFormulaLayout(
     }
   }
 
-  let computedX = requestedX ?? 560;
+  let computedX = requestedX ?? 540;
   let computedY = requestedY;
 
   if (typeof computedY !== 'number') {
     if (hasRightShapes) {
-      if (maxRightY + autoH <= 680) {
-        computedY = maxRightY + 24;
+      if (maxRightY + autoH <= 660) {
+        computedY = maxRightY + 28;
       } else {
-        computedY = 110;
-        computedX = 580;
+        // Switch to an offset column if space allows, or start below title
+        if (maxRightX + autoW + 20 <= 1240) {
+          computedX = Math.round(maxRightX + 24);
+          computedY = 110;
+        } else {
+          computedX = 540;
+          computedY = 110;
+        }
       }
     } else {
       computedY = 110;

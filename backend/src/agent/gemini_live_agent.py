@@ -50,6 +50,7 @@ class GeminiLiveAgent:
         outbound_callback: Optional[Callable[[Dict[str, Any]], Coroutine[Any, Any, None]]] = None,
         model_name: Optional[str] = None,
         curriculum_data: Optional[Dict[str, Any]] = None,
+        voice_name: Optional[str] = None,
     ):
         """
         Initialize the Gemini Live Agent.
@@ -60,11 +61,13 @@ class GeminiLiveAgent:
             outbound_callback: Callback to emit messages out to the client.
             model_name: Optional custom model name.
             curriculum_data: Optional pre-loaded curriculum plan dictionary.
+            voice_name: Gemini voice persona (Aoede, Puck, Fenrir, Kore, Charon).
         """
         self.session_id = session_id
         self.mcp_client = mcp_client
         self.outbound_callback = outbound_callback
         self.curriculum_data = curriculum_data
+        self.voice_name = voice_name or "Aoede"
 
         self.api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         self.model_name = (
@@ -89,6 +92,16 @@ class GeminiLiveAgent:
     def set_curriculum_data(self, curriculum_data: Dict[str, Any]) -> None:
         """Assign or update the curriculum data for this session."""
         self.curriculum_data = curriculum_data
+        if curriculum_data and isinstance(curriculum_data, dict):
+            voice = curriculum_data.get("aiVoice") or curriculum_data.get("ai_voice")
+            if voice and voice in {"Aoede", "Puck", "Fenrir", "Kore", "Charon"}:
+                self.voice_name = voice
+
+    def set_voice(self, voice_name: str) -> None:
+        """Sets or updates the voice persona for this agent."""
+        if voice_name and voice_name in {"Aoede", "Puck", "Fenrir", "Kore", "Charon"}:
+            self.voice_name = voice_name
+            logger.info(f"[GeminiLiveAgent:{self.session_id}] Voice persona set to '{self.voice_name}'.")
 
     def set_outbound_callback(
         self, callback: Callable[[Dict[str, Any]], Coroutine[Any, Any, None]]
@@ -105,20 +118,33 @@ class GeminiLiveAgent:
         )
 
     async def emit_to_frontend(self, message: Dict[str, Any]) -> None:
-        """
-        Emit a typed message to the frontend via the Output WebSocket callback.
-
-        Args:
-            message: Message dictionary to transmit.
-        """
+        """Pushes a message safely to the frontend via the outbound callback."""
         if self.outbound_callback:
             try:
                 await self.outbound_callback(message)
-            except Exception as err:
-                logger.error(
-                    f"[GeminiLiveAgent:{self.session_id}] Error in outbound callback: {err}",
-                    exc_info=True,
-                )
+            except Exception as e:
+                logger.error(f"[GeminiLiveAgent:{self.session_id}] Error emitting: {e}")
+
+    async def _emit_status(self, status: str, text: Optional[str] = None):
+        """Helper to emit agent status changes."""
+        await self.emit_to_frontend(
+            {
+                "type": "agent_status",
+                "sessionId": self.session_id,
+                "status": status,
+                "text": text,
+            }
+        )
+
+    async def _emit_interrupted(self):
+        """Helper to emit agent interrupted event."""
+        await self.emit_to_frontend(
+            {
+                "type": "agent_status",
+                "sessionId": self.session_id,
+                "status": "interrupted",
+            }
+        )
 
     async def pause_agent(self) -> None:
         """Pause agent vocalization and speech output."""
@@ -168,12 +194,19 @@ class GeminiLiveAgent:
 
         system_prompt = get_system_prompt(self.curriculum_data)
 
+        # Dynamic voice persona selection
+        voice = self.voice_name or "Aoede"
+        if self.curriculum_data and isinstance(self.curriculum_data, dict):
+            cand = self.curriculum_data.get("aiVoice") or self.curriculum_data.get("ai_voice")
+            if cand and cand in {"Aoede", "Puck", "Fenrir", "Kore", "Charon"}:
+                voice = cand
+
         return genai_types.LiveConnectConfig(
             response_modalities=[genai_types.Modality.AUDIO],
             speech_config=genai_types.SpeechConfig(
                 voice_config=genai_types.VoiceConfig(
                     prebuilt_voice_config=genai_types.PrebuiltVoiceConfig(
-                        voice_name="Aoede"
+                        voice_name=voice
                     )
                 )
             ),

@@ -11,6 +11,7 @@ import {
   login as apiLogin,
   signup as apiSignup,
   verifyActiveToken,
+  updateUserProfileOnServer,
 } from '../services/authService';
 
 export interface AuthContextType {
@@ -140,6 +141,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const updated = { ...prev, ...updates };
       persistCurrentUser(updated);
       return updated;
+    });
+    // Persist to server / Supabase DB asynchronously
+    updateUserProfileOnServer(updates).catch((err) => {
+      console.warn('[AuthContext] Background profile sync failed:', err);
     });
   };
 

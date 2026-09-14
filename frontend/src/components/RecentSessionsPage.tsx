@@ -20,6 +20,7 @@ import {
   Layers,
   Lightbulb,
   FileText,
+  X,
 } from 'lucide-react';
 import type { RecentSessionData, LessonPlan } from '../types';
 
@@ -39,6 +40,7 @@ export const RecentSessionsPage: React.FC<RecentSessionsPageProps> = ({
   onBackToChat,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState<string>('All');
   const [viewMode, setViewMode] = useState<'rows' | 'grid'>('rows');
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
@@ -454,8 +456,18 @@ export const RecentSessionsPage: React.FC<RecentSessionsPageProps> = ({
             </button>
           </div>
 
-          {/* Search Bar */}
-          <div className="relative w-48 sm:w-60">
+          {/* Mobile Search Icon Button */}
+          <button
+            type="button"
+            onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
+            className="sm:hidden p-2 rounded-xl bg-[#191c20] border border-[#44474f]/50 text-[#c4c6d0] hover:text-white transition-colors cursor-pointer"
+            title="Search sessions"
+          >
+            <Search className="w-4 h-4" />
+          </button>
+
+          {/* Desktop Search Bar */}
+          <div className="hidden sm:block relative w-60">
             <Search className="w-3.5 h-3.5 text-[#8e9099] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
@@ -467,6 +479,40 @@ export const RecentSessionsPage: React.FC<RecentSessionsPageProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Mobile Expandable Search Drawer */}
+      {isMobileSearchOpen && (
+        <div className="sm:hidden flex items-center gap-2 p-2 px-3 rounded-2xl bg-[#191c20] border border-[#a8c7fa]/60 shadow-lg animate-in fade-in slide-in-from-top-1 duration-150">
+          <Search className="w-4 h-4 text-[#a8c7fa] shrink-0" />
+          <input
+            type="text"
+            autoFocus
+            placeholder="Search by topic or #room..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1 bg-transparent text-xs text-white placeholder-[#8e9099] focus:outline-none"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="text-[#8e9099] hover:text-white p-1"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              setIsMobileSearchOpen(false);
+              setSearchQuery('');
+            }}
+            className="text-xs text-[#a8c7fa] hover:text-white font-medium pl-1 cursor-pointer"
+          >
+            Done
+          </button>
+        </div>
+      )}
 
       {/* Stats Summary Bar */}
       <div className="grid grid-cols-3 gap-3">

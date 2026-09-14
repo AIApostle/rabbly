@@ -153,10 +153,14 @@ export class LiveDualSessionService {
     this.curriculumPlan = plan;
     if (plan && this.inputSocket && this.inputSocket.readyState === WebSocket.OPEN) {
       console.log(`[DualWS:Input] Transmitting curriculum context to live agent: "${plan.topic}"`);
+      const payload = {
+        ...plan,
+        aiVoice: (plan as any).aiVoice || localStorage.getItem('rabbly_setting_voice') || 'Aoede',
+      };
       this.sendToInput({
         type: 'curriculum_context',
         sessionId: this.sessionId,
-        payload: plan,
+        payload,
       });
     }
   }
@@ -200,6 +204,8 @@ export class LiveDualSessionService {
     if (userInfo?.avatar) queryParts.push(`avatar=${encodeURIComponent(userInfo.avatar)}`);
     if (userInfo?.isHost !== undefined) queryParts.push(`is_host=${userInfo.isHost}`);
     if (userInfo?.isClassroom) queryParts.push(`is_classroom=true`);
+    const savedVoice = localStorage.getItem('rabbly_setting_voice') || 'Aoede';
+    queryParts.push(`voice=${encodeURIComponent(savedVoice)}`);
     const queryStr = queryParts.length > 0 ? `?${queryParts.join('&')}` : '';
 
     const inputUrl = `${host}/ws/live/${sessionId}/input${queryStr}`;
@@ -291,10 +297,14 @@ export class LiveDualSessionService {
         // Transmit curriculum context if available upon connection
         if (this.curriculumPlan) {
           console.log(`[DualWS:Input] Transmitting curriculum context on open for session '${this.sessionId}': "${this.curriculumPlan.topic}"`);
+          const payload = {
+            ...this.curriculumPlan,
+            aiVoice: (this.curriculumPlan as any).aiVoice || localStorage.getItem('rabbly_setting_voice') || 'Aoede',
+          };
           this.sendToInput({
             type: 'curriculum_context',
             sessionId: this.sessionId,
-            payload: this.curriculumPlan,
+            payload,
           });
         }
         resolve();

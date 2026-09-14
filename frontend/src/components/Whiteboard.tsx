@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { Tldraw, Editor, Box } from 'tldraw';
 import 'tldraw/tldraw.css';
+import { Maximize2 } from 'lucide-react';
 import type { WhiteboardShapeAction } from '../types';
 import { whiteboardMcpServer } from '../mcp/whiteboardMcpServer';
 import { liveDualSessionService } from '../services/liveDualSessionService';
@@ -21,6 +22,14 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   // Store listener cleanup ref
   const storeUnsubRef = useRef<(() => void) | null>(null);
 
+  // Recenter canonical 1280x720 blackboard area cleanly with viewport-sensitive inset
+  const fitBoard = useCallback(() => {
+    if (editorRef.current) {
+      const inset = typeof window !== 'undefined' && window.innerWidth < 640 ? 12 : 30;
+      editorRef.current.zoomToBounds(new Box(0, 0, 1280, 720), { inset, force: true });
+    }
+  }, []);
+
   // Initialize and frame the board on mount
   const handleMount = (editor: Editor) => {
     editorRef.current = editor;
@@ -32,15 +41,14 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     // Manual UI drawing tools are already completely hidden via hideUi={true}.
     editor.updateInstanceState({ isReadonly: false });
 
-    // Allow smooth programmatic camera adjustments and student viewport adaptation
-    editor.setCameraOptions({ isLocked: false });
+    // Lock camera for students to prevent accidental dragging / scrolling away on mobile touch screens
+    editor.setCameraOptions({ isLocked: true });
 
     // Force crisp light whiteboard theme
     editor.user.updateUserPreferences({ colorScheme: 'light' });
 
-    // Center and frame canonical 1280x720 blackboard area cleanly with viewport-sensitive inset
-    const inset = typeof window !== 'undefined' && window.innerWidth < 640 ? 12 : 30;
-    editor.zoomToBounds(new Box(0, 0, 1280, 720), { inset, force: true });
+    // Frame canvas cleanly
+    fitBoard();
 
     if (onEditorReady) {
       onEditorReady(editor);
@@ -58,19 +66,21 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     });
   };
 
-  // Window resize handler to maintain 1280x720 blackboard framing
+  // Window resize & orientation change handler to maintain 1280x720 blackboard framing
   useEffect(() => {
-    const handleResize = () => {
-      if (editorRef.current) {
-        const inset = window.innerWidth < 640 ? 12 : 30;
-        editorRef.current.zoomToBounds(new Box(0, 0, 1280, 720), { inset, force: true });
+    window.addEventListener('resize', fitBoard);
+    window.addEventListener('orientationchange', fitBoard);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', fitBoard);
+    }
+    return () => {
+      window.removeEventListener('resize', fitBoard);
+      window.removeEventListener('orientationchange', fitBoard);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', fitBoard);
       }
     };
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
+  }, [fitBoard]);
 
   // Detach MCP editor and unsubscribe on unmount
   useEffect(() => {
@@ -91,7 +101,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
 
   return (
     <div
-      className="tldraw-container absolute inset-0 w-full h-full overflow-hidden bg-white select-none"
+      className="tldraw-container absolute inset-0 w-full h-full overflow-hidden bg-white select-none touch-none"
       onContextMenu={(e) => e.preventDefault()}
     >
       {/* Embedded tldraw Editor strictly forced into white canvas light mode with UI tools removed */}
@@ -101,6 +111,17 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
         hideUi={true}
         colorScheme="light"
       />
+
+      {/* Quick Re-center / Fit Screen Button */}
+      <button
+        type="button"
+        onClick={fitBoard}
+        className="absolute bottom-20 sm:bottom-24 right-4 z-20 p-2 rounded-xl bg-slate-900/80 hover:bg-slate-900 text-white/80 hover:text-white shadow-lg border border-slate-700/50 backdrop-blur-md transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 text-[11px] font-mono"
+        title="Re-center blackboard canvas"
+      >
+        <Maximize2 className="w-3.5 h-3.5" />
+        <span className="hidden sm:inline">Fit Board</span>
+      </button>
     </div>
   );
 };

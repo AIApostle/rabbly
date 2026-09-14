@@ -1018,9 +1018,9 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
               <span>Shift + ↵ for new line</span>
             </div>
 
-            {/* Real Database Recent Study Sessions */}
+            {/* Real Database Recent Study Sessions - Shown on desktop/tablet, hidden on mobile */}
             {recentSessions.length > 0 && (
-              <div className="w-full max-w-3xl mt-10">
+              <div className="hidden md:block w-full max-w-3xl mt-10">
                 <div className="flex items-center justify-between mb-3 px-1">
                   <span className="text-xs uppercase font-bold tracking-widest text-[#8e9099] font-mono">
                     Recent Study Sessions

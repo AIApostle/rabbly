@@ -42,12 +42,14 @@ async def websocket_input_endpoint(websocket: WebSocket, session_id: str):
     name = websocket.query_params.get("name")
     is_host = websocket.query_params.get("is_host") == "true"
     is_classroom = websocket.query_params.get("is_classroom") == "true"
+    voice = websocket.query_params.get("voice")
     user_info = {
         "user_id": user_id,
         "name": name,
         "is_host": is_host,
         "is_classroom": is_classroom,
-    } if user_id else None
+        "voice": voice,
+    } if (user_id or voice) else None
 
     session = await session_manager.attach_input_socket(
         session_id, websocket, user_info=user_info
@@ -99,13 +101,15 @@ async def websocket_output_endpoint(websocket: WebSocket, session_id: str):
     avatar = websocket.query_params.get("avatar")
     is_host = websocket.query_params.get("is_host") == "true"
     is_classroom = websocket.query_params.get("is_classroom") == "true"
+    voice = websocket.query_params.get("voice")
     user_info = {
         "user_id": user_id,
         "name": name,
         "avatar": avatar,
         "is_host": is_host,
         "is_classroom": is_classroom,
-    } if user_id else None
+        "voice": voice,
+    } if (user_id or voice) else None
 
     await session_manager.attach_output_socket(
         session_id, websocket, user_info=user_info

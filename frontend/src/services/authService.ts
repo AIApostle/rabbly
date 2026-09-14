@@ -240,3 +240,47 @@ export async function verifyActiveToken(): Promise<AuthUser | null> {
     return null;
   }
 }
+
+export async function updateUserProfileOnServer(updates: Partial<AuthUser>): Promise<AuthUser | null> {
+  const token = getAuthToken();
+  if (!token) return null;
+
+  try {
+    const payload: Record<string, any> = {};
+    if (updates.aiVoice) {
+      payload.ai_voice = updates.aiVoice;
+    }
+    if (updates.fullName || updates.full_name) {
+      payload.full_name = updates.fullName || updates.full_name;
+    }
+    if (updates.avatarUrl || updates.avatar_url) {
+      payload.avatar_url = updates.avatarUrl || updates.avatar_url;
+    }
+    if (updates.bio) {
+      payload.bio = updates.bio;
+    }
+    if (updates.preferredLevel || updates.preferred_level) {
+      payload.preferred_level = updates.preferredLevel || updates.preferred_level;
+    }
+
+    const res = await fetch(getApiUrl('/api/auth/profile'), {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const normalized = normalizeUser(data);
+      setCurrentUser(normalized);
+      return normalized;
+    }
+    return null;
+  } catch (err) {
+    console.error('Failed to update user profile on server:', err);
+    return null;
+  }
+}
