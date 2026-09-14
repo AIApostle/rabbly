@@ -131,3 +131,6 @@ class BoardStatePayload(BaseModel):
     elementCount: int = 0
     elements: List[BoardElementSummary] = Field(default_factory=list)
     spatialSummary: str = "Empty whiteboard"
+    orientation: Literal["landscape", "portrait"] = "landscape"
+    viewportWidth: float = 1280.0
+    viewportHeight: float = 720.0

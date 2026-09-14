@@ -105,6 +105,9 @@ export interface BoardStatePayload {
   elementCount: number;
   elements: BoardElementSummary[];
   spatialSummary: string;
+  orientation?: 'landscape' | 'portrait';
+  viewportWidth?: number;
+  viewportHeight?: number;
 }
 
 // Message from AI backend to frontend (Channel: output)

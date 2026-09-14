@@ -10,6 +10,10 @@ import {
   extractBoardState,
   formatMathFormula,
   calculateAdaptiveFormulaLayout,
+  buildTextShape,
+  buildGeoShape,
+  buildNoteShape,
+  buildArrowShape,
 } from '../utils/tldrawAiBridge';
 import type { WhiteboardShapeAction, BoardStatePayload, WhiteboardColor } from '../types';
 
@@ -548,19 +552,12 @@ function normalizeCanvasCoords(
         const align = (args.align as 'start' | 'middle' | 'end') || 'start';
 
         this.editor.createShapes([
-          {
-            id: shapeId,
-            type: 'text',
-            x,
-            y,
-            props: {
-              richText: toRichText(textContent),
-              size,
-              font,
-              color,
-              textAlign: align,
-            },
-          },
+          buildTextShape(shapeId, x, y, textContent, {
+            size,
+            font,
+            color,
+            textAlign: align,
+          }),
         ]);
 
         this.log('tools/call:write_text', { shapeId, text: textContent }, 'ok');
@@ -578,17 +575,10 @@ function normalizeCanvasCoords(
         const size = (args.size as 's' | 'm' | 'l' | 'xl') || 'm';
 
         this.editor.createShapes([
-          {
-            id: noteId,
-            type: 'note',
-            x,
-            y,
-            props: {
-              richText: toRichText(text),
-              color,
-              size,
-            },
-          },
+          buildNoteShape(noteId, x, y, text, {
+            color,
+            size,
+          }),
         ]);
 
         this.log('tools/call:create_sticky_note', { noteId, text }, 'ok');
@@ -602,8 +592,8 @@ function normalizeCanvasCoords(
         const formulaId = createShapeId(`formula-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`);
         const rawFormula = String(args.formula || '');
         const title = typeof args.title === 'string' ? args.title : undefined;
-        const style = String(args.style || 'card');
-        const color = (args.color as any) || 'yellow';
+        const style = String(args.style || 'text');
+        const color = (args.color as any) || 'black';
 
         let targetX: number | undefined = undefined;
         let targetY: number | undefined = undefined;
@@ -628,43 +618,29 @@ function normalizeCanvasCoords(
           // Pure standalone chalk formula typography
           const displayText = title ? `**${title}**\n${formattedFormula}` : formattedFormula;
           this.editor.createShapes([
-            {
-              id: formulaId,
-              type: 'text',
-              x: layout.x,
-              y: layout.y,
-              props: {
-                richText: toRichText(displayText),
-                size: 'm',
-                font: 'mono',
-                color,
-                textAlign: 'start',
-              },
-            },
+            buildTextShape(formulaId, layout.x, layout.y, displayText, {
+              size: 'm',
+              font: 'mono',
+              color,
+              textAlign: 'start',
+              w: layout.w,
+            }),
           ]);
         } else {
           // Beautifully accented equation card
           const fullText = title ? `**${title}**\n\n${formattedFormula}` : formattedFormula;
           this.editor.createShapes([
-            {
-              id: formulaId,
-              type: 'geo',
-              x: layout.x,
-              y: layout.y,
-              props: {
-                geo: 'rectangle',
-                w: layout.w,
-                h: layout.h,
-                color,
-                fill: 'semi',
-                dash: 'solid',
-                size: 'm',
-                font: 'mono',
-                align: 'start',
-                verticalAlign: 'start',
-                richText: toRichText(fullText),
-              },
-            },
+            buildGeoShape(formulaId, layout.x, layout.y, layout.w, layout.h, {
+              geo: 'rectangle',
+              color,
+              fill: 'semi',
+              dash: 'solid',
+              size: 'm',
+              font: 'mono',
+              align: 'start',
+              verticalAlign: 'start',
+              richText: toRichText(fullText),
+            }),
           ]);
         }
 
@@ -694,22 +670,14 @@ function normalizeCanvasCoords(
         const size = (args.size as any) || 'm';
 
         this.editor.createShapes([
-          {
-            id: shapeId,
-            type: 'geo',
-            x,
-            y,
-            props: {
-              geo: geo as any,
-              w,
-              h,
-              richText: toRichText(text || ''),
-              color,
-              fill,
-              dash,
-              size,
-            },
-          },
+          buildGeoShape(shapeId, x, y, w, h, {
+            geo,
+            color,
+            fill,
+            dash,
+            size,
+            richText: toRichText(text || ''),
+          }),
         ]);
 
         this.log('tools/call:create_shape', { shapeId, geo, x, y }, 'ok');
@@ -816,20 +784,10 @@ function normalizeCanvasCoords(
         const color = (args.color as any) || 'grey';
 
         this.editor.createShapes([
-          {
-            id: arrowId,
-            type: 'arrow',
-            x: startX,
-            y: startY,
-            props: {
-              start: { x: 0, y: 0 },
-              end: { x: endX - startX, y: endY - startY },
-              richText: toRichText(label || ''),
-              color,
-              size: 'm',
-              arrowheadEnd: 'arrow',
-            },
-          },
+          buildArrowShape(arrowId, startX, startY, endX, endY, label, {
+            color,
+            size: 'm',
+          }),
         ]);
 
         this.log('tools/call:draw_connector', { arrowId, from: args.from_id, to: args.to_id }, 'ok');

@@ -24,7 +24,16 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   // Recenter canonical 1280x720 blackboard area cleanly with viewport-sensitive inset
   const fitBoard = useCallback(() => {
     if (editorRef.current) {
-      const inset = typeof window !== 'undefined' && window.innerWidth < 640 ? 12 : 30;
+      const isMobileLandscape =
+        typeof window !== 'undefined' &&
+        window.innerWidth > window.innerHeight &&
+        window.innerHeight < 550;
+      const isMobilePortrait =
+        typeof window !== 'undefined' &&
+        window.innerWidth < 640 &&
+        window.innerWidth <= window.innerHeight;
+
+      const inset = isMobileLandscape ? 6 : isMobilePortrait ? 12 : 30;
       editorRef.current.zoomToBounds(new Box(0, 0, 1280, 720), { inset, force: true });
     }
   }, []);
@@ -65,18 +74,23 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     });
   };
 
-  // Window resize & orientation change handler to maintain 1280x720 blackboard framing
+  // Window resize & orientation change handler to maintain 1280x720 blackboard framing and notify agent
   useEffect(() => {
-    window.addEventListener('resize', fitBoard);
-    window.addEventListener('orientationchange', fitBoard);
+    const handleOrientationOrResize = () => {
+      fitBoard();
+      liveDualSessionService.streamBoardState(true);
+    };
+
+    window.addEventListener('resize', handleOrientationOrResize);
+    window.addEventListener('orientationchange', handleOrientationOrResize);
     if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', fitBoard);
+      window.visualViewport.addEventListener('resize', handleOrientationOrResize);
     }
     return () => {
-      window.removeEventListener('resize', fitBoard);
-      window.removeEventListener('orientationchange', fitBoard);
+      window.removeEventListener('resize', handleOrientationOrResize);
+      window.removeEventListener('orientationchange', handleOrientationOrResize);
       if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', fitBoard);
+        window.visualViewport.removeEventListener('resize', handleOrientationOrResize);
       }
     };
   }, [fitBoard]);
