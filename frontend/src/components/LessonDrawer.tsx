@@ -27,8 +27,9 @@ export const LessonDrawer: React.FC<LessonDrawerProps> = ({
   if (!plan) {
     return (
       <>
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 sm:hidden" onClick={onClose} />
-        <aside className="fixed inset-y-0 right-0 z-40 w-full sm:w-96 max-w-full sm:max-w-[90vw] border-l border-blue-900/30 bg-[#0c1017]/98 sm:bg-[#0c1017]/95 shadow-2xl flex flex-col backdrop-blur-2xl animate-in slide-in-from-right duration-300">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-30 sm:hidden" onClick={onClose} />
+        <aside className="fixed bottom-0 inset-x-0 sm:inset-y-0 sm:right-0 sm:left-auto sm:w-96 max-h-[52vh] sm:max-h-full rounded-t-3xl sm:rounded-none border-t sm:border-t-0 sm:border-l border-blue-900/40 bg-[#0c1017]/98 sm:bg-[#0c1017]/95 shadow-2xl flex flex-col backdrop-blur-2xl z-40 animate-in slide-in-from-bottom sm:slide-in-from-right duration-300">
+          <div className="w-10 h-1 bg-slate-600/60 rounded-full mx-auto mt-2 mb-1 sm:hidden shrink-0" />
           <div className="p-4 border-b border-blue-900/30 flex items-center justify-between">
             <h2 className="text-sm font-bold text-white font-['Outfit']">Lesson Modules</h2>
             <button
@@ -54,8 +55,10 @@ export const LessonDrawer: React.FC<LessonDrawerProps> = ({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 sm:hidden" onClick={onClose} />
-      <aside className="fixed inset-y-0 right-0 z-40 w-full sm:w-96 max-w-full sm:max-w-[90vw] border-l border-blue-900/30 bg-[#0c1017]/98 sm:bg-[#0c1017]/95 shadow-2xl flex flex-col backdrop-blur-2xl animate-in slide-in-from-right duration-300">
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-30 sm:hidden" onClick={onClose} />
+      <aside className="fixed bottom-0 inset-x-0 sm:inset-y-0 sm:right-0 sm:left-auto sm:w-96 max-h-[52vh] sm:max-h-full rounded-t-3xl sm:rounded-none border-t sm:border-t-0 sm:border-l border-blue-900/40 bg-[#0c1017]/98 sm:bg-[#0c1017]/95 shadow-2xl flex flex-col backdrop-blur-2xl z-40 animate-in slide-in-from-bottom sm:slide-in-from-right duration-300">
+        {/* Drag pill indicator on mobile */}
+        <div className="w-10 h-1 bg-slate-600/60 rounded-full mx-auto mt-2 mb-1 sm:hidden shrink-0" />
         {/* Drawer Header: Clean Modules Roadmap */}
         <div className="p-4 border-b border-blue-900/30 flex items-center justify-between bg-[#111622]/80">
           <div className="flex items-center gap-2.5 min-w-0">

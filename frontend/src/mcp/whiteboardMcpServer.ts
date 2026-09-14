@@ -509,12 +509,39 @@ export class WhiteboardMcpServer {
         };
       }
 
+function normalizeCanvasCoords(
+  rawX: unknown,
+  rawY: unknown,
+  defaultX: number,
+  defaultY: number,
+  shapeW = 100,
+  shapeH = 100
+): { x: number; y: number } {
+  let x = typeof rawX === 'number' && !isNaN(rawX) ? rawX : defaultX;
+  let y = typeof rawY === 'number' && !isNaN(rawY) ? rawY : defaultY;
+
+  // 1. Normalized fraction coordinates (e.g. 0.0 < coord <= 1.0)
+  if (x > 0 && x <= 1.0 && y > 0 && y <= 1.0) {
+    x = Math.round(x * 1280);
+    y = Math.round(y * 720);
+  }
+
+  // 2. Cartesian centered coordinates where origin (0,0) was placed at center (640, 360)
+  if (x < 0 && x >= -640) x = 640 + x;
+  if (y < 0 && y >= -360) y = 360 + y;
+
+  // 3. Defensive clamping into visible 1280x720 blackboard bounds
+  x = Math.max(30, Math.min(1250 - shapeW, Math.round(x)));
+  y = Math.max(30, Math.min(690 - shapeH, Math.round(y)));
+
+  return { x, y };
+}
+
       // 2. write_text
       if (name === 'write_text') {
         const shapeId = createShapeId(`text-${Date.now()}`);
         const textContent = String(args.text || '');
-        const x = typeof args.x === 'number' ? args.x : 100;
-        const y = typeof args.y === 'number' ? args.y : 100;
+        const { x, y } = normalizeCanvasCoords(args.x, args.y, 80, 50, 200, 40);
         const size = (args.size as 's' | 'm' | 'l' | 'xl') || 'm';
         const font = (args.font as 'draw' | 'sans' | 'serif' | 'mono') || 'draw';
         const color = (args.color as any) || 'black';
@@ -546,8 +573,7 @@ export class WhiteboardMcpServer {
       if (name === 'create_sticky_note') {
         const noteId = createShapeId(`note-${Date.now()}`);
         const text = String(args.text || '');
-        const x = typeof args.x === 'number' ? args.x : 200;
-        const y = typeof args.y === 'number' ? args.y : 200;
+        const { x, y } = normalizeCanvasCoords(args.x, args.y, 540, 140, 180, 180);
         const color = (args.color as any) || 'yellow';
         const size = (args.size as 's' | 'm' | 'l' | 'xl') || 'm';
 
@@ -579,13 +605,21 @@ export class WhiteboardMcpServer {
         const style = String(args.style || 'card');
         const color = (args.color as any) || 'yellow';
 
+        let targetX: number | undefined = undefined;
+        let targetY: number | undefined = undefined;
+        if (typeof args.x === 'number' && typeof args.y === 'number') {
+          const norm = normalizeCanvasCoords(args.x, args.y, 540, 120, 320, 120);
+          targetX = norm.x;
+          targetY = norm.y;
+        }
+
         const formattedFormula = formatMathFormula(rawFormula);
         const layout = calculateAdaptiveFormulaLayout(
           this.editor,
           formattedFormula,
           title,
-          typeof args.x === 'number' ? args.x : undefined,
-          typeof args.y === 'number' ? args.y : undefined,
+          targetX,
+          targetY,
           typeof args.width === 'number' ? args.width : undefined,
           typeof args.height === 'number' ? args.height : undefined
         );
@@ -649,22 +683,9 @@ export class WhiteboardMcpServer {
       if (name === 'create_shape') {
         const shapeId = createShapeId(`shape-${Date.now()}`);
         const geo = String(args.geo || 'rectangle');
-        let x = typeof args.x === 'number' ? args.x : 150;
-        let y = typeof args.y === 'number' ? args.y : 150;
-        let w = typeof args.w === 'number' ? args.w : 220;
-        let h = typeof args.h === 'number' ? args.h : 140;
-
-        // Defensively normalize negative dimensions from Cartesian coordinates
-        if (w < 0) {
-          x += w;
-          w = Math.abs(w);
-        }
-        if (h < 0) {
-          y += h;
-          h = Math.abs(h);
-        }
-        w = Math.max(10, Math.round(w));
-        h = Math.max(10, Math.round(h));
+        const w = typeof args.w === 'number' ? Math.max(10, Math.round(Math.abs(args.w))) : 220;
+        const h = typeof args.h === 'number' ? Math.max(10, Math.round(Math.abs(args.h))) : 140;
+        const { x, y } = normalizeCanvasCoords(args.x, args.y, 150, 150, w, h);
 
         const text = typeof args.text === 'string' ? args.text : '';
         const color = (args.color as any) || 'blue';
@@ -703,22 +724,22 @@ export class WhiteboardMcpServer {
         const shapeId = `geom-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
         const labels = (args.labels as Record<string, string>) || {};
 
-        let rawBase = typeof args.base === 'number' ? args.base : 320;
-        let rawHeight = typeof args.height === 'number' ? args.height : 220;
-        let x = typeof args.x === 'number' ? args.x : undefined;
-        let y = typeof args.y === 'number' ? args.y : undefined;
+        const rawBase = typeof args.base === 'number' ? args.base : 320;
+        const rawHeight = typeof args.height === 'number' ? args.height : 220;
+        const norm = normalizeCanvasCoords(
+          args.x,
+          args.y,
+          120,
+          140,
+          Math.max(50, Math.abs(rawBase)),
+          Math.max(50, Math.abs(rawHeight))
+        );
+        let x: number | undefined = norm.x;
+        let y: number | undefined = norm.y;
 
         let action: WhiteboardShapeAction;
 
         if (shapeType === 'right_triangle') {
-          if (rawBase < 0) {
-            if (typeof x === 'number') x += rawBase;
-            rawBase = Math.abs(rawBase);
-          }
-          if (rawHeight < 0) {
-            if (typeof y === 'number') y += rawHeight;
-            rawHeight = Math.abs(rawHeight);
-          }
           action = {
             action: 'draw_right_triangle',
             id: shapeId,
@@ -726,8 +747,8 @@ export class WhiteboardMcpServer {
             y,
             color: (args.color as WhiteboardColor) || 'light-blue',
             geometryParams: {
-              base: Math.max(10, Math.round(rawBase)),
-              height: Math.max(10, Math.round(rawHeight)),
+              base: Math.max(10, Math.round(Math.abs(rawBase))),
+              height: Math.max(10, Math.round(Math.abs(rawHeight))),
               showRightAngleMarker: true,
               showAngleArc: true,
               angleLabel: labels.angle || 'θ',

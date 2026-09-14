@@ -378,6 +378,33 @@ class GeminiLiveAgent:
                 }
             )
 
+            # Proactively draw the lesson topic title at (80, 50) so the board is visibly active from opening second
+            try:
+                board = self.mcp_client.get_latest_board_state()
+                if board.elementCount == 0:
+                    topic = (
+                        (self.curriculum_data.get("topic") if self.curriculum_data else None)
+                        or "STEM & Mathematics"
+                    )
+                    logger.info(
+                        f"[GeminiLiveAgent:{self.session_id}] Pre-populating board header for topic: '{topic}'"
+                    )
+                    await self.mcp_client.call_tool(
+                        "write_text",
+                        {
+                            "text": topic,
+                            "x": 80,
+                            "y": 50,
+                            "size": "l",
+                            "color": "violet",
+                            "font": "sans",
+                        },
+                    )
+            except Exception as init_board_err:
+                logger.warning(
+                    f"[GeminiLiveAgent:{self.session_id}] Could not pre-populate board header: {init_board_err}"
+                )
+
             # Proactively prompt the live teacher to greet the student with the curriculum topic or memory checkpoint
             try:
                 greeting_text = build_initial_greeting_prompt(self.curriculum_data)
@@ -653,7 +680,12 @@ class GeminiLiveAgent:
         )
 
         board = self.mcp_client.get_latest_board_state()
-        board_ctx = f"[Current Blackboard: {board.spatialSummary} ({board.elementCount} elements on canvas)]"
+        board_ctx = (
+            f"[Current Blackboard: {board.spatialSummary} ({board.elementCount} elements on 1280x720 canvas). "
+            "DIRECTIVE: If your spoken explanation introduces formulas, derivations, or geometric figures, "
+            "you MUST invoke the appropriate tool (write_formula, draw_geometry, write_text) in this turn. "
+            "Do not merely describe visual figures without drawing them.]"
+        )
         enriched_text = f"{text}\n\n{board_ctx}"
 
         if self.is_active and self._session:

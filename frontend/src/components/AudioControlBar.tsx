@@ -56,10 +56,10 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
   };
 
   return (
-    <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center w-auto max-w-[96vw]">
+    <div className="absolute bottom-8 sm:bottom-6 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center w-auto max-w-[96vw] mb-[env(safe-area-inset-bottom,0px)] select-none">
       {/* Quick Questions Popup Menu */}
       {showQuestionsMenu && (
-        <div className="mb-2 sm:mb-3 w-[460px] max-w-[94vw] fixed sm:absolute bottom-16 sm:bottom-20 left-1/2 -translate-x-1/2 glass-dropdown rounded-2xl p-3.5 sm:p-4 border border-blue-500/30 shadow-2xl backdrop-blur-2xl bg-slate-900/95 animate-in fade-in slide-in-from-bottom-3 duration-200 max-h-[70vh] flex flex-col">
+        <div className="mb-2 sm:mb-3 w-[460px] max-w-[94vw] fixed sm:absolute bottom-22 sm:bottom-20 left-1/2 -translate-x-1/2 glass-dropdown rounded-2xl p-3.5 sm:p-4 border border-blue-500/30 shadow-2xl backdrop-blur-2xl bg-slate-900/95 animate-in fade-in slide-in-from-bottom-3 duration-200 max-h-[70vh] flex flex-col">
           <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-800 shrink-0">
             <div className="flex items-center gap-2">
               <HelpCircle className="w-4 h-4 text-sky-400" />
@@ -70,7 +70,7 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
             <button
               type="button"
               onClick={() => setShowQuestionsMenu(false)}
-              className="p-1 rounded-lg hover:bg-slate-800 text-xs text-slate-400 hover:text-slate-200 cursor-pointer"
+              className="p-1.5 rounded-lg hover:bg-slate-800 text-xs text-slate-400 hover:text-slate-200 cursor-pointer touch-manipulation"
             >
               ✕
             </button>
@@ -90,7 +90,7 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
                   onAskQuestion(q);
                   setShowQuestionsMenu(false);
                 }}
-                className="w-full text-left p-2 rounded-xl text-xs bg-slate-800/80 hover:bg-blue-950/60 border border-slate-700/60 hover:border-blue-500/40 text-slate-200 transition-all cursor-pointer flex items-start gap-2"
+                className="w-full text-left p-2.5 sm:p-2 rounded-xl text-xs bg-slate-800/80 hover:bg-blue-950/60 border border-slate-700/60 hover:border-blue-500/40 text-slate-200 transition-all cursor-pointer flex items-start gap-2 touch-manipulation"
               >
                 <span className="text-sky-400 font-bold shrink-0">Q{idx + 1}:</span>
                 <span className="leading-snug">{q}</span>
@@ -109,7 +109,7 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
             />
             <button
               type="submit"
-              className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white transition-all cursor-pointer shadow-md shrink-0"
+              className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white transition-all cursor-pointer shadow-md shrink-0 touch-manipulation"
             >
               Ask
             </button>
@@ -118,7 +118,7 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
       )}
 
       {/* Main Bottom Dock */}
-      <div className="glass-panel rounded-2xl px-2 sm:px-4 py-1.5 sm:py-2 shadow-2xl border border-slate-700/60 backdrop-blur-2xl bg-slate-900/90 flex items-center gap-1.5 sm:gap-2.5 max-w-[96vw]">
+      <div className="glass-panel rounded-2xl px-2.5 sm:px-4 py-2 sm:py-2 shadow-2xl border border-slate-700/60 backdrop-blur-2xl bg-slate-900/95 flex items-center gap-2 sm:gap-2.5 max-w-[96vw]">
         {/* Student Microphone Toggle - ICON ONLY with hover tooltip */}
         <div className="relative group">
           <button
@@ -130,13 +130,13 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
                 ? `0 0 0 ${Math.round(3 + audioLevel * 10)}px rgba(16, 185, 129, ${Math.min(0.8, 0.25 + audioLevel * 0.5)})`
                 : undefined,
             }}
-            className={`p-2 sm:p-2.5 rounded-xl transition-all duration-150 cursor-pointer shadow-md active:scale-95 flex items-center justify-center relative min-w-[36px] min-h-[36px] sm:min-w-[42px] sm:min-h-[42px] ${
+            className={`p-2.5 sm:p-2.5 rounded-xl transition-all duration-150 cursor-pointer shadow-md active:scale-95 flex items-center justify-center relative min-w-[42px] min-h-[42px] touch-manipulation ${
               isMuted
                 ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30 hover:bg-rose-500/25'
                 : 'bg-emerald-500 text-slate-950 font-bold ring-2 ring-emerald-400 shadow-emerald-500/30 hover:bg-emerald-400'
             }`}
           >
-            {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            {isMuted ? <MicOff className="w-4.5 h-4.5 sm:w-4 sm:h-4" /> : <Mic className="w-4.5 h-4.5 sm:w-4 sm:h-4" />}
             {!isMuted && audioLevel > 0.05 && (
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
             )}
@@ -154,12 +154,12 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
             type="button"
             onClick={onToggleSpeaker}
             aria-label={isSpeakerMuted ? 'Unmute AI Voice' : 'Mute AI Voice'}
-            className="p-2 sm:p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 transition-all cursor-pointer flex items-center justify-center min-w-[36px] min-h-[36px] sm:min-w-[42px] sm:min-h-[42px]"
+            className="p-2.5 sm:p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 transition-all cursor-pointer flex items-center justify-center min-w-[42px] min-h-[42px] touch-manipulation"
           >
             {isSpeakerMuted ? (
-              <VolumeX className="w-4 h-4 text-rose-400" />
+              <VolumeX className="w-4.5 h-4.5 sm:w-4 sm:h-4 text-rose-400" />
             ) : (
-              <Volume2 className="w-4 h-4 text-slate-300" />
+              <Volume2 className="w-4.5 h-4.5 sm:w-4 sm:h-4 text-slate-300" />
             )}
           </button>
           <div className="hidden sm:block absolute -top-9 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-md bg-slate-900 border border-slate-700 text-[11px] text-slate-200 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg font-medium">
@@ -173,15 +173,15 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
         <button
           type="button"
           onClick={() => setShowQuestionsMenu(!showQuestionsMenu)}
-          className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-medium border transition-all cursor-pointer min-h-[36px] sm:min-h-[42px] shrink-0 ${
+          className={`flex items-center gap-1.5 px-3 sm:px-3 py-2 rounded-xl text-xs font-medium border transition-all cursor-pointer min-h-[42px] shrink-0 touch-manipulation ${
             showQuestionsMenu
               ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-600/30'
               : 'bg-slate-800/90 text-slate-200 border-slate-700 hover:bg-slate-750 hover:text-white'
           }`}
         >
-          <MessageSquarePlus className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+          <MessageSquarePlus className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-sky-400 shrink-0" />
           <span className="hidden sm:inline">Ask Question</span>
-          <span className="sm:hidden text-[11px]">Ask</span>
+          <span className="sm:hidden text-xs font-medium">Ask</span>
         </button>
 
         <div className="w-[1px] h-5 sm:h-6 bg-slate-700/60 mx-0.5 shrink-0"></div>
@@ -192,13 +192,13 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
             type="button"
             onClick={onToggleNotes}
             aria-label="Lesson Modules"
-            className={`p-2 sm:p-2.5 rounded-xl text-xs font-medium border transition-all cursor-pointer flex items-center justify-center min-w-[36px] min-h-[36px] sm:min-w-[42px] sm:min-h-[42px] ${
+            className={`p-2.5 sm:p-2.5 rounded-xl text-xs font-medium border transition-all cursor-pointer flex items-center justify-center min-w-[42px] min-h-[42px] touch-manipulation ${
               isNotesOpen
                 ? 'bg-blue-600/30 text-sky-300 border-blue-500/50'
                 : 'bg-slate-800/90 text-slate-300 border-slate-700 hover:bg-slate-750 hover:text-white'
             }`}
           >
-            <Layers className="w-4 h-4 text-sky-400" />
+            <Layers className="w-4.5 h-4.5 sm:w-4 sm:h-4 text-sky-400" />
           </button>
           <div className="hidden sm:block absolute -top-9 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-md bg-slate-900 border border-slate-700 text-[11px] text-slate-200 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg font-medium">
             Lesson Modules
@@ -215,15 +215,15 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
                 type="button"
                 onClick={onToggleRaiseHand}
                 aria-label={hasRaisedHand ? 'Lower Hand' : 'Raise Hand'}
-                className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-medium border transition-all cursor-pointer shadow-sm min-h-[36px] sm:min-h-[42px] shrink-0 ${
+                className={`flex items-center gap-1.5 px-3 sm:px-3 py-2 rounded-xl text-xs font-medium border transition-all cursor-pointer shadow-sm min-h-[42px] shrink-0 touch-manipulation ${
                   hasRaisedHand
                     ? 'bg-amber-500/30 text-amber-200 border-amber-400/60 shadow-amber-500/20 animate-pulse'
                     : 'bg-slate-800/90 text-slate-300 border-slate-700 hover:bg-slate-750 hover:text-white'
                 }`}
               >
-                <Hand className={`w-3.5 h-3.5 ${hasRaisedHand ? 'text-amber-300' : 'text-slate-400'}`} />
+                <Hand className={`w-4 h-4 sm:w-3.5 sm:h-3.5 ${hasRaisedHand ? 'text-amber-300' : 'text-slate-400'}`} />
                 <span className="hidden md:inline">{hasRaisedHand ? 'Hand Raised' : 'Raise Hand'}</span>
-                <span className="md:hidden text-[11px]">{hasRaisedHand ? 'Raised' : 'Hand'}</span>
+                <span className="md:hidden text-xs">{hasRaisedHand ? 'Raised' : 'Hand'}</span>
               </button>
               <div className="hidden sm:block absolute -top-9 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-md bg-slate-900 border border-slate-700 text-[11px] text-slate-200 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg font-medium">
                 {hasRaisedHand ? 'Click to Lower Hand' : 'Raise Hand to Ask Rabbly'}
@@ -235,9 +235,9 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
                 type="button"
                 onClick={onOpenClassroom}
                 aria-label="Classroom Members & Invite"
-                className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-medium bg-gradient-to-r from-blue-600/30 to-sky-600/30 hover:from-blue-600/50 hover:to-sky-600/50 text-sky-200 border border-blue-500/40 hover:border-blue-400 transition-all cursor-pointer shadow-sm min-h-[36px] sm:min-h-[42px] shrink-0"
+                className="flex items-center gap-1.5 px-3 sm:px-3 py-2 rounded-xl text-xs font-medium bg-gradient-to-r from-blue-600/30 to-sky-600/30 hover:from-blue-600/50 hover:to-sky-600/50 text-sky-200 border border-blue-500/40 hover:border-blue-400 transition-all cursor-pointer shadow-sm min-h-[42px] shrink-0 touch-manipulation"
               >
-                <Share2 className="w-3.5 h-3.5 text-sky-300" />
+                <Share2 className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-sky-300" />
                 <span className="hidden sm:inline">Classroom</span>
                 <span className="px-1.5 py-0.2 rounded-full bg-blue-500/40 text-[10px] text-white font-bold">
                   {participantCount}

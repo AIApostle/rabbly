@@ -564,6 +564,18 @@ export function executeAiActionOnBoard(editor: Editor, action: WhiteboardShapeAc
   return createdIds;
 }
 
+function extractPlainTextFromRichText(node: unknown): string {
+  if (!node) return '';
+  if (typeof node === 'string') return node;
+  if (typeof node !== 'object') return String(node);
+  const n = node as Record<string, unknown>;
+  if (typeof n.text === 'string') return n.text;
+  if (Array.isArray(n.content)) {
+    return n.content.map(extractPlainTextFromRichText).filter(Boolean).join('\n');
+  }
+  return '';
+}
+
 /**
  * Extracts a spatial scene graph of the whiteboard to stream back to the AI agent (Channel 2: INPUT).
  */
@@ -587,8 +599,8 @@ export function extractBoardState(editor: Editor): BoardStatePayload {
       const props = (shape.props as Record<string, unknown>) || {};
       if (typeof props.text === 'string') {
         textContent = props.text;
-      } else if (props.richText && typeof props.richText === 'object') {
-        textContent = JSON.stringify(props.richText);
+      } else if (props.richText) {
+        textContent = extractPlainTextFromRichText(props.richText).trim();
       }
 
       const summary: BoardElementSummary = {

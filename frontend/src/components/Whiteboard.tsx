@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { Tldraw, Editor, Box } from 'tldraw';
 import 'tldraw/tldraw.css';
-import { Maximize2 } from 'lucide-react';
 import type { WhiteboardShapeAction } from '../types';
 import { whiteboardMcpServer } from '../mcp/whiteboardMcpServer';
 import { liveDualSessionService } from '../services/liveDualSessionService';
@@ -111,17 +110,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
         hideUi={true}
         colorScheme="light"
       />
-
-      {/* Quick Re-center / Fit Screen Button */}
-      <button
-        type="button"
-        onClick={fitBoard}
-        className="absolute bottom-20 sm:bottom-24 right-4 z-20 p-2 rounded-xl bg-slate-900/80 hover:bg-slate-900 text-white/80 hover:text-white shadow-lg border border-slate-700/50 backdrop-blur-md transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 text-[11px] font-mono"
-        title="Re-center blackboard canvas"
-      >
-        <Maximize2 className="w-3.5 h-3.5" />
-        <span className="hidden sm:inline">Fit Board</span>
-      </button>
     </div>
   );
 };
