@@ -6,8 +6,6 @@ import {
   Camera,
   Check,
   Crown,
-  Sparkles,
-  ArrowRight,
   ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -16,7 +14,6 @@ import confetti from 'canvas-confetti';
 interface ProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onOpenUpgrade?: () => void;
 }
 
 const PRESET_AVATARS = [
@@ -31,7 +28,6 @@ const PRESET_AVATARS = [
 export const ProfileModal: React.FC<ProfileModalProps> = ({
   isOpen,
   onClose,
-  onOpenUpgrade,
 }) => {
   const { user, updateProfile } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -304,33 +300,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               <div className="text-base sm:text-lg font-bold text-sky-400 font-['Outfit'] mt-0.5">5 Days</div>
             </div>
           </div>
-
-          {/* Pro Upgrade Banner if not Pro */}
-          {!user?.isPro && onOpenUpgrade && (
-            <div className="p-4 rounded-3xl bg-gradient-to-r from-blue-950/60 via-blue-900/30 to-sky-950/40 border border-blue-500/40 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-blue-500/20 text-sky-400 border border-blue-500/30 flex items-center justify-center shrink-0">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-white">Unlock Rabbly Pro</h4>
-                  <p className="text-[11px] text-[#c4c6d0]">Unlimited Live audio sessions, PDF study guides, and 50-student classrooms.</p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onOpenUpgrade();
-                }}
-                className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shrink-0 flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-blue-500/25"
-              >
-                <span>Upgrade</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
 
           {/* Save Button */}
           <div className="pt-2 border-t border-[#44474f]/30 flex items-center justify-end gap-3">

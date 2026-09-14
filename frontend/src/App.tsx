@@ -22,7 +22,6 @@ import { SessionSummaryModal } from './components/SessionSummaryModal';
 import { LectureNotesModal } from './components/LectureNotesModal';
 import { ProfileModal } from './components/ProfileModal';
 import { SettingsModal } from './components/SettingsModal';
-import { UpgradeModal } from './components/UpgradeModal';
 import { generateCurriculum } from './services/curriculumService';
 import { persistNewSession } from './services/sessionService';
 import { verifyRoomCode, getLocalClassrooms, endClassroom } from './services/classroomService';
@@ -127,7 +126,6 @@ export function App() {
   const [isLectureNotesOpen, setIsLectureNotesOpen] = useState<boolean>(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
-  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState<boolean>(false);
   const [isClassroomModalOpen, setIsClassroomModalOpen] = useState<boolean>(false);
   const [isSessionSummaryOpen, setIsSessionSummaryOpen] = useState<boolean>(false);
   const [isHostExitModalOpen, setIsHostExitModalOpen] = useState<boolean>(false);
@@ -775,7 +773,6 @@ export function App() {
       onStartLesson={handleStartLesson}
       onOpenProfile={() => setIsProfileModalOpen(true)}
       onOpenSettings={() => setIsSettingsModalOpen(true)}
-      onOpenUpgrade={() => setIsUpgradeModalOpen(true)}
     />
   );
 
@@ -904,18 +901,11 @@ export function App() {
       <ProfileModal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
-        onOpenUpgrade={() => setIsUpgradeModalOpen(true)}
       />
 
       <SettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
-        onOpenUpgrade={() => setIsUpgradeModalOpen(true)}
-      />
-
-      <UpgradeModal
-        isOpen={isUpgradeModalOpen}
-        onClose={() => setIsUpgradeModalOpen(false)}
       />
 
       {/* Host Classroom Exit Options Modal */}

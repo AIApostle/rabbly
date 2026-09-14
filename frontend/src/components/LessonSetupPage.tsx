@@ -49,7 +49,6 @@ interface LessonSetupPageProps {
   initialTopic?: string;
   onOpenProfile?: () => void;
   onOpenSettings?: () => void;
-  onOpenUpgrade?: () => void;
 }
 
 export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
@@ -58,7 +57,6 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
   initialTopic = '',
   onOpenProfile,
   onOpenSettings,
-  onOpenUpgrade,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -636,24 +634,6 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
                 <span>System Settings</span>
               </button>
 
-              {/* Upgrade Action */}
-              {!currentUser?.isPro && onOpenUpgrade && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsProfileMenuOpen(false);
-                    onOpenUpgrade();
-                  }}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-xs font-bold text-amber-300 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-2">
-                    <Crown className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Upgrade to Pro</span>
-                  </div>
-                  <span className="text-[10px] font-mono text-amber-400">Save 21%</span>
-                </button>
-              )}
-
               <div className="pt-1 border-t border-[#44474f]/25">
                 <button
                   type="button"
@@ -709,18 +689,6 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
             </div>
 
             <div className="flex items-center gap-1.5 shrink-0">
-              {!currentUser?.isPro && onOpenUpgrade && (
-                <button
-                  type="button"
-                  onClick={onOpenUpgrade}
-                  className="px-2 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 hover:text-amber-200 transition-colors cursor-pointer group flex items-center gap-1 shadow-sm"
-                  title="Upgrade to Rabbly Pro"
-                >
-                  <Crown className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-[10px] font-bold font-mono">PRO</span>
-                </button>
-              )}
-
               <button
                 type="button"
                 onClick={() => {

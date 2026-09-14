@@ -7,7 +7,6 @@ import {
   Palette,
   Bell,
   Check,
-  Crown,
   Sparkles,
   Sliders,
   Sun,
@@ -18,7 +17,6 @@ import { useAuth } from '../context/AuthContext';
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onOpenUpgrade?: () => void;
 }
 
 const AI_VOICES = [
@@ -39,7 +37,6 @@ const CANVAS_THEMES = [
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
-  onOpenUpgrade,
 }) => {
   const { user, updateProfile } = useAuth();
 
@@ -108,24 +105,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-lg font-bold text-white font-['Outfit']">System Settings</h3>
-                {user?.isPro ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-mono font-bold">
-                    <Crown className="w-3 h-3 text-amber-400" />
-                    <span>PRO</span>
-                  </span>
-                ) : onOpenUpgrade ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose();
-                      onOpenUpgrade();
-                    }}
-                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 hover:border-amber-400 text-[10px] font-mono font-bold transition-all cursor-pointer"
-                  >
-                    <Crown className="w-3 h-3 text-amber-400" />
-                    <span>UPGRADE TO PRO</span>
-                  </button>
-                ) : null}
               </div>
               <span className="text-xs text-[#8e9099]">Configure AI tutor voice, speech gating, whiteboard canvas, and audio</span>
             </div>
