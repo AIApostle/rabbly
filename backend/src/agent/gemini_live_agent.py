@@ -702,15 +702,16 @@ class GeminiLiveAgent:
                 self._receive_task = asyncio.create_task(self._receive_loop())
 
                 greeting_text = build_initial_greeting_prompt(self.curriculum_data)
-                await self._session.send_client_content(
-                    turns=[
-                        genai_types.Content(
-                            role="user",
-                            parts=[genai_types.Part.from_text(text=greeting_text)],
-                        )
-                    ],
-                    turn_complete=True,
-                )
+                if self._session:
+                    await self._session.send_client_content(
+                        turns=[
+                            genai_types.Content(
+                                role="user",
+                                parts=[genai_types.Part.from_text(text=greeting_text)],
+                            )
+                        ],
+                        turn_complete=True,
+                    )
                 logger.info(
                     f"[GeminiLiveAgent:{self.session_id}] Isolated session established for topic '{new_topic}'."
                 )

@@ -10,11 +10,12 @@ and tracks real-time streamed board state so the agent is constantly spatially a
 import asyncio
 import logging
 import uuid
-from typing import Any, Callable, Coroutine, Dict, List, Optional
+from typing import Any, Callable, Coroutine, Dict, List, Optional, cast
 
 from google.genai import types as genai_types
 
 from src.mcp.types import (
+    BoardElementSummary,
     BoardStatePayload,
     McpJsonRpcRequest,
     McpJsonRpcResponse,
@@ -135,7 +136,7 @@ class TldrawMcpClient:
                 elementCount=count,
                 spatialSummary=f"Restored blackboard with {count} previously drawn formulas and shapes",
                 elements=[
-                    {"id": s.get("id", ""), "type": s.get("type", "shape")}
+                    BoardElementSummary(id=str(s.get("id", "")), type=str(s.get("type", "shape")))
                     for s in shapes
                     if isinstance(s, dict)
                 ],
@@ -144,6 +145,15 @@ class TldrawMcpClient:
                 f"[TldrawMcpClient:{self.session_id}] Restored blackboard spatial state with {count} elements."
             )
 
+    def clear_history(self) -> None:
+        """
+        Clears the cached tool history and resets the board state snapshot for a fresh session context.
+        """
+        self.tool_history.clear()
+        self.latest_board_state = BoardStatePayload()
+        logger.info(
+            f"[TldrawMcpClient:{self.session_id}] Board history and spatial state cleared."
+        )
 
     def get_tool_definitions(self) -> List[McpToolDefinition]:
         """
@@ -505,7 +515,7 @@ class TldrawMcpClient:
             func_decl = genai_types.FunctionDeclaration(
                 name=tool_def.name,
                 description=tool_def.description,
-                parameters=schema,
+                parameters=cast(Any, schema),
             )
             func_declarations.append(func_decl)
 
