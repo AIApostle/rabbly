@@ -38,8 +38,9 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     // Force crisp light whiteboard theme
     editor.user.updateUserPreferences({ colorScheme: 'light' });
 
-    // Center and frame canonical 1280x720 blackboard area cleanly
-    editor.zoomToBounds(new Box(0, 0, 1280, 720), { inset: 30, force: true });
+    // Center and frame canonical 1280x720 blackboard area cleanly with viewport-sensitive inset
+    const inset = typeof window !== 'undefined' && window.innerWidth < 640 ? 12 : 30;
+    editor.zoomToBounds(new Box(0, 0, 1280, 720), { inset, force: true });
 
     if (onEditorReady) {
       onEditorReady(editor);
@@ -61,7 +62,8 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   useEffect(() => {
     const handleResize = () => {
       if (editorRef.current) {
-        editorRef.current.zoomToBounds(new Box(0, 0, 1280, 720), { inset: 30, force: true });
+        const inset = window.innerWidth < 640 ? 12 : 30;
+        editorRef.current.zoomToBounds(new Box(0, 0, 1280, 720), { inset, force: true });
       }
     };
     window.addEventListener('resize', handleResize);

@@ -76,6 +76,9 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
             : 'chat';
 
   const navigateToView = (view: 'chat' | 'classrooms' | 'recent' | 'sprints' | 'library') => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setIsSidebarOpen(false);
+    }
     if (view === 'chat') {
       navigate('/session');
     } else if (view === 'library') {
@@ -103,8 +106,8 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isDepthMenuOpen, setIsDepthMenuOpen] = useState(false);
 
-  // Sidebar States
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  // Sidebar States (auto-collapsed on mobile/tablet viewports)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
 
   // Recent Sessions Data (Synchronized with backend API and local store)
   const [recentSessions, setRecentSessions] = useState<RecentSessionData[]>(getLocalSessions);
@@ -406,12 +409,20 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
         </div>
       )}
 
+      {/* Mobile Sidebar Backdrop Overlay */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* ======================================================== */}
       {/* 1. Collapsible Left Sidebar (ChatGPT-Style) */}
       {/* ======================================================== */}
       <aside
         className={`${
-          isSidebarOpen ? 'w-64 sm:w-72' : 'w-0 -translate-x-full'
+          isSidebarOpen ? 'w-64 sm:w-72 max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:z-40 max-lg:shadow-2xl' : 'w-0 -translate-x-full max-lg:fixed max-lg:inset-y-0 max-lg:left-0'
         } transition-all duration-300 ease-in-out bg-[#17191e] border-r border-[#44474f]/30 flex flex-col shrink-0 z-30 overflow-hidden select-none`}
       >
         {/* Sidebar Header */}
@@ -966,10 +977,10 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
                     <button
                       type="button"
                       onClick={() => setIsDepthMenuOpen(!isDepthMenuOpen)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#282a2f] hover:bg-[#33353a] border border-[#44474f]/40 text-xs font-medium text-[#c4c6d0] hover:text-white transition-all cursor-pointer"
+                      className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-[#282a2f] hover:bg-[#33353a] border border-[#44474f]/40 text-xs font-medium text-[#c4c6d0] hover:text-white transition-all cursor-pointer"
                     >
                       <SlidersHorizontal className="w-3 h-3 text-[#a8c7fa]" />
-                      <span>Depth: {level}</span>
+                      <span><span className="hidden sm:inline">Depth: </span>{level}</span>
                     </button>
 
                     {isDepthMenuOpen && (
@@ -1017,14 +1028,15 @@ export const LessonSetupPage: React.FC<LessonSetupPageProps> = ({
                     onClick={() => handleSubmit()}
                     disabled={!isSubmitReady}
                     id="setup-enter-class-btn"
-                    className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 rounded-full font-bold text-xs sm:text-sm transition-all duration-200 cursor-pointer shadow-md ${
+                    className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-full font-bold text-xs sm:text-sm transition-all duration-200 cursor-pointer shadow-md shrink-0 ${
                       isSubmitReady
                         ? 'bg-gradient-to-r from-blue-600 via-sky-500 to-emerald-400 text-white hover:scale-105 active:scale-95 shadow-blue-500/30'
                         : 'bg-[#282a2f] text-[#8e9099] cursor-not-allowed opacity-50'
                     }`}
                     title="Enter Class (Start analysis & lesson)"
                   >
-                    <span className="inline">Enter Class</span>
+                    <span className="hidden sm:inline">Enter Class</span>
+                    <span className="sm:hidden">Start</span>
                     <ArrowUp className="w-4 h-4 stroke-[2.5]" />
                   </button>
                 </div>

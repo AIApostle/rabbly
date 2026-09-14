@@ -123,16 +123,16 @@ export const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="w-full max-w-2xl max-h-[90vh] glass-dropdown rounded-3xl border border-slate-700/80 shadow-2xl bg-[#14161d] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="w-full max-w-2xl max-h-[92vh] sm:max-h-[90vh] glass-dropdown rounded-3xl border border-slate-700/80 shadow-2xl bg-[#14161d] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="p-6 pb-4 border-b border-slate-800/80 flex items-start justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-sky-500 flex items-center justify-center shadow-lg shadow-blue-500/20 text-white">
-              <Sparkles className="w-6 h-6 text-sky-200" />
+        <div className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-800/80 flex items-start justify-between shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-sky-500 flex items-center justify-center shadow-lg shadow-blue-500/20 text-white shrink-0">
+              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-sky-200" />
             </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono">
                   {isClassroom ? 'Classroom Concluded' : 'Lesson Completed'}
                 </span>
@@ -142,50 +142,51 @@ export const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
                   </span>
                 )}
               </div>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-white font-['Outfit'] line-clamp-1">
+              <h2 className="text-lg sm:text-2xl font-extrabold text-white font-['Outfit'] truncate">
                 {cleanTopic}
               </h2>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer"
+            className="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer shrink-0 ml-2"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
           {/* Key Metrics Grid */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col">
-              <span className="text-[11px] font-mono uppercase text-slate-400 font-bold mb-1 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-sky-400" />
-                Time Spent
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="p-3 sm:p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col">
+              <span className="text-[10px] sm:text-[11px] font-mono uppercase text-slate-400 font-bold mb-1 flex items-center gap-1 sm:gap-1.5 truncate">
+                <Clock className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                Time
               </span>
-              <span className="text-xl sm:text-2xl font-black text-white font-['Outfit']">
+              <span className="text-base sm:text-2xl font-black text-white font-['Outfit']">
                 {formatTimer(elapsedSeconds)}
               </span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col">
-              <span className="text-[11px] font-mono uppercase text-slate-400 font-bold mb-1 flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+            <div className="p-3 sm:p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col">
+              <span className="text-[10px] sm:text-[11px] font-mono uppercase text-slate-400 font-bold mb-1 flex items-center gap-1 sm:gap-1.5 truncate">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 Modules
               </span>
-              <span className="text-xl sm:text-2xl font-black text-white font-['Outfit']">
+              <span className="text-base sm:text-2xl font-black text-white font-['Outfit']">
                 {effectiveCompleted}/{effectiveTotal}
               </span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col">
-              <span className="text-[11px] font-mono uppercase text-slate-400 font-bold mb-1 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+            <div className="p-3 sm:p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col">
+              <span className="text-[10px] sm:text-[11px] font-mono uppercase text-slate-400 font-bold mb-1 flex items-center gap-1 sm:gap-1.5 truncate">
+                <Sparkles className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                 Progress
               </span>
-              <span className="text-xl sm:text-2xl font-black text-emerald-400 font-['Outfit']">
+              <span className="text-base sm:text-2xl font-black text-emerald-400 font-['Outfit']">
                 {progressPercent}%
               </span>
             </div>
@@ -280,7 +281,7 @@ export const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 sm:p-5 border-t border-slate-800/80 bg-[#111318] flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+        <div className="p-3 sm:p-5 border-t border-slate-800/80 bg-[#111318] flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 shrink-0">
           {onRestartSession ? (
             <button
               type="button"
@@ -294,11 +295,11 @@ export const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
             <div></div>
           )}
 
-          <div className="w-full sm:w-auto flex items-center gap-3">
+          <div className="w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-pointer"
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-pointer text-center"
             >
               Close
             </button>

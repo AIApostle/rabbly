@@ -263,7 +263,7 @@ export const ClassroomHubPage: React.FC<ClassroomHubPageProps> = ({
       {/* Top Header with Back Button */}
       <div className="pb-4 border-b border-[#44474f]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#d0bcff] mb-1">
+          <div className="flex items-center gap-2 text-xs font-semibold text-sky-400 mb-1">
             <Users className="w-4 h-4" />
             <span>Collaborative Study Rooms</span>
           </div>
@@ -290,7 +290,7 @@ export const ClassroomHubPage: React.FC<ClassroomHubPageProps> = ({
         {/* Card 1: Join via Classroom Link */}
         <div className="p-6 rounded-3xl bg-[#1d2024] border border-[#44474f]/40 shadow-xl flex flex-col justify-between space-y-4">
           <div>
-            <div className="w-10 h-10 rounded-2xl bg-[#4f378b]/40 border border-[#d0bcff]/40 text-[#d0bcff] flex items-center justify-center mb-3">
+            <div className="w-10 h-10 rounded-2xl bg-[#0842a0]/40 border border-[#a8c7fa]/40 text-[#a8c7fa] flex items-center justify-center mb-3">
               <Link2 className="w-5 h-5" />
             </div>
             <h2 className="text-lg font-bold text-white font-['Outfit']">
@@ -315,7 +315,7 @@ export const ClassroomHubPage: React.FC<ClassroomHubPageProps> = ({
                   setJoinInput(e.target.value);
                   setJoinError(null);
                 }}
-                className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-[#d0bcff] rounded-2xl px-4 py-2.5 text-sm text-white placeholder-[#8e9099] focus:outline-none transition-colors"
+                className="w-full bg-[#111318] border border-[#44474f]/50 focus:border-blue-500 rounded-2xl px-4 py-2.5 text-base sm:text-sm text-white placeholder-[#8e9099] focus:outline-none transition-colors"
               />
               {detectedCode && joinInput.trim() !== detectedCode && (
                 <div className="flex items-center gap-1.5 text-[11px] text-[#a8c7fa] mt-1.5 font-mono">
@@ -338,7 +338,7 @@ export const ClassroomHubPage: React.FC<ClassroomHubPageProps> = ({
               disabled={!joinInput.trim() || isJoining}
               className={`w-full py-3 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${
                 joinInput.trim() && !isJoining
-                  ? 'bg-[#4f378b] hover:bg-[#5e42a6] text-white shadow-[#4f378b]/30'
+                  ? 'bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white shadow-blue-500/30'
                   : 'bg-[#282a2f] text-[#8e9099] cursor-not-allowed opacity-60'
               }`}
             >
@@ -554,7 +554,7 @@ export const ClassroomHubPage: React.FC<ClassroomHubPageProps> = ({
               disabled={!newRoomTopic.trim() || isCreating}
               className={`w-full py-3 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${
                 newRoomTopic.trim() && !isCreating
-                  ? 'bg-gradient-to-r from-[#0842a0] to-[#4f378b] hover:from-[#0a4fc0] hover:to-[#5e42a6] text-white shadow-[#0842a0]/30'
+                  ? 'bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white shadow-blue-500/30'
                   : 'bg-[#282a2f] text-[#8e9099] cursor-not-allowed opacity-60'
               }`}
             >
@@ -634,13 +634,13 @@ export const ClassroomHubPage: React.FC<ClassroomHubPageProps> = ({
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-[#44474f]/30 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
+                <div className="pt-2 border-t border-[#44474f]/30 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {/* Rejoin Class button */}
                     <button
                       type="button"
                       onClick={() => onJoinRoom(room.roomCode)}
-                      className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#4f378b] to-[#6750a4] hover:from-[#5e42a6] hover:to-[#7965b2] text-white text-xs font-bold transition-all shadow-md shadow-[#4f378b]/30 flex items-center gap-1.5 cursor-pointer"
+                      className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white text-xs font-bold transition-all shadow-md shadow-blue-500/20 flex items-center gap-1.5 cursor-pointer"
                     >
                       <span>Rejoin Class</span>
                       <ArrowRight className="w-3.5 h-3.5" />

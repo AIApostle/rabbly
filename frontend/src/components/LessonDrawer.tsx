@@ -26,22 +26,26 @@ export const LessonDrawer: React.FC<LessonDrawerProps> = ({
 
   if (!plan) {
     return (
-      <aside className="fixed inset-y-0 right-0 z-30 w-96 max-w-[90vw] border-l border-blue-900/30 bg-[#0c1017]/95 shadow-2xl flex flex-col backdrop-blur-2xl animate-in slide-in-from-right duration-300">
-        <div className="p-4 border-b border-blue-900/30 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-white font-['Outfit']">Lesson Modules</h2>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg bg-[#191e28] hover:bg-[#222936] text-slate-400 hover:text-white transition-all cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-400">
-          <Layers className="w-10 h-10 text-blue-900/60 mb-3" />
-          <p className="text-sm font-medium text-slate-300">No active lesson modules.</p>
-          <p className="text-xs text-slate-500 mt-1">Start a lesson to generate roadmap modules.</p>
-        </div>
-      </aside>
+      <>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 sm:hidden" onClick={onClose} />
+        <aside className="fixed inset-y-0 right-0 z-40 w-full sm:w-96 max-w-full sm:max-w-[90vw] border-l border-blue-900/30 bg-[#0c1017]/98 sm:bg-[#0c1017]/95 shadow-2xl flex flex-col backdrop-blur-2xl animate-in slide-in-from-right duration-300">
+          <div className="p-4 border-b border-blue-900/30 flex items-center justify-between">
+            <h2 className="text-sm font-bold text-white font-['Outfit']">Lesson Modules</h2>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-lg bg-[#191e28] hover:bg-[#222936] text-slate-400 hover:text-white transition-all cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-400">
+            <Layers className="w-10 h-10 text-blue-900/60 mb-3" />
+            <p className="text-sm font-medium text-slate-300">No active lesson modules.</p>
+            <p className="text-xs text-slate-500 mt-1">Start a lesson to generate roadmap modules.</p>
+          </div>
+        </aside>
+      </>
     );
   }
 
@@ -49,10 +53,12 @@ export const LessonDrawer: React.FC<LessonDrawerProps> = ({
   const currentStepNum = Math.min(activeModuleIndex + 1, plan.modules.length);
 
   return (
-    <aside className="fixed inset-y-0 right-0 z-30 w-96 max-w-[90vw] border-l border-blue-900/30 bg-[#0c1017]/95 shadow-2xl flex flex-col backdrop-blur-2xl animate-in slide-in-from-right duration-300">
-      {/* Drawer Header: Clean Modules Roadmap */}
-      <div className="p-4 border-b border-blue-900/30 flex items-center justify-between bg-[#111622]/80">
-        <div className="flex items-center gap-2.5 min-w-0">
+    <>
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 sm:hidden" onClick={onClose} />
+      <aside className="fixed inset-y-0 right-0 z-40 w-full sm:w-96 max-w-full sm:max-w-[90vw] border-l border-blue-900/30 bg-[#0c1017]/98 sm:bg-[#0c1017]/95 shadow-2xl flex flex-col backdrop-blur-2xl animate-in slide-in-from-right duration-300">
+        {/* Drawer Header: Clean Modules Roadmap */}
+        <div className="p-4 border-b border-blue-900/30 flex items-center justify-between bg-[#111622]/80">
+          <div className="flex items-center gap-2.5 min-w-0">
           <div className="p-2 rounded-xl bg-blue-600/20 text-sky-400 border border-blue-500/30 shrink-0">
             <Layers className="w-4 h-4" />
           </div>
@@ -184,5 +190,6 @@ export const LessonDrawer: React.FC<LessonDrawerProps> = ({
         </div>
       </div>
     </aside>
+    </>
   );
 };

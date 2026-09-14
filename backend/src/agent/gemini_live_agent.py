@@ -710,6 +710,7 @@ class GeminiLiveAgent:
                                 parts=[genai_types.Part.from_text(text=greeting_text)],
                             )
                         ],
+                        #skills and other instruction
                         turn_complete=True,
                     )
                 logger.info(

@@ -610,9 +610,9 @@ export function App() {
 
           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
             <span className="text-base shrink-0">🐰</span>
-            <span className="text-sm font-extrabold text-white tracking-wide shrink-0">Rabbly</span>
-            <span className="text-xs text-slate-500 shrink-0">•</span>
-            <h1 className="text-xs font-semibold text-slate-200 truncate max-w-[110px] sm:max-w-xs md:max-w-md">
+            <span className="text-sm font-extrabold text-white tracking-wide shrink-0 hidden sm:inline">Rabbly</span>
+            <span className="text-xs text-slate-500 shrink-0 hidden sm:inline">•</span>
+            <h1 className="text-xs font-semibold text-slate-200 truncate max-w-[80px] xs:max-w-[120px] sm:max-w-xs md:max-w-md">
               {currentTopicTitle}
             </h1>
           </div>
