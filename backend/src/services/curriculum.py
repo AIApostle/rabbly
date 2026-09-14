@@ -74,7 +74,7 @@ def _generate_with_openrouter(
         "   - detail: publication venue, year, or authors\n"
         "   - url: arXiv / DOI / doc URL if known or web address\n"
         "   - snippet: 1-2 sentence annotation explaining why this is a primary reference.\n"
-        "7. suggestedQuestions: 3 insightful questions a student would ask to test or deepen understanding.\n\n"
+        "7. suggestedQuestions: 3 insightful, topic-specific questions a student would ask to deepen understanding (e.g. requesting a worked step-by-step example on the board, exploring first-principles intuition, or examining tricky exam problems in WAEC/NECO/JAMB or university syllabi). DO NOT generate generic software trade-off questions unless the topic itself is Computer Science.\n\n"
         "OUTPUT FORMAT: Return ONLY valid JSON matching this exact structure without markdown backticks or commentary."
     )
 
@@ -299,11 +299,44 @@ def _generate_fallback_plan(
         "- **Telemetry & Validation**: Maintain active metric logging for operational visibility under real-world conditions."
     ]
 
-    questions = [
-        f"What is the single most critical trade-off when implementing {clean_topic[:30]}?",
-        f"How does the {level} mental model differ from a naive first-principles perspective?",
-        f"What happens if an unexpected boundary failure occurs during execution?",
-    ]
+    # Dynamic subject- and topic-aware fallback questions
+    lower_topic = clean_topic.lower()
+    lower_subj = (inferred_subject or "").lower()
+    is_cs = any(k in lower_topic or k in lower_subj for k in ["software", "system design", "architecture", "database", "concurrency", "distributed", "compiler"])
+    is_math = any(k in lower_topic or k in lower_subj for k in ["math", "calculus", "trig", "algebra", "geometry", "fraction", "matrix", "vector", "derivative", "integral", "quadratic", "statistics", "probability"])
+    is_phys = any(k in lower_topic or k in lower_subj for k in ["physic", "force", "motion", "energy", "wave", "circuit", "electric", "magnet", "thermo", "optics", "gravity", "momentum"])
+    is_chem = any(k in lower_topic or k in lower_subj for k in ["chem", "organic", "reaction", "acid", "base", "mole", "bond", "periodic", "equilibrium", "stoichiometry", "titration"])
+
+    if is_cs:
+        questions = [
+            f"What is the key performance trade-off when implementing {clean_topic[:35]}?",
+            f"How does {clean_topic[:35]} handle edge cases and fault tolerance?",
+            f"What are the best practices for testing and debugging this in production?",
+        ]
+    elif is_math:
+        questions = [
+            f"Can you walk through a step-by-step worked example of {clean_topic[:35]} on the board?",
+            f"Why does this formula hold from first principles rather than pure memorization?",
+            f"What common calculation mistake do students make with this in WAEC or JAMB exams?",
+        ]
+    elif is_phys:
+        questions = [
+            f"Can you draw the free-body or circuit diagram on the board and derive the formula?",
+            f"How do dimensional analysis and SI units confirm our formula here?",
+            f"How does {clean_topic[:35]} apply to real-world engineering or Nigerian exam problems?",
+        ]
+    elif is_chem:
+        questions = [
+            f"Can you draw the reaction mechanism or molecular structure on the blackboard?",
+            f"How do Le Chatelier's principle and equilibrium conditions affect this reaction?",
+            f"What standard laboratory observations and reagents are tested in WAEC practicals for this?",
+        ]
+    else:
+        questions = [
+            f"Can you walk through a step-by-step worked example of {clean_topic[:35]} on the board?",
+            f"What is the foundational first-principles intuition behind this concept?",
+            f"How is {clean_topic[:35]} commonly tested in WAEC, NECO, or JAMB exams?",
+        ]
 
     return {
         "overview": f"A comprehensive {level.lower()}-level mastery roadmap for {clean_topic}, breaking down core principles, structural mechanics, and practical applications.",

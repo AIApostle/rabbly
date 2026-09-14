@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Mic,
   MicOff,
@@ -10,6 +10,7 @@ import {
   Hand,
   Layers,
 } from 'lucide-react';
+import { getTopicSpecificQuestions } from '../services/curriculumService';
 
 interface AudioControlBarProps {
   isMuted: boolean;
@@ -26,6 +27,8 @@ interface AudioControlBarProps {
   isClassroomMode?: boolean;
   hasRaisedHand?: boolean;
   onToggleRaiseHand?: () => void;
+  topic?: string;
+  subject?: string;
 }
 
 export const AudioControlBar: React.FC<AudioControlBarProps> = ({
@@ -43,9 +46,23 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
   isClassroomMode = false,
   hasRaisedHand = false,
   onToggleRaiseHand,
+  topic,
+  subject,
 }) => {
   const [showQuestionsMenu, setShowQuestionsMenu] = useState(false);
   const [customQuestion, setCustomQuestion] = useState('');
+
+  // Sanitize or dynamically generate STEM suggested questions
+  const effectiveQuestions = useMemo(() => {
+    const isHardcodedGeneric = (q: string) =>
+      /architectural trade-off|non-standard input|scaling to larger datasets|single most critical trade-off|boundary failure/i.test(q);
+
+    const validQuestions = (suggestedQuestions || []).filter((q) => q && !isHardcodedGeneric(q));
+    if (validQuestions.length > 0) {
+      return validQuestions;
+    }
+    return getTopicSpecificQuestions(topic || 'Lesson Concept', subject);
+  }, [suggestedQuestions, topic, subject]);
 
   const handleSubmitCustomQuestion = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,7 +99,7 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
 
           {/* Quick chips */}
           <div className="space-y-1.5 mb-3 max-h-40 sm:max-h-48 overflow-y-auto pr-1">
-            {suggestedQuestions.map((q, idx) => (
+            {effectiveQuestions.map((q, idx) => (
               <button
                 key={idx}
                 type="button"

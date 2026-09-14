@@ -66,6 +66,7 @@ export interface WhiteboardShapeAction {
   w?: number;
   h?: number;
   color?: WhiteboardColor;
+  style?: 'card' | 'text';
   fromId?: string;
   toId?: string;
   label?: string;

@@ -722,6 +722,8 @@ export function App() {
           audioLevel={studentAudioLevel}
           onAskQuestion={handleAskQuestion}
           suggestedQuestions={currentPlan?.suggestedQuestions || []}
+          topic={currentTopicTitle}
+          subject={currentPlan?.subject}
           onOpenClassroom={() => setIsClassroomModalOpen(true)}
           onToggleNotes={() => setIsNotesOpen(!isNotesOpen)}
           isNotesOpen={isNotesOpen}

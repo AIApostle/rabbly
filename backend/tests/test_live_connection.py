@@ -135,12 +135,12 @@ def test_session_pause_resume_interrupted(client: TestClient):
     """Verify that student can pause, resume, and barge-in / interrupt the session."""
     session_id = "test-pause-resume-session"
 
-    def read_until_type(ws, target_type: str, max_tries: int = 5):
+    def read_until_status(ws, target_status: str, max_tries: int = 8):
         for _ in range(max_tries):
             msg = json.loads(ws.receive_text())
-            if msg.get("type") == target_type:
+            if msg.get("type") == "agent_status" and msg.get("status") == target_status:
                 return msg
-        raise AssertionError(f"Did not receive message of type '{target_type}'")
+        raise AssertionError(f"Did not receive message with status '{target_status}'")
 
     with client.websocket_connect(f"/ws/live/{session_id}/output") as output_ws:
         with client.websocket_connect(f"/ws/live/{session_id}/input") as input_ws:
@@ -149,7 +149,7 @@ def test_session_pause_resume_interrupted(client: TestClient):
                 "type": "session_pause",
                 "sessionId": session_id,
             }))
-            pause_msg = read_until_type(output_ws, "agent_status")
+            pause_msg = read_until_status(output_ws, "paused")
             assert pause_msg["status"] == "paused"
 
             # 2. Send session_resume from student
@@ -157,7 +157,7 @@ def test_session_pause_resume_interrupted(client: TestClient):
                 "type": "session_resume",
                 "sessionId": session_id,
             }))
-            resume_msg = read_until_type(output_ws, "agent_status")
+            resume_msg = read_until_status(output_ws, "listening")
             assert resume_msg["status"] == "listening"
 
             # 3. Send student_interrupted (barge-in)
@@ -165,7 +165,7 @@ def test_session_pause_resume_interrupted(client: TestClient):
                 "type": "student_interrupted",
                 "sessionId": session_id,
             }))
-            interrupt_msg = read_until_type(output_ws, "agent_status")
+            interrupt_msg = read_until_status(output_ws, "interrupted")
             assert interrupt_msg["status"] == "interrupted"
 
 

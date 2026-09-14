@@ -99,12 +99,64 @@ function createFallbackPlan(topic: string, level: string): LessonPlan {
       `### 5. Critical Failure Modes & Edge Cases\n• **Boundary Value Leakage**: Always assert non-null state on external inputs.\n• **Concurrency Hazards**: Avoid un-synchronized race conditions across distributed updates.\n• **Resource Exhaustion**: Ensure active listeners and buffers are cleanly disposed.`,
       `### 6. Production Synthesis & Best Practices\n• **State Checkpointing**: Store incremental milestones to enable instant session resumption.\n• **Observability**: Maintain rich operational logging and real-time visual feedback.`,
     ],
-    suggestedQuestions: [
-      `What is the primary architectural trade-off of ${cleanTopic}?`,
-      'How does this approach handle non-standard input variations?',
-      'What are the performance implications when scaling to larger datasets?',
-    ],
+    suggestedQuestions: getTopicSpecificQuestions(cleanTopic, inferSubjectFromTopic(cleanTopic)),
   };
+}
+
+/**
+ * Returns dynamic, authentic STEM questions tailored to the active topic and subject.
+ */
+export function getTopicSpecificQuestions(topic: string, subject?: string): string[] {
+  const clean = (topic || '').trim();
+  const lowerTopic = clean.toLowerCase();
+  const lowerSubj = (subject || '').toLowerCase();
+
+  const isMath = /math|calculus|trig|algebra|geometry|fraction|matrix|vector|derivative|integral|quadratic|equation|statistics|probability/.test(lowerTopic) || /math/.test(lowerSubj);
+  const isPhys = /physic|force|motion|energy|wave|circuit|electric|magnet|thermo|optics|gravity|momentum|velocity|acceleration/.test(lowerTopic) || /physic/.test(lowerSubj);
+  const isChem = /chem|organic|reaction|acid|base|mole|bond|periodic|equilibrium|stoichiometry|titration|gas law/.test(lowerTopic) || /chem/.test(lowerSubj);
+  const isBio = /bio|cell|genetics|ecology|respiration|photosynthesis|organ|blood|dna/.test(lowerTopic) || /bio/.test(lowerSubj);
+  const isCS = /software|code|algorithm|data structure|system design|database|concurrency|network/.test(lowerTopic) || /computer/.test(lowerSubj);
+
+  if (isMath) {
+    return [
+      `Can you walk through a step-by-step worked example of ${clean.slice(0, 32)} on the board?`,
+      `Why does this formula hold from first principles rather than pure memorization?`,
+      `What is the most common mistake students make with this in WAEC and JAMB exams?`,
+    ];
+  }
+  if (isPhys) {
+    return [
+      `Can you draw the diagram on the board and derive the formula step by step?`,
+      `How do dimensional analysis and SI units confirm our calculations here?`,
+      `How does ${clean.slice(0, 32)} appear in real-world exam questions?`,
+    ];
+  }
+  if (isChem) {
+    return [
+      `Can you illustrate the reaction mechanism or structure on the blackboard?`,
+      `How do temperature, pressure, or concentration affect this according to Le Chatelier's principle?`,
+      `What standard observations or test reagents are tested in WAEC practicals for this?`,
+    ];
+  }
+  if (isBio) {
+    return [
+      `Can you draw and label the key diagram or cycle on the board?`,
+      `How do each of the components function together as an integrated system?`,
+      `What key definitions and differences do examiners look for in WAEC/JAMB?`,
+    ];
+  }
+  if (isCS) {
+    return [
+      `What is the key performance trade-off when implementing ${clean.slice(0, 32)}?`,
+      `How does ${clean.slice(0, 32)} handle edge cases and boundary conditions?`,
+      `What are the best practices for testing and debugging this in production?`,
+    ];
+  }
+  return [
+    `Can you walk through a step-by-step worked example of ${clean.slice(0, 32)} on the board?`,
+    `What is the underlying first-principles intuition behind this concept?`,
+    `How do examiners commonly test ${clean.slice(0, 32)} in WAEC, NECO, or JAMB?`,
+  ];
 }
 
 /**
